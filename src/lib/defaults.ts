@@ -1,0 +1,81 @@
+import { DEFAULT_COMMENTS, DEFAULT_GRADES, DEFAULT_WEIGHTS } from "./logic/scoring";
+import { DEFAULT_EXAM_ELIGIBILITY } from "./logic/academics";
+
+// Every value here is only a *starting* value: Super Admin edits all of it in Settings / Content.
+export const DEFAULT_SETTINGS: Record<string, unknown> = {
+  brand: {
+    group: "Fodan Group of Schools",
+    school: "Fodan College International",
+    tagline: "Learn. Practise. Test. Improve.",
+    subTagline: "Smart Assessment. Secure Examination. Better Learning.",
+    logoFile: "",
+  },
+  founder: {
+    name: "Banjo Folahan Daniel",
+    position: "Founder and Proprietor",
+    photoFile: "",
+    qualifications: "",
+    profile: "Banjo Folahan Daniel is the Founder and Proprietor of Fodan Group of Schools, a technology-driven educational institution committed to academic excellence, discipline and leadership.",
+    message: "Education is the most dependable inheritance a family can give a child. At Fodan we pair disciplined teaching with honest assessment so that every learner can see where they stand and how to improve.",
+    toParents: "We treat your trust as a responsibility. Through this portal you can follow every assignment, test and result in real time.",
+    toStudents: "Learn with focus, practise with patience, test yourself honestly and improve every day.",
+    toStaff: "Thank you for the care and rigour you bring to the classroom. This platform exists to give your work structure and visibility.",
+    vision: "To raise disciplined, globally competitive leaders through excellent teaching and smart assessment.",
+  },
+  contact: {
+    phone: "+234 806 757 8112",
+    email: "folahandaniel@gmail.com",
+    address: "Fodan College International, Nigeria",
+    whatsapp: "2348067578112",
+    officeHours: "Monday – Friday, 8:00am – 4:00pm",
+    emergency: "+234 806 757 8112",
+  },
+  social: { facebook: "", youtube: "", instagram: "", tiktok: "", linkedin: "", x: "", whatsapp: "https://wa.me/2348067578112", website: "" },
+  home: {
+    heroTitle: "A disciplined school for a global future.",
+    heroSub: "Fodan College International — the principal school of Fodan Group of Schools. Primary and Secondary education, built on academic seriousness, character and technology.",
+    about: "Fodan Group of Schools is a family of schools built around one idea: learners improve fastest when teaching, practice and honest assessment work together.",
+    aboutCollege: "Fodan College International is our principal school, offering Primary (Basic 1–6) and Secondary (JSS 1–3, SSS 1–3) education with Science, Commercial and Arts departments in the Senior Secondary section.",
+    vision: "To be a trusted international standard of excellence in teaching, character and assessment.",
+    mission: "To educate every learner with discipline, integrity and modern tools, and to give parents transparent visibility of progress.",
+    values: ["Excellence", "Discipline", "Integrity", "Leadership", "Service"],
+    examPrep: "Structured mock examinations and practice for Common Entrance, BECE, NECO, WAEC, JAMB and international-style assessments, using original or properly licensed questions.",
+    stats: [
+      { label: "Classes", value: "Basic 1 – SSS 3" },
+      { label: "Departments", value: "Science · Commercial · Arts" },
+      { label: "Assessment", value: "10 · 30 · 60" },
+      { label: "Access", value: "Student · Parent · Staff" },
+    ],
+  },
+  grading: DEFAULT_GRADES,
+  comments: DEFAULT_COMMENTS,
+  weights: DEFAULT_WEIGHTS,
+  eligibility: DEFAULT_EXAM_ELIGIBILITY,
+  seniority: { minYears: 5, minPositionRank: 0, requireDegree: false },
+  results: { release: "manual", showPosition: true },
+  features: { registration: true, parentLinking: true, mocks: true, studyCentre: true, ai: false },
+  periods: [
+    { n: 1, label: "8:00 – 8:40" }, { n: 2, label: "8:40 – 9:20" }, { n: 3, label: "9:20 – 10:00" },
+    { n: 4, label: "10:30 – 11:10" }, { n: 5, label: "11:10 – 11:50" }, { n: 6, label: "11:50 – 12:30" },
+    { n: 7, label: "1:00 – 1:40" }, { n: 8, label: "1:40 – 2:20" },
+  ],
+  report: { stamp: "School Stamp", signatories: ["Class Teacher", "Principal"], showAttendance: true },
+  certificate: { heading: "Certificate of Achievement", proprietorSign: "Founder & Proprietor", principalSign: "Principal" },
+  pwa: { name: "Fodan Group of Schools Portal", short: "Fodan Portal", theme: "#0a1b3f" },
+};
+
+export const DEFAULT_CONTENT: { kind: string; title: string; body: string; data?: Record<string, unknown>; sort?: number }[] = [
+  { kind: "programme", title: "Primary Section", body: "Basic 1 to Basic 6. A strong foundation in literacy, numeracy, science and character, with Common Entrance preparation in Basic 5 and 6.", sort: 1 },
+  { kind: "programme", title: "Junior Secondary", body: "JSS 1 to JSS 3. A broad curriculum with continuous assessment and BECE preparation in JSS 2 and JSS 3.", sort: 2 },
+  { kind: "programme", title: "Senior Secondary", body: "SSS 1 to SSS 3 in Science, Commercial and Arts, with NECO, WAEC and JAMB preparation in SSS 2 and SSS 3.", sort: 3 },
+  { kind: "facility", title: "Computer-Based Testing", body: "Secure on-screen tests and examinations with automatic marking and instant analysis.", sort: 1 },
+  { kind: "facility", title: "Digital Study Centre", body: "Lesson notes, videos and practice organised by class, term, subject and topic.", sort: 2 },
+  { kind: "facility", title: "Parent Portal", body: "Parents follow attendance, assignments, results and teacher remarks for every child.", sort: 3 },
+  { kind: "facility", title: "Examination Preparation Unit", body: "Mock examinations and diagnostics for external examination classes.", sort: 4 },
+  { kind: "activity", title: "Academic Clubs", body: "Debate, science and ICT clubs build confidence and curiosity.", sort: 1 },
+  { kind: "activity", title: "Sports and Leadership", body: "Inter-house sports, prefect training and community service.", sort: 2 },
+  { kind: "faq", title: "How does a student get an account?", body: "The school enrols the student and issues a unique access code. The student uses that code on the Register page to activate the account with their email address and a strong password.", sort: 1 },
+  { kind: "faq", title: "How does a parent monitor a child?", body: "Create a parent account, then enter your child's access code, admission number and date of birth. Once verified, you can follow results, attendance, assignments and announcements.", sort: 2 },
+  { kind: "faq", title: "Can a forgotten password be recovered?", body: "Passwords are never visible to anyone. The school can issue a secure one-time reset link, which lets you choose a new password.", sort: 3 },
+  { kind: "faq", title: "Does the portal work on a phone?", body: "Yes. It is mobile-first and can be installed like an app on supported devices.", sort: 4 },
+];
