@@ -478,4 +478,38 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS notif_user_idx ON notifications (user_id, read, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS records (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id),
+  module text NOT NULL,
+  title text NOT NULL,
+  body text NOT NULL DEFAULT '',
+  status text NOT NULL,
+  data jsonb NOT NULL DEFAULT '{}',
+  owner_id uuid REFERENCES users(id),
+  assignee_id uuid REFERENCES users(id),
+  due_on date,
+  pinned boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS records_module_idx ON records (school_id, module, status, created_at DESC);
+CREATE TABLE IF NOT EXISTS record_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  record_id uuid NOT NULL REFERENCES records(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id),
+  kind text NOT NULL,
+  body text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (record_id, user_id, kind)
+);
+CREATE TABLE IF NOT EXISTS record_replies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  record_id uuid NOT NULL REFERENCES records(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id),
+  body text NOT NULL,
+  hidden boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 `;

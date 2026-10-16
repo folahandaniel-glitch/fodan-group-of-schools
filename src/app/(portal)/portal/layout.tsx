@@ -5,7 +5,9 @@ import { sql } from "@/lib/db";
 import { Logo } from "@/components/ui";
 import { PortalNav, type NavItem } from "@/components/portal-nav";
 import { ROLE_LABEL } from "@/lib/logic/permissions";
-import { currentTerm } from "@/lib/settings";
+import { currentTerm, getSetting } from "@/lib/settings";
+import { canView, loadModules } from "@/lib/modules";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import { logout } from "@/app/(auth)/actions";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +20,11 @@ export default async function PortalLayout({ children }: { children: React.React
   const [{ n }] = await sql`SELECT count(*)::int AS n FROM notifications WHERE user_id = ${me.id} AND read = false`;
   const term = await currentTerm();
   const learner = me.role === "student" || me.role === "parent";
+  const mods = await loadModules();
+  const labels = ((await getSetting<Record<string, string>>("labels")) ?? {}) as Record<string, string>;
+  const audience = me.role === "parent" ? "parents" : me.role === "student" ? "students" : "staff";
+  const banner = await sql`SELECT id, title FROM content_items WHERE school_id = ${me.schoolId} AND published = true AND kind = 'announcement'
+                           AND audience IN ('public','all', ${audience}) ORDER BY created_at DESC LIMIT 5`;
 
   const items: NavItem[] = [{ href: "/portal", label: "Dashboard", group: "Overview" }];
   const add = (cond: boolean, href: string, label: string, group: string) => cond && items.push({ href, label, group });
@@ -42,7 +49,9 @@ export default async function PortalLayout({ children }: { children: React.React
   add(!learner && can(me, "analytics:view"), "/portal/analytics", "Analytics", "Records");
   add(can(me, "announcements:view"), "/portal/announcements", "Announcements", "Communicate");
   add(can(me, "comments:view"), "/portal/comments", "Website messages", "Communicate");
+  for (const m of mods) add(canView(me, m), `/portal/m/${m.key}`, m.label, m.key === "forum" || m.key === "kb" ? "Community" : "Workspace");
   add(can(me, "audit:view"), "/portal/audit", "Audit & security", "Administration");
+  add(can(me, "settings:view") || can(me, "*"), "/portal/backend", "BackEnd console", "Administration");
   add(can(me, "users:view") || can(me, "*"), "/portal/users", "Users & access", "Administration");
   add(can(me, "settings:view") || can(me, "cms:view") || can(me, "*"), "/portal/settings", "Settings & content", "Administration");
 
@@ -54,7 +63,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <Logo size={46} />
             <span className="leading-tight"><span className="block font-display text-[0.98rem]">Fodan College</span><span className="block text-[0.65rem] font-bold uppercase tracking-[0.14em] text-gold">International</span></span>
           </Link>
-          <PortalNav items={items} />
+          <PortalNav items={items.map((i) => ({ ...i, label: labels[i.label] ?? i.label }))} />
         </div>
       </aside>
 
@@ -62,9 +71,9 @@ export default async function PortalLayout({ children }: { children: React.React
         <header className="no-print sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-paper/95 px-4 py-2.5 backdrop-blur">
           <details className="relative lg:hidden">
             <summary className="btn btn-ghost btn-sm list-none">Menu</summary>
-            <div className="absolute left-0 top-12 max-h-[75dvh] w-72 overflow-y-auto rounded-2xl border border-line bg-white p-3 shadow-2xl"><PortalNav items={items} /></div>
+            <div className="absolute left-0 top-12 max-h-[75dvh] w-72 overflow-y-auto rounded-2xl border border-line bg-white p-3 shadow-2xl"><PortalNav items={items.map((i) => ({ ...i, label: labels[i.label] ?? i.label }))} /></div>
           </details>
-          <p className="hidden text-sm text-muted lg:block">{term ? `${term.session_name} · ${term.name}` : "No current term set"}</p>
+          <form action="/portal/search" role="search" className="hidden flex-1 lg:block"><input name="q" className="input !min-h-9 max-w-xs !py-1" placeholder={term ? `Search · ${term.session_name} ${term.name}` : "Search"} aria-label="Search the portal" /></form>
           <div className="flex items-center gap-2">
             <Link href="/portal/notifications" className="btn btn-ghost btn-sm" aria-label={`Notifications, ${n} unread`}>
               Alerts{n > 0 && <span className="badge badge-bad">{n}</span>}
@@ -75,6 +84,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <form action={logout}><button className="btn btn-primary btn-sm">Sign out</button></form>
           </div>
         </header>
+        {banner.length > 0 && <AnnouncementBanner items={banner.map((b) => ({ id: b.id as string, title: b.title as string }))} />}
         <main id="main" className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
