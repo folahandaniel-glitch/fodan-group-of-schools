@@ -27,7 +27,8 @@ if (!att) {
 }
 const [file] = await sql`INSERT INTO files (school_id, name, mime, size, public, data) VALUES (${school.id}, 'secret.pdf', 'application/pdf', 4, false, ${Buffer.from("%PDF")}) RETURNING id`;
 const a = await sess(amaka.id);
-const get = (p, tok, init = {}) => fetch(BASE + p, { redirect: "manual", ...init, headers: { ...(tok ? { cookie: `fgs_session=${tok}` } : {}), ...(init.headers ?? {}) } });
+// Streaming layouts deliver notFound()/redirect() as a 200 shell; expose body-based flags as well as the status.
+const get = async (p, tok, init = {}) => { const r = await fetch(BASE + p, { redirect: "manual", ...init, headers: { ...(tok ? { cookie: `fgs_session=${tok}` } : {}), ...(init.headers ?? {}) } }); const body = r.status === 200 ? await r.text() : ""; return { status: r.status, headers: r.headers, body, text: async () => body, nf: r.status === 404 || /could not find that page|NEXT_NOT_FOUND|NEXT_HTTP_ERROR_FALLBACK;404/.test(body), forbidden: /forbidden/.test(r.headers.get("location") ?? "") || body.includes("/forbidden") }; };
 
 let fail = 0;
 const check = (name, ok, info = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  (" + info + ")" : ""}`); if (!ok) fail++; };
@@ -35,11 +36,11 @@ const check = (name, ok, info = "") => { console.log(`${ok ? "PASS" : "FAIL"}  $
 let r = await get("/portal");
 check("anonymous /portal redirects to login", r.status === 307 && /login/.test(r.headers.get("location") ?? ""));
 r = await get("/portal/students", a);
-check("student cannot open student directory", r.status === 307 && /forbidden/.test(r.headers.get("location") ?? ""), r.headers.get("location") ?? "");
+check("student cannot open student directory", r.forbidden);
 r = await get(`/portal/students/${chidi.id}`, a);
-check("student cannot open another student's record", r.status === 307 || r.status === 404, String(r.status));
+check("student cannot open another student's record", r.forbidden || r.nf, String(r.status));
 r = await get(`/portal/report/${chidi.id}`, a);
-check("IDOR: report card of another student -> 404", r.status === 404, String(r.status));
+check("IDOR: report card of another student not shown", r.nf && !/Chidi/.test(r.body), String(r.status));
 r = await get(`/portal/results?student=${chidi.id}`, a);
 const body = r.status === 200 ? await r.text() : "";
 check("IDOR: results of another student not shown", !/Chidi/.test(body), `status ${r.status}`);
@@ -48,9 +49,9 @@ check("IDOR: another student's exam attempt -> 404", r.status === 404, String(r.
 r = await get(`/api/cbt/${att.id}`, a, { method: "POST", body: JSON.stringify({ action: "submit" }), headers: { "content-type": "application/json" } });
 check("IDOR: cannot submit another student's attempt", r.status === 404, String(r.status));
 r = await get("/portal/audit", a);
-check("student cannot read audit log", r.status === 307 && /forbidden/.test(r.headers.get("location") ?? ""));
+check("student cannot read audit log", r.forbidden);
 r = await get("/portal/settings", a);
-check("student cannot open settings", r.status === 307 && /forbidden/.test(r.headers.get("location") ?? ""));
+check("student cannot open settings", r.forbidden);
 r = await get("/portal/export/students", a);
 check("student cannot export students", r.status === 403, String(r.status));
 r = await get(`/api/files/${file.id}`);
@@ -70,11 +71,13 @@ check("security headers present", r.headers.get("x-content-type-options") === "n
 const [u] = await sql`SELECT failed_logins FROM users WHERE email = 'amaka.obi@student.test'`;
 check("lockout counter available", u.failed_logins === 0);
 // Audit log is append-only
+await sql`INSERT INTO audit_logs (school_id, action) VALUES (${school.id}, 'test.entry')`;
 let blocked = false;
 try { await sql`UPDATE audit_logs SET action = 'tampered' WHERE id = (SELECT max(id) FROM audit_logs)`; } catch { blocked = true; }
 check("audit log rejects UPDATE", blocked);
+await sql`SELECT 1`.catch(() => {}); // drain the embedded dev server after an error
 blocked = false;
-try { await sql`DELETE FROM audit_logs WHERE id = (SELECT max(id) FROM audit_logs)`; } catch { blocked = true; }
+{ const s2 = postgres(env.DATABASE_URL, { max: 1, prepare: false, onnotice: () => {} }); try { await s2`DELETE FROM audit_logs WHERE id = (SELECT max(id) FROM audit_logs)`; } catch { blocked = true; } await s2.end().catch(() => {}); }
 check("audit log rejects DELETE", blocked);
 // Passwords are hashed with Argon2id and never stored plain
 const [hrow] = await sql`SELECT password_hash FROM users WHERE email = 'chidi.eze@student.test'`;
