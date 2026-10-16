@@ -61,7 +61,8 @@ export default async function PublicLayout({ children }: { children: React.React
               <li><Link href="/login" className="hover:text-white">Student portal</Link></li>
               <li><Link href="/login" className="hover:text-white">Parent portal</Link></li>
               <li><Link href="/login" className="hover:text-white">Teacher portal</Link></li>
-              <li><Link href="/register" className="hover:text-white">Registration</Link></li>
+              <li><Link href="/register" className="hover:text-white">Student registration</Link></li>
+              <li><Link href="/register/staff" className="hover:text-white">Staff registration</Link></li>
             </ul>
             {social.length > 0 && (
               <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-white/70">
@@ -71,7 +72,7 @@ export default async function PublicLayout({ children }: { children: React.React
           </div>
         </div>
         <div className="border-t border-white/10 px-4 py-4 text-center">
-          <p className="text-xs text-white/70">Powered and Maintained by Fodan Softnet Digital Ltd (+234806 757 8112)</p>
+          <p className="text-xs text-white/70">{s.footer?.text}</p>
           <Link href="/login?staff=1" className="mt-1 inline-block text-[10px] uppercase tracking-widest text-white/35 hover:text-white/70">Backend</Link>
         </div>
       </footer>

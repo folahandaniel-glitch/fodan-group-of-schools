@@ -62,6 +62,22 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   report: { stamp: "School Stamp", signatories: ["Class Teacher", "Principal"], showAttendance: true },
   certificate: { heading: "Certificate of Achievement", proprietorSign: "Founder & Proprietor", principalSign: "Principal" },
   pwa: { name: "Fodan Group of Schools Portal", short: "Fodan Portal", theme: "#0a1b3f" },
+  footer: { text: "(08067578112) Powered by Fodan Softnet and Solar Energy" },
+  authArt: { login: "", register: "", staff: "", caption: "Learn. Practise. Test. Improve." },
+  fines: { workStart: "08:00", graceMinutes: 10, perMinute: 0, lateFlat: 500, absentFine: 2000, defaultRadius: 150, enabled: true },
+  // One position per line: Title | role key. Editable in the BackEnd.
+  positions: {
+    secondary: ["Principal | principal", "Vice Principal (Administration) / HR Manager | vp_admin", "Vice Principal (Academics) | vp_academics",
+      "Head of Department (Science) | hod", "Head of Department (Arts) | hod", "Head of Department (Commercial) | hod", "Head of Department (Languages) | hod",
+      "Head of Department (Social Sciences) | hod", "Senior Teacher | senior_staff", "Class Teacher | class_teacher", "Subject Teacher | teacher",
+      "Examination Officer | exam_officer", "Guidance Counsellor | counsellor"],
+    primary: ["Headteacher | headteacher", "Assistant Headteacher | asst_headteacher", "Head of Department | hod", "Senior Teacher | senior_staff",
+      "Class Teacher | class_teacher", "Subject Teacher | teacher", "Guidance Counsellor | counsellor"],
+    non_teaching: ["Director | director", "HR Manager | hr_manager", "Chief Accountant | accountant", "Accountant | accountant", "Bursar | bursar", "Auditor | auditor",
+      "Secretary | reception", "Administrative Officer | reception", "ICT Officer | ict_officer", "Librarian | librarian", "School Nurse | nurse",
+      "Store Keeper | support_staff", "Driver | transport", "Chief Security Officer (CSO) | support_staff", "Assistant CSO | support_staff",
+      "Security Personnel | support_staff", "Gardener | support_staff", "Sanitary Personnel | support_staff", "Cook | support_staff", "Cleaner | support_staff"],
+  },
 };
 
 export const DEFAULT_CONTENT: { kind: string; title: string; body: string; data?: Record<string, unknown>; sort?: number }[] = [

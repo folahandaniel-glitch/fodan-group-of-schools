@@ -3,12 +3,14 @@ import { ActionForm } from "@/components/action-form";
 import { PasswordInput } from "@/components/password-input";
 import { Field, Select } from "@/components/ui";
 import { registerParent } from "../../actions";
+import { AuthArt } from "@/components/auth-art";
 
 export const metadata = { title: "Parent registration" };
 
 export default function RegisterParent() {
   return (
     <div>
+      <AuthArt slot="register" className="mb-5" />
       <p className="eyebrow">Parent / guardian registration</p>
       <h1 className="mt-1 text-3xl">Create your parent account</h1>
       <p className="mt-1 text-sm text-muted">You can add your children now or later from your dashboard.</p>

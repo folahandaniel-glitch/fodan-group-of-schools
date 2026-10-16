@@ -14,7 +14,7 @@ export const metadata = { title: "Settings & content" };
 
 const TABS = [
   ["brand", "Branding"], ["founder", "Founder"], ["contact", "Contact & social"], ["home", "Homepage"], ["content", "News & content"],
-  ["academic", "Academic & grading"], ["eligibility", "Exams & features"], ["periods", "Timetable & documents"], ["permissions", "Roles & permissions"],
+  ["academic", "Academic & grading"], ["eligibility", "Exams & features"], ["auth", "Sign-in & footer"], ["periods", "Timetable & documents"], ["permissions", "Roles & permissions"],
 ] as const;
 
 export default async function Settings({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -127,6 +127,24 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             {["common_entrance", "bece", "neco", "waec", "jamb", "international"].map((k) => <Field key={k} label={k.replace("_", " ").toUpperCase()} name={`e_${k}`} defaultValue={(s.eligibility[k] ?? []).join(", ")} />)}
             {[["registration", "Student registration open"], ["parentLinking", "Parent linking enabled"], ["mocks", "Mock centre enabled"], ["studyCentre", "Study centre enabled"], ["ai", "AI assistance (always pending review)"]].map(([k, l]) => (
               <label key={k} className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name={`f_${k}`} defaultChecked={!!s.features[k]} /> {l}</label>
+            ))}
+          </ActionForm></div>
+        </Card>
+      )}
+      {tab === "auth" && (
+        <Card><h2 className="text-xl">Sign-in pictures, footer &amp; staff positions</h2>
+          <div className="mt-3"><ActionForm action={saveSettings} encType="multipart/form-data" className="grid gap-3 sm:grid-cols-2">
+            {hidden("auth")}
+            {(["login", "register", "staff"] as const).map((k) => (
+              <div key={k} className="field"><label htmlFor={`art_${k}`}>{k === "login" ? "Sign-in picture" : k === "register" ? "Student & parent registration picture" : "Staff registration picture"}</label>
+                <input id={`art_${k}`} name={`art_${k}`} type="file" accept="image/png,image/jpeg,image/webp" className="input" />
+                <label className="mt-1 flex items-center gap-2 text-xs font-semibold"><input type="checkbox" name={`clear_${k}`} /> Remove current picture {s.authArt?.[k] ? "(one is set)" : "(placeholder shown)"}</label></div>
+            ))}
+            <Field label="Sign-in caption" name="caption" defaultValue={s.authArt?.caption} />
+            <div className="sm:col-span-2"><Field label="Footer text (public site and sign-in screens)" name="footer" defaultValue={s.footer?.text} /></div>
+            <p className="hint sm:col-span-2">Staff positions: one per line as <code>Title | role</code>. Roles: {ROLES.filter((r) => r !== "super_admin").join(", ")}.</p>
+            {([["secondary", "Teaching — Secondary school"], ["primary", "Teaching — Primary school"], ["non_teaching", "Non-teaching staff"]] as const).map(([g, l]) => (
+              <div key={g} className="sm:col-span-2"><TextArea label={l} name={`pos_${g}`} rows={8} defaultValue={((s.positions?.[g] ?? []) as string[]).join("\n")} /></div>
             ))}
           </ActionForm></div>
         </Card>

@@ -479,6 +479,46 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX IF NOT EXISTS notif_user_idx ON notifications (user_id, read, created_at DESC);
 
+ALTER TABLE staff_profiles ADD COLUMN IF NOT EXISTS category text;
+ALTER TABLE staff_profiles ADD COLUMN IF NOT EXISTS section text;
+ALTER TABLE staff_profiles ADD COLUMN IF NOT EXISTS branch_id uuid;
+CREATE TABLE IF NOT EXISTS branches (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id),
+  name text NOT NULL,
+  address text,
+  lat double precision,
+  lng double precision,
+  radius_m int NOT NULL DEFAULT 150,
+  active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (school_id, name)
+);
+CREATE TABLE IF NOT EXISTS clock_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id),
+  user_id uuid NOT NULL REFERENCES users(id),
+  branch_id uuid REFERENCES branches(id),
+  day date NOT NULL,
+  clock_in timestamptz,
+  clock_out timestamptz,
+  in_lat double precision, in_lng double precision, in_dist_m int,
+  out_lat double precision, out_lng double precision, out_dist_m int,
+  late_minutes int NOT NULL DEFAULT 0,
+  UNIQUE (user_id, day)
+);
+CREATE TABLE IF NOT EXISTS fines (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id),
+  user_id uuid NOT NULL REFERENCES users(id),
+  day date NOT NULL,
+  reason text NOT NULL,
+  amount numeric NOT NULL,
+  status text NOT NULL DEFAULT 'applied',
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, day, reason)
+);
 CREATE TABLE IF NOT EXISTS records (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id),

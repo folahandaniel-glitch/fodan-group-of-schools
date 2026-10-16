@@ -10,7 +10,7 @@ export type ModuleDef = {
   enabled?: boolean;
 };
 
-const MGMT = ["super_admin", "proprietor", "principal", "vp_admin", "vp_academics"];
+const MGMT = ["super_admin", "premium_admin", "proprietor", "director", "principal", "headteacher", "vp_admin", "hr_manager", "vp_academics", "asst_headteacher"];
 
 /** Built-in modules carried over from Fodan College (forum, tasks) and WorkSuite (leave, memos, knowledge base, tickets, discipline). */
 export const MODULES: ModuleDef[] = [
@@ -36,6 +36,11 @@ export const MODULES: ModuleDef[] = [
       { name: "priority", label: "Priority", type: "select", options: ["Normal", "High", "Urgent"] }],
     statuses: ["open", "in_progress", "resolved", "closed"], defaultStatus: "open", create: ["all"], view: ["all"], manage: [...MGMT, "ict_officer", "reception"],
     ownOnly: true, replies: true, ownerMay: ["closed"] },
+  { key: "finance", label: "Finance approvals", origin: "WorkSuite", blurb: "Expense and payment requests with an approval trail (requester, approver, payer).",
+    fields: [{ name: "amount", label: "Amount (₦)", type: "text", required: true },
+      { name: "category", label: "Category", type: "select", options: ["Salaries", "Maintenance", "Utilities", "Learning materials", "Events", "Transport", "Other"], required: true }],
+    statuses: ["pending", "approved", "rejected", "paid"], defaultStatus: "pending", create: ["staff"], view: ["staff"],
+    manage: ["super_admin", "premium_admin", "proprietor", "director", "accountant", "bursar", "principal", "headteacher"], ownOnly: true, replies: true, ownerMay: [] },
   { key: "discipline", label: "Discipline records", origin: "WorkSuite", blurb: "Queries and warnings with a fair-hearing trail. Restricted to school leaders.",
     fields: [{ name: "subject", label: "Student admission no. or staff email", type: "text", required: true },
       { name: "type", label: "Type", type: "select", options: ["Query", "Verbal warning", "Written warning", "Final warning", "Suspension"], required: true }],

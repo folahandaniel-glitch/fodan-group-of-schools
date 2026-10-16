@@ -83,7 +83,7 @@ export async function setStaffStatus(fd: FormData): Promise<void> {
   const id = clean(fd.get("id"), 40), op = clean(fd.get("op"), 12);
   const [u] = await sql`SELECT role FROM users WHERE id = ${id} AND school_id = ${me.schoolId}`;
   if (!u || u.role === "super_admin" || !mayManage(me, u.role) || id === me.id) return;
-  const map: Record<string, [string, string]> = { suspend: ["suspended", "suspended"], archive: ["archived", "archived"], restore: ["active", "active"] };
+  const map: Record<string, [string, string]> = { approve: ["active", "active"], reject: ["archived", "archived"], suspend: ["suspended", "suspended"], archive: ["archived", "archived"], restore: ["active", "active"] };
   const m = map[op];
   if (!m) return;
   await sql`UPDATE users SET status = ${m[0]} WHERE id = ${id}`;

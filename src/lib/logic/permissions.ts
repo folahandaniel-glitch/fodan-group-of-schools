@@ -4,6 +4,7 @@ export const ROLES = [
   "proprietor", "super_admin", "principal", "vp_admin", "vp_academics", "hod",
   "senior_staff", "teacher", "class_teacher", "student", "parent",
   "accountant", "librarian", "nurse", "counsellor", "transport", "ict_officer", "reception", "exam_officer", "bursar",
+  "director", "premium_admin", "headteacher", "asst_headteacher", "hr_manager", "auditor", "support_staff",
 ] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -14,17 +15,21 @@ export const ROLE_LABEL: Record<string, string> = {
   student: "Student", parent: "Parent / Guardian", accountant: "Accountant", librarian: "Librarian",
   nurse: "School Nurse", counsellor: "Counsellor", transport: "Transport Manager", ict_officer: "ICT Officer",
   reception: "Reception / Admin Officer", exam_officer: "Examination Officer", bursar: "Bursar",
+  director: "Director", premium_admin: "Premium Admin", headteacher: "Headteacher", asst_headteacher: "Assistant Headteacher",
+  hr_manager: "HR Manager", auditor: "Auditor", support_staff: "Support staff",
 };
 
 export const STAFF_ROLES: Role[] = [
   "principal", "vp_admin", "vp_academics", "hod", "senior_staff", "teacher", "class_teacher",
   "proprietor", "accountant", "librarian", "nurse", "counsellor", "transport", "ict_officer", "reception", "exam_officer", "bursar",
+  "director", "premium_admin", "headteacher", "asst_headteacher", "hr_manager", "auditor", "support_staff",
 ];
 
 export const RESOURCES = [
   "dashboard", "students", "parents", "staff", "classes", "subjects", "timetable", "calendar", "attendance",
   "promotion", "access_codes", "lessons", "questions", "assessments", "results", "reports", "certificates",
   "resources", "announcements", "comments", "analytics", "audit", "cms", "settings", "roles", "users",
+  "branches", "clock", "fines", "finance",
 ] as const;
 export const ACTIONS = ["view", "create", "edit", "archive", "approve", "publish", "export", "print", "assign", "transfer", "review", "manage"] as const;
 
@@ -88,10 +93,26 @@ export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   parent: [...view("dashboard", "timetable", "calendar", "announcements", "results", "reports", "attendance", "certificates")],
 };
 
+const LEADERS = ["branches:view", "branches:manage", "fines:view", "fines:manage", "finance:view", "finance:approve", "clock:view", "clock:manage", "audit:view", "audit:export", "reports:export", "reports:print", "analytics:view", "staff:view", "staff:create", "staff:edit", "staff:assign", "staff:transfer", "staff:archive", "attendance:view"];
+const ALIAS: Record<string, string> = { headteacher: "principal", asst_headteacher: "vp_academics", hr_manager: "vp_admin" };
+
 export function defaultsFor(role: string): string[] {
+  const base = baseDefaults(role);
+  const staff = role !== "student" && role !== "parent";
+  const extra = new Set<string>(staff ? ["clock:view", "clock:create"] : []);
+  if (["director", "premium_admin", "proprietor"].includes(role)) LEADERS.forEach((p) => extra.add(p));
+  if (["principal", "headteacher", "vp_admin", "hr_manager"].includes(role)) ["branches:view", "fines:view", "fines:manage", "clock:view", "clock:manage", "finance:view"].forEach((p) => extra.add(p));
+  if (["accountant", "bursar", "auditor"].includes(role)) ["finance:view", "fines:view", "audit:view"].forEach((p) => extra.add(p));
+  if (role === "premium_admin") ACADEMIC_VIEW.forEach((p) => extra.add(p)), full("students", "classes", "subjects", "timetable", "calendar", "announcements", "lessons", "questions", "assessments", "results", "resources", "certificates", "promotion", "access_codes", "cms", "users", "comments", "parents").forEach((p) => extra.add(p));
+  return [...new Set([...base, ...extra])];
+}
+
+function baseDefaults(role: string): string[] {
+  if (ALIAS[role]) return DEFAULT_PERMISSIONS[ALIAS[role]];
+  if (role === "director") return DEFAULT_PERMISSIONS.proprietor;
   if (DEFAULT_PERMISSIONS[role]) return DEFAULT_PERMISSIONS[role];
   // Future/supporting roles start with a minimal read-only footprint.
-  return ["dashboard:view", "announcements:view", "calendar:view"];
+  return ["dashboard:view", "announcements:view", "calendar:view", "timetable:view"];
 }
 
 export function permits(perms: Set<string> | string[], need: string): boolean {
@@ -101,7 +122,7 @@ export function permits(perms: Set<string> | string[], need: string): boolean {
 
 /** Roles ordered by seniority — used to stop privilege escalation by lower roles. */
 export const HIERARCHY: string[] = [
-  "super_admin", "proprietor", "principal", "vp_academics", "vp_admin", "hod", "senior_staff",
+  "super_admin", "premium_admin", "proprietor", "director", "principal", "headteacher", "vp_academics", "vp_admin", "hr_manager", "asst_headteacher", "hod", "senior_staff", "auditor",
   "class_teacher", "teacher", "accountant", "bursar", "exam_officer", "librarian", "nurse", "counsellor",
   "transport", "ict_officer", "reception", "parent", "student",
 ];

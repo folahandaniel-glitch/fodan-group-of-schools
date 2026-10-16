@@ -28,7 +28,7 @@ export default async function StaffList({ searchParams }: { searchParams: Promis
       <Card className="mb-5">
         <form className="grid gap-3 sm:grid-cols-[1fr_180px_auto]" role="search">
           <input name="q" defaultValue={q} className="input" placeholder="Search name or email" aria-label="Search staff" />
-          <select name="status" defaultValue={status} className="select" aria-label="Status">{["active", "suspended", "archived"].map((s) => <option key={s}>{s}</option>)}</select>
+          <select name="status" defaultValue={status} className="select" aria-label="Status">{["active", "pending", "suspended", "archived"].map((s) => <option key={s}>{s}</option>)}</select>
           <button className="btn btn-primary">Filter</button>
         </form>
       </Card>

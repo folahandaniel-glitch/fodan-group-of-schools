@@ -37,6 +37,8 @@ export default async function PortalLayout({ children }: { children: React.React
   add(!learner && can(me, "staff:view"), "/portal/staff", "Staff", "School");
   add(!learner && can(me, "classes:view"), "/portal/classes", "Classes & subjects", "School");
   add(!learner && (can(me, "promotion:view") || can(me, "promotion:create")), "/portal/promotion", "Promotion", "School");
+  add(!learner && can(me, "clock:view"), "/portal/clock", "Clock in / out", "School");
+  add(!learner && can(me, "branches:view"), "/portal/branches", "Branches & fines", "School");
   add(can(me, "timetable:view"), "/portal/timetable", "Timetable", "School");
   add(can(me, "attendance:view"), "/portal/attendance", "Attendance", "School");
   add(can(me, "calendar:view"), "/portal/calendar", "Academic calendar", "School");

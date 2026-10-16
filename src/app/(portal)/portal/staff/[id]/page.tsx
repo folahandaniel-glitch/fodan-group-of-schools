@@ -99,9 +99,9 @@ export default async function StaffDetail({ params, searchParams }: { params: Pr
             <Card>
               <h2 className="text-xl">Account control</h2>
               <div className="mt-3 flex flex-wrap gap-2">
-                {(["suspend", "archive", "restore"] as const).map((op) => (
+                {(u.status === "pending" ? ["approve", "reject"] as const : ["suspend", "archive", "restore"] as const).map((op) => (
                   <form key={op} action={setStaffStatus}><input type="hidden" name="id" value={id} /><input type="hidden" name="op" value={op} />
-                    <button className={`btn btn-sm capitalize ${op === "restore" ? "btn-ghost" : "btn-danger"}`}>{op}</button></form>
+                    <button className={`btn btn-sm capitalize ${op === "restore" || op === "approve" ? "btn-primary" : "btn-danger"}`}>{op}</button></form>
                 ))}
               </div>
               {can(me, "users:manage") && <div className="mt-4 border-t border-line pt-4"><ResetLink userId={id} /></div>}

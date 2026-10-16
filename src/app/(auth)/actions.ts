@@ -9,6 +9,7 @@ import { normaliseAccessCode } from "@/lib/logic/access-code";
 import { getSchool, getSetting } from "@/lib/settings";
 import { createUser, issueResetToken, linkChild, UserError } from "@/lib/accounts";
 import { sendMail } from "@/lib/mail";
+import { loadPositions } from "@/lib/positions";
 
 type State = { error?: string; ok?: string };
 const DUMMY = "$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$7mS1z3Gm0Rb1wCq0m5s8y2m0l8O8mZk0b3o0m9bq4lE";
@@ -33,6 +34,7 @@ export async function login(_p: State, fd: FormData): Promise<State> {
     await audit({ schoolId: u.school_id, actorId: u.id, actor: email, category: "security", action: "login.failed", meta: { attempts: n } });
     return { error: "Invalid email or password." };
   }
+  if (u.status === "pending") return { error: "Your registration is awaiting approval by school management. You will be able to sign in once it is approved." };
   if (u.status !== "active") {
     await audit({ schoolId: u.school_id, actorId: u.id, category: "security", action: "login.blocked", meta: { status: u.status } });
     return { error: "This account is suspended. Please contact the school." };
@@ -153,6 +155,41 @@ export async function registerParent(_p: State, fd: FormData): Promise<State> {
     redirect(`/login?registered=1&link=${r.ok ? r.status : "failed"}`);
   }
   redirect("/login?registered=1");
+}
+
+export async function registerStaff(_p: State, fd: FormData): Promise<State> {
+  const ip = await clientIp();
+  if (!(await rateLimit(`reg-ip:${ip}`, 12, 3600))) return { error: "Too many attempts. Please try again later." };
+  const category = clean(fd.get("category"), 20) === "non_teaching" ? "non_teaching" : "teaching";
+  const section = category === "teaching" ? (clean(fd.get("section"), 10) === "primary" ? "primary" : "secondary") : "admin";
+  const group = category === "non_teaching" ? "non_teaching" : section;
+  const title = clean(fd.get("position"), 120);
+  const pos = (await loadPositions()).find((p) => p.title === title && p.group === group);
+  if (!pos) return { error: "Choose a position from the list." };
+  const email = normEmail(clean(fd.get("email"), 254));
+  const first = clean(fd.get("firstName"), 80), last = clean(fd.get("lastName"), 80), phone = clean(fd.get("phone"), 30);
+  if (!first || !last) return { error: "Enter your first and last name." };
+  if (!validEmail(email)) return { error: "Enter a valid email address — it will be your username." };
+  if (phone.replace(/\D/g, "").length < 7) return { error: "Enter a valid phone number." };
+  const pp = pwPair(fd);
+  if ("error" in pp) return pp;
+  const school = await getSchool();
+  const branch = clean(fd.get("branch"), 40);
+  const [b] = /^[0-9a-f-]{36}$/i.test(branch) ? await sql`SELECT id FROM branches WHERE id = ${branch} AND school_id = ${school.id} AND active` : [];
+  let uid: string;
+  try {
+    uid = await createUser({ schoolId: school.id, email, password: pp.pw, role: pos.role, firstName: first, lastName: last, phone });
+  } catch (e) {
+    if (e instanceof UserError) return { error: e.message };
+    throw e;
+  }
+  await sql`UPDATE users SET status = 'pending' WHERE id = ${uid}`;
+  await sql`INSERT INTO staff_profiles (user_id, school_id, position, category, section, branch_id) VALUES (${uid}, ${school.id}, ${pos.title}, ${category}, ${section}, ${b?.id ?? null})`;
+  await sql`INSERT INTO notifications (user_id, title, body, link)
+            SELECT id, ${`New staff registration: ${first} ${last}`}, ${pos.title}, '/portal/staff?status=pending' FROM users
+            WHERE school_id = ${school.id} AND status = 'active' AND role IN ('super_admin','premium_admin','proprietor','director','vp_admin','hr_manager','principal','headteacher')`;
+  await audit({ schoolId: school.id, actorId: uid, action: "staff.register", entity: "user", entityId: uid, meta: { position: pos.title, category } });
+  redirect("/login?registered=staff");
 }
 
 export async function forgot(_p: State, fd: FormData): Promise<State> {

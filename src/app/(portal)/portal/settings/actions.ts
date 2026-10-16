@@ -83,6 +83,23 @@ export async function saveSettings(_p: State, fd: FormData): Promise<State> {
     }
     await setSetting("eligibility", out);
     await setSetting("features", { registration: fd.get("f_registration") === "on", parentLinking: fd.get("f_parentLinking") === "on", mocks: fd.get("f_mocks") === "on", studyCentre: fd.get("f_studyCentre") === "on", ai: fd.get("f_ai") === "on" });
+  } else if (group === "auth") {
+    const art = { ...(cur.authArt as Record<string, string>) };
+    for (const slot of ["login", "register", "staff"]) {
+      const f = fd.get(`art_${slot}`) as File | null;
+      if (f && f.size > 0) {
+        const r = await saveUpload(f, { schoolId: me.schoolId, userId: me.id, allow: IMAGE_EXT, makePublic: true });
+        if (!r.ok) return { error: r.error };
+        art[slot] = r.id;
+      }
+      if (fd.get(`clear_${slot}`) === "on") art[slot] = "";
+    }
+    art.caption = T("caption", 160);
+    await setSetting("authArt", art);
+    await setSetting("footer", { text: T("footer", 200) });
+    const pos: Record<string, string[]> = {};
+    for (const g of ["secondary", "primary", "non_teaching"]) pos[g] = line(fd.get(`pos_${g}`)).slice(0, 60).map((l) => l.slice(0, 120));
+    await setSetting("positions", pos);
   } else if (group === "periods") {
     const periods = line(fd.get("periods")).map((l, i) => ({ n: i + 1, label: l.slice(0, 40) })).slice(0, 14);
     await setSetting("periods", periods);

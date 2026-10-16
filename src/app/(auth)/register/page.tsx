@@ -3,12 +3,14 @@ import { ActionForm } from "@/components/action-form";
 import { PasswordInput } from "@/components/password-input";
 import { Field, Select } from "@/components/ui";
 import { registerStudent } from "../actions";
+import { AuthArt } from "@/components/auth-art";
 
 export const metadata = { title: "Student registration" };
 
 export default function RegisterStudent() {
   return (
     <div>
+      <AuthArt slot="register" className="mb-5 lg:hidden" />
       <p className="eyebrow">Student registration</p>
       <h1 className="mt-1 text-3xl">Activate your student account</h1>
       <p className="mt-1 text-sm text-muted">
