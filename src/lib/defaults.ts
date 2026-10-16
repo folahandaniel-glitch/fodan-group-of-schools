@@ -62,6 +62,8 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   report: { stamp: "School Stamp", signatories: ["Class Teacher", "Principal"], showAttendance: true },
   certificate: { heading: "Certificate of Achievement", proprietorSign: "Founder & Proprietor", principalSign: "Principal" },
   pwa: { name: "Fodan Group of Schools Portal", short: "Fodan Portal", theme: "#0a1b3f" },
+  leaveDays: { Annual: 20, Sick: 10, "Maternity / paternity": 60, Compassionate: 5, Study: 10 },
+  payroll: { pensionPct: 0, taxPct: 0 },
   footer: { text: "(08067578112) Powered by Fodan Softnet and Solar Energy" },
   authArt: { login: "", register: "", staff: "", caption: "Learn. Practise. Test. Improve." },
   fines: { workStart: "08:00", graceMinutes: 10, perMinute: 0, lateFlat: 500, absentFine: 2000, defaultRadius: 150, enabled: true },

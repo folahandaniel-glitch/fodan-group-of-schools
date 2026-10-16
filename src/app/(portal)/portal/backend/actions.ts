@@ -26,6 +26,21 @@ export async function saveModules(_p: State, fd: FormData): Promise<State> {
   return { ok: "Modules saved." };
 }
 
+export async function saveLeaveDays(_p: State, fd: FormData): Promise<State> {
+  const me = await requireMe();
+  if (!can(me, "settings:manage") && !can(me, "*")) return { error: "Only the Super Admin can change leave entitlements." };
+  const out: Record<string, number> = {};
+  for (const line of clean(fd.get("days"), 2000).split("\n")) {
+    const [k, v] = line.split("=");
+    const n = Number(v);
+    if (k?.trim() && Number.isFinite(n) && n >= 0 && n <= 366) out[k.trim().slice(0, 40)] = n;
+  }
+  await setSetting("leaveDays", out);
+  await audit({ schoolId: me.schoolId, actorId: me.id, action: "leave.entitlements" });
+  revalidatePath("/portal/m/leave");
+  return { ok: "Leave entitlements saved." };
+}
+
 export async function saveLabels(_p: State, fd: FormData): Promise<State> {
   const me = await requireMe();
   if (!can(me, "settings:manage") && !can(me, "*")) return { error: "Only the Super Admin can change terminology." };

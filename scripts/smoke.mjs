@@ -36,6 +36,8 @@ const pages = [
   "/portal/users", "/portal/resources", "/portal/study", "/portal/mocks", "/portal/work", "/portal/children", "/portal/notifications",
   ...["brand", "founder", "contact", "home", "content", "academic", "eligibility", "periods", "permissions"].map((t) => `/portal/settings?tab=${t}`),
   "/account", "/account/password", "/account/security",
+  "/portal/payroll", "/portal/payslips", "/portal/ledger", "/portal/performance", "/portal/branches", "/portal/clock", "/portal/backend", "/portal/search?q=a",
+  ...["rosters", "deliverables", "crm", "procurement", "contracts", "finance", "forum", "leave"].map((m) => `/portal/m/${m}`),
 ].filter(Boolean);
 
 const roles = [su.email, "principal@demo.fodan", "vpadmin@demo.fodan", "vpacademics@demo.fodan", "hod@demo.fodan", "teacher1@demo.fodan", "proprietor@demo.fodan", "chidi.eze@student.test"];

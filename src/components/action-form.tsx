@@ -22,7 +22,7 @@ export function ActionForm({ action, children, submit = "Save", className = "gri
     startTransition(() => run(fd));
   };
   return (
-    <form onSubmit={onSubmit} className={className} encType={encType}>
+    <form onSubmit={onSubmit} method="post" className={className} encType={encType}>
       {children}
       {state.error && <p role="alert" className="text-sm font-semibold text-bad">{state.error}</p>}
       {state.ok && <p role="status" className="text-sm font-semibold text-ok">{state.ok}</p>}

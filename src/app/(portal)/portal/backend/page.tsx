@@ -5,7 +5,7 @@ import { loadModules } from "@/lib/modules";
 import { getSetting } from "@/lib/settings";
 import { Card, PageHeader } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
-import { saveLabels, saveModules } from "./actions";
+import { saveLabels, saveLeaveDays, saveModules } from "./actions";
 
 export const metadata = { title: "BackEnd console" };
 
@@ -56,6 +56,14 @@ export default async function Backend() {
             ))}
           </ActionForm></div>
         ) : <p className="mt-3 text-sm text-muted">Only the Super Admin can edit modules.</p>}
+      </Card>
+
+      <Card className="mb-5">
+        <h2 className="text-xl">Leave entitlements (days per year)</h2>
+        <p className="mt-1 text-sm text-muted">One per line as <code>Leave type=days</code>. Names must match the leave types staff choose.</p>
+        {edit && <div className="mt-3"><ActionForm action={saveLeaveDays} submit="Save entitlements">
+          <div className="field"><label htmlFor="days">Entitlements</label><textarea id="days" name="days" rows={5} className="textarea" defaultValue={Object.entries(((await getSetting<Record<string, number>>("leaveDays")) ?? {})).map(([k, v]) => `${k}=${v}`).join("\n")} /></div>
+        </ActionForm></div>}
       </Card>
 
       <Card>

@@ -29,7 +29,7 @@ export const RESOURCES = [
   "dashboard", "students", "parents", "staff", "classes", "subjects", "timetable", "calendar", "attendance",
   "promotion", "access_codes", "lessons", "questions", "assessments", "results", "reports", "certificates",
   "resources", "announcements", "comments", "analytics", "audit", "cms", "settings", "roles", "users",
-  "branches", "clock", "fines", "finance",
+  "branches", "clock", "fines", "finance", "payroll", "ledger", "performance",
 ] as const;
 export const ACTIONS = ["view", "create", "edit", "archive", "approve", "publish", "export", "print", "assign", "transfer", "review", "manage"] as const;
 
@@ -93,7 +93,7 @@ export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   parent: [...view("dashboard", "timetable", "calendar", "announcements", "results", "reports", "attendance", "certificates")],
 };
 
-const LEADERS = ["branches:view", "branches:manage", "fines:view", "fines:manage", "finance:view", "finance:approve", "clock:view", "clock:manage", "audit:view", "audit:export", "reports:export", "reports:print", "analytics:view", "staff:view", "staff:create", "staff:edit", "staff:assign", "staff:transfer", "staff:archive", "attendance:view"];
+const LEADERS = ["payroll:view", "payroll:manage", "payroll:approve", "ledger:view", "ledger:manage", "performance:view", "performance:manage", "branches:view", "branches:manage", "fines:view", "fines:manage", "finance:view", "finance:approve", "clock:view", "clock:manage", "audit:view", "audit:export", "reports:export", "reports:print", "analytics:view", "staff:view", "staff:create", "staff:edit", "staff:assign", "staff:transfer", "staff:archive", "attendance:view"];
 const ALIAS: Record<string, string> = { headteacher: "principal", asst_headteacher: "vp_academics", hr_manager: "vp_admin" };
 
 export function defaultsFor(role: string): string[] {
@@ -102,7 +102,10 @@ export function defaultsFor(role: string): string[] {
   const extra = new Set<string>(staff ? ["clock:view", "clock:create"] : []);
   if (["director", "premium_admin", "proprietor"].includes(role)) LEADERS.forEach((p) => extra.add(p));
   if (["principal", "headteacher", "vp_admin", "hr_manager"].includes(role)) ["branches:view", "fines:view", "fines:manage", "clock:view", "clock:manage", "finance:view"].forEach((p) => extra.add(p));
-  if (["accountant", "bursar", "auditor"].includes(role)) ["finance:view", "fines:view", "audit:view"].forEach((p) => extra.add(p));
+  if (["accountant", "bursar", "auditor"].includes(role)) ["finance:view", "fines:view", "audit:view", "ledger:view", "payroll:view"].forEach((p) => extra.add(p));
+  if (["accountant", "bursar"].includes(role)) ["payroll:manage", "ledger:manage"].forEach((p) => extra.add(p));
+  if (["principal", "headteacher", "vp_admin", "hr_manager", "vp_academics", "asst_headteacher", "hod"].includes(role)) ["performance:view"].forEach((p) => extra.add(p));
+  if (["vp_admin", "hr_manager"].includes(role)) ["payroll:view", "payroll:manage", "performance:manage"].forEach((p) => extra.add(p));
   if (role === "premium_admin") ACADEMIC_VIEW.forEach((p) => extra.add(p)), full("students", "classes", "subjects", "timetable", "calendar", "announcements", "lessons", "questions", "assessments", "results", "resources", "certificates", "promotion", "access_codes", "cms", "users", "comments", "parents").forEach((p) => extra.add(p));
   return [...new Set([...base, ...extra])];
 }

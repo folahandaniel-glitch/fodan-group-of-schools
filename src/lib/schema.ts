@@ -519,6 +519,54 @@ CREATE TABLE IF NOT EXISTS fines (
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, day, reason)
 );
+CREATE TABLE IF NOT EXISTS salary_profiles (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  school_id uuid NOT NULL REFERENCES schools(id),
+  gross_monthly numeric NOT NULL DEFAULT 0,
+  allowances numeric NOT NULL DEFAULT 0,
+  bank_name text,
+  account_enc text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS payroll_runs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id),
+  period text NOT NULL,
+  status text NOT NULL DEFAULT 'draft',
+  created_by uuid, approved_by uuid, paid_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  approved_at timestamptz, paid_at timestamptz,
+  UNIQUE (school_id, period)
+);
+CREATE TABLE IF NOT EXISTS payslips (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id uuid NOT NULL REFERENCES payroll_runs(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id),
+  gross numeric NOT NULL, allowances numeric NOT NULL DEFAULT 0,
+  pension numeric NOT NULL DEFAULT 0, tax numeric NOT NULL DEFAULT 0,
+  fines numeric NOT NULL DEFAULT 0, advances numeric NOT NULL DEFAULT 0,
+  net numeric NOT NULL,
+  detail jsonb NOT NULL DEFAULT '{}',
+  UNIQUE (run_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS ledger_accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id),
+  code text NOT NULL, name text NOT NULL, kind text NOT NULL,
+  UNIQUE (school_id, code)
+);
+CREATE TABLE IF NOT EXISTS ledger_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id),
+  entry_date date NOT NULL DEFAULT current_date,
+  description text NOT NULL,
+  debit_code text NOT NULL, credit_code text NOT NULL,
+  amount numeric NOT NULL CHECK (amount > 0),
+  ref text,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (school_id, ref)
+);
 CREATE TABLE IF NOT EXISTS records (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id),

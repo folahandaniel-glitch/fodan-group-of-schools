@@ -7,6 +7,27 @@ import { listStaff, pageParams, str } from "@/lib/data";
 import { Badge, Card, Empty, Field, PageHeader, Pager, Select, TextArea, statusTone } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { createRecord } from "../actions";
+import { getSetting } from "@/lib/settings";
+
+async function LeaveBalance({ userId }: { userId: string }) {
+  const ent = (await getSetting<Record<string, number>>("leaveDays")) ?? {};
+  const year = new Date().getFullYear();
+  const rows = await sql`SELECT data FROM records WHERE module = 'leave' AND status = 'approved' AND owner_id = ${userId} AND data->>'from' >= ${`${year}-01-01`} AND data->>'from' <= ${`${year}-12-31`}`;
+  const used: Record<string, number> = {};
+  for (const r of rows) {
+    const d = r.data as { type?: string; from?: string; to?: string };
+    if (!d.from || !d.to || !d.type) continue;
+    const days = Math.max(Math.round((new Date(d.to).getTime() - new Date(d.from).getTime()) / 86400000) + 1, 0);
+    used[d.type] = (used[d.type] ?? 0) + days;
+  }
+  const types = Object.keys(ent);
+  if (types.length === 0) return null;
+  return (
+    <Card className="mb-4"><h2 className="text-lg">My leave balance {year}</h2>
+      <ul className="mt-2 grid gap-2 sm:grid-cols-3">{types.map((t) => (
+        <li key={t} className="rounded-xl border border-line p-3 text-sm"><p className="text-muted">{t}</p><p className="font-display text-2xl">{Math.max(ent[t] - (used[t] ?? 0), 0)}<span className="text-sm text-muted"> / {ent[t]} days left</span></p></li>))}</ul></Card>
+  );
+}
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +59,7 @@ export default async function ModulePage({ params, searchParams }: { params: Pro
   return (
     <>
       <PageHeader eyebrow={m.origin} title={m.label} sub={m.blurb} />
+      {m.key === "leave" && <LeaveBalance userId={me.id} />}
       <nav className="mb-4 flex flex-wrap gap-2" aria-label="Status filter">
         {["", ...m.statuses].map((s) => <Link key={s} href={s ? `/portal/m/${m.key}?status=${s}` : `/portal/m/${m.key}`} className={`badge capitalize ${status === s ? "badge-info" : ""}`}>{(s || "all").replace("_", " ")}</Link>)}
       </nav>

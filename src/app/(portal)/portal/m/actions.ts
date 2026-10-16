@@ -5,6 +5,7 @@ import { requireMe } from "@/lib/auth";
 import { audit, clean } from "@/lib/security";
 import { canCreate, canManage, canView, loadModules } from "@/lib/modules";
 import { rateLimit } from "@/lib/security";
+import { expenseAccountFor, post } from "@/lib/ledger";
 
 type State = { error?: string; ok?: string };
 const uuid = (v: unknown) => { const s = clean(v, 40); return /^[0-9a-f-]{36}$/i.test(s) ? s : null; };
@@ -56,7 +57,13 @@ export async function setRecordStatus(fd: FormData): Promise<void> {
   const mgr = canManage(me, m);
   const own = (r.owner_id === me.id || r.assignee_id === me.id) && (m.ownerMay ?? []).includes(status);
   if (!mgr && !own) return;
+  // Separation of duties for money: nobody approves or pays their own request.
+  if (["finance", "procurement"].includes(m.key) && r.owner_id === me.id && me.role !== "super_admin" && ["approved", "paid", "received"].includes(status)) return;
   await sql`UPDATE records SET status = ${status}, updated_at = now() WHERE id = ${r.id}`;
+  if (m.key === "finance" && status === "paid") {
+    const amount = Number(String(r.data?.amount ?? "").replace(/[^0-9.]/g, ""));
+    await post({ schoolId: me.schoolId, description: `${r.title} (${r.data?.category ?? "expense"})`, debit: expenseAccountFor(String(r.data?.category ?? "")), credit: "1000", amount, ref: `finance:${r.id}`, by: me.id });
+  }
   if (r.owner_id && r.owner_id !== me.id) {
     await sql`INSERT INTO notifications (user_id, title, link) VALUES (${r.owner_id}, ${`${m.label}: "${r.title}" is now ${status.replace("_", " ")}`}, ${`/portal/m/${m.key}/${r.id}`})`;
   }
