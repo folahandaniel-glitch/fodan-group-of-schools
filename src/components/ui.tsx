@@ -7,9 +7,25 @@ export function PageHeader({ title, sub, actions, eyebrow }: { title: string; su
       <div>
         {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
         <h1 className="text-2xl sm:text-3xl text-ink">{title}</h1>
+        <div className="rule-gold mt-2" />
         {sub && <p className="mt-1 max-w-2xl text-sm text-muted">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+    </div>
+  );
+}
+
+export function Banner({ eyebrow, title, sub, actions }: { eyebrow?: string; title: string; sub?: string; actions?: ReactNode }) {
+  return (
+    <div className="banner fade-up no-print mb-6">
+      <div className="relative z-10 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          {eyebrow && <p className="text-[0.72rem] font-bold uppercase tracking-[0.16em] text-gold-2">{eyebrow}</p>}
+          <h1 className="mt-1 text-3xl text-white sm:text-4xl">{title}</h1>
+          {sub && <p className="mt-1 max-w-xl text-sm text-white/75">{sub}</p>}
+        </div>
+        {actions && <div className="flex flex-wrap gap-2 [&_.btn-primary]:bg-gold-2 [&_.btn-primary]:text-ink">{actions}</div>}
+      </div>
     </div>
   );
 }

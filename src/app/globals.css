@@ -77,3 +77,29 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; font-wei
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Visual polish */
+.hero-bg { position: relative; isolation: isolate; background:
+    radial-gradient(900px 420px at 88% -10%, rgb(201 162 39 / .22), transparent 60%),
+    radial-gradient(700px 380px at -5% 110%, rgb(31 63 166 / .12), transparent 60%),
+    linear-gradient(180deg, var(--color-paper) 0%, #f6f0e0 100%); }
+.hero-bg::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .5;
+  background-image: linear-gradient(rgb(10 27 63 / .045) 1px, transparent 1px), linear-gradient(90deg, rgb(10 27 63 / .045) 1px, transparent 1px);
+  background-size: 44px 44px; mask-image: linear-gradient(180deg, #000 0%, transparent 85%); }
+.card-lift { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.card-lift:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -14px rgb(10 27 63 / .35); border-color: var(--color-gold-2); }
+.gold-top { border-top: 4px solid var(--color-gold-2); }
+.num-ghost { font-family: var(--font-display); font-size: 4.2rem; line-height: 1; color: var(--color-gold-soft); font-weight: 700; }
+.section-alt { background: linear-gradient(180deg, #fff 0%, var(--color-paper-2) 100%); }
+.quote-mark::before { content: "\201C"; position: absolute; left: -.15em; top: -.35em; font-family: var(--font-display); font-size: 6rem; line-height: 1; color: rgb(201 162 39 / .35); }
+.banner { position: relative; overflow: hidden; border-radius: 22px; color: #fff; padding: 1.6rem 1.75rem;
+  background: radial-gradient(520px 220px at 100% 0%, rgb(201 162 39 / .35), transparent 65%), linear-gradient(135deg, #0a1b3f 0%, #153a8a 100%); }
+.banner::after { content: ""; position: absolute; right: -40px; bottom: -60px; width: 220px; height: 220px; border-radius: 50%;
+  border: 28px solid rgb(255 255 255 / .06); }
+.fade-up { animation: fadeUp .6s ease both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .fade-up { animation: none; } .card-lift:hover { transform: none; } }
+.banner .btn-primary { background: var(--color-gold-2); color: var(--color-ink); }
+.banner .btn-primary:hover { background: #d8b23a; }
+.banner .btn-ghost { color: #fff; border-color: rgb(255 255 255 / .45); }
+.banner .btn-ghost:hover { background: rgb(255 255 255 / .12); border-color: #fff; }

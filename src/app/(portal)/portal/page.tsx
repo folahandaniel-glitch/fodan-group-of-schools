@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireMe, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { currentTerm, classLabel, getSetting } from "@/lib/settings";
-import { PageHeader, Stat, Card, Badge, Empty } from "@/components/ui";
+import { Banner, PageHeader, Stat, Card, Badge, Empty } from "@/components/ui";
 import { studentOf, teacherClassIds, childIds, wideScope } from "@/lib/scope";
 import { ROLE_LABEL } from "@/lib/logic/permissions";
 
@@ -48,7 +48,7 @@ export default async function Dashboard() {
     const best = [...recent].sort((a, b) => b.total - a.total);
     return (
       <>
-        <PageHeader eyebrow={classLabel({ name: st.class_name ?? "No class", arm: st.class_arm, department: st.dept_name })} title={hello}
+        <Banner eyebrow={classLabel({ name: st.class_name ?? "No class", arm: st.class_arm, department: st.dept_name })} title={hello}
           sub={term ? `${term.session_name} · ${term.name}` : undefined} actions={<Link className="btn btn-primary" href="/portal/work">Open my work</Link>} />
         <div className="grid gap-4 sm:grid-cols-3">
           <Stat label="Average score" value={avg?.avg ?? "—"} hint={avg?.n ? `${avg.n} subjects this term` : "Awaiting released results"} />
@@ -93,7 +93,7 @@ export default async function Dashboard() {
       WHERE l.parent_id = ${me.id} ORDER BY s.first_name`;
     return (
       <>
-        <PageHeader eyebrow="Parent portal" title={hello} sub="Follow every child's progress in one place."
+        <Banner eyebrow="Parent portal" title={hello} sub="Follow every child's progress in one place."
           actions={<Link className="btn btn-primary" href="/portal/children">Add or manage children</Link>} />
         {links.length === 0 ? <Empty title="No children linked yet">Use your child's access code, admission number and date of birth to link them.</Empty> : (
           <div className="grid gap-4 md:grid-cols-2">
@@ -147,7 +147,7 @@ export default async function Dashboard() {
 
   return (
     <>
-      <PageHeader eyebrow={ROLE_LABEL[me.role] ?? me.role} title={hello} sub={term ? `${term.session_name} · ${term.name}` : "Set the current term in Settings."} />
+      <Banner eyebrow={ROLE_LABEL[me.role] ?? me.role} title={hello} sub={term ? `${term.session_name} · ${term.name}` : "Set the current term in Settings."} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {wide ? (
           <>

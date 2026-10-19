@@ -41,19 +41,19 @@ export default async function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }} />
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-line">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-gold-soft/60 blur-3xl" aria-hidden />
+      <section className="hero-bg overflow-hidden border-b border-line">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-[1.1fr_0.9fr] md:py-20">
-          <div>
-            <p className="eyebrow">{s.brand.group}</p>
-            <h1 className="mt-3 text-4xl leading-[1.08] sm:text-5xl lg:text-6xl">{h.heroTitle}</h1>
+          <div className="fade-up">
+            <p className="eyebrow inline-flex items-center gap-2"><span className="h-px w-8 bg-gold-2" aria-hidden />{s.brand.group}</p>
+            <h1 className="mt-3 text-4xl leading-[1.05] sm:text-5xl lg:text-[3.6rem]">{h.heroTitle}</h1>
             <div className="rule-gold mt-5" />
             <p className="mt-5 max-w-xl text-lg text-ink-2">{h.heroSub}</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/register" className="btn btn-primary">Student registration</Link>
               <Link href="/login" className="btn btn-ghost">Parent &amp; staff sign in</Link>
             </div>
-            <p className="mt-6 font-display text-xl italic text-royal">{s.brand.tagline}</p>
+            <ul className="mt-7 flex flex-wrap gap-2 text-xs font-bold text-ink-2" aria-label="Highlights"><li className="badge">Basic 1 – SSS 3</li><li className="badge">CBT &amp; mock examinations</li><li className="badge">Parent monitoring</li><li className="badge">Install as an app</li></ul>
+            <p className="mt-5 font-display text-xl italic text-royal">{s.brand.tagline}</p>
           </div>
           <div className="relative mx-auto w-full max-w-md">
             <div className="overflow-hidden rounded-t-[999px] rounded-b-3xl border border-line bg-white p-2 shadow-xl">
@@ -61,6 +61,7 @@ export default async function Home() {
                 priority sizes="(max-width: 768px) 90vw, 440px" className="aspect-[4/5] w-full rounded-t-[999px] rounded-b-2xl object-cover object-top" />
             </div>
             <div className="absolute -bottom-5 -left-4 rounded-2xl border border-line bg-white p-2 shadow-lg"><Logo size={72} /></div>
+            <div className="absolute -right-3 top-10 rounded-2xl border border-gold-2/50 bg-ink px-4 py-3 text-white shadow-xl"><p className="font-display text-2xl leading-none text-gold-2">10·30·60</p><p className="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-white/70">Smart assessment</p></div>
           </div>
         </div>
       </section>
@@ -69,7 +70,7 @@ export default async function Home() {
       <section aria-label="At a glance" className="border-b border-line bg-white">
         <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-px bg-line md:grid-cols-4">
           {(h.stats as { label: string; value: string }[]).map((x) => (
-            <div key={x.label} className="bg-white px-4 py-5">
+            <div key={x.label} className="bg-white px-4 py-5 transition hover:bg-paper">
               <dt className="text-xs font-bold uppercase tracking-wider text-muted">{x.label}</dt>
               <dd className="mt-1 font-display text-lg text-ink">{x.value}</dd>
             </div>
@@ -111,7 +112,7 @@ export default async function Home() {
             <h2 className="mt-1 text-3xl text-white sm:text-4xl">{f.name}</h2>
             {f.qualifications && <p className="mt-1 text-sm text-white/70">{f.qualifications}</p>}
             <p className="mt-4 text-white/85">{f.profile}</p>
-            <blockquote className="mt-5 border-l-4 border-gold-2 pl-4 font-display text-xl italic leading-snug text-gold-soft">“{f.message}”</blockquote>
+            <blockquote className="quote-mark relative mt-6 border-l-4 border-gold-2 pl-5 font-display text-xl italic leading-snug text-gold-soft">“{f.message}”</blockquote>
           </div>
         </div>
       </section>
@@ -121,8 +122,8 @@ export default async function Home() {
         <SectionHead eyebrow="Academic structure" title="From Basic 1 to SSS 3" sub="Primary and Secondary education, with Science, Commercial and Arts departments in the Senior Secondary section." />
         <div className="grid gap-5 md:grid-cols-3">
           {(content.programme ?? []).map((p, i) => (
-            <article key={p.id} className="card card-pad relative">
-              <span className="font-display text-5xl text-gold-soft">{String(i + 1).padStart(2, "0")}</span>
+            <article key={p.id} className="card card-pad card-lift gold-top relative">
+              <span className="num-ghost">{String(i + 1).padStart(2, "0")}</span>
               <h3 className="mt-1 text-xl">{p.title}</h3>
               <p className="mt-2 text-sm text-ink-2">{p.body}</p>
             </article>
@@ -134,12 +135,12 @@ export default async function Home() {
       </section>
 
       {/* Exam prep */}
-      <section id="exams" className="scroll-mt-28 border-y border-line bg-paper-2">
+      <section id="exams" className="section-alt scroll-mt-28 border-y border-line">
         <div className="mx-auto max-w-6xl px-4 py-16">
           <SectionHead eyebrow="Examination preparation" title="Practise with purpose" sub={h.examPrep} />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {MOCK_CATEGORIES.map((m) => (
-              <div key={m.key} className="card card-pad">
+              <div key={m.key} className="card card-pad card-lift gold-top">
                 <h3 className="text-lg">{m.label}</h3>
                 <p className="mt-1 text-sm text-muted">{m.blurb}</p>
               </div>
@@ -179,7 +180,7 @@ export default async function Home() {
             <SectionHead eyebrow="News, announcements & events" title="What is happening" />
             <div className="grid gap-4 md:grid-cols-3">
               {[...(content.announcement ?? []), ...(content.news ?? []), ...(content.event ?? [])].slice(0, 6).map((n) => (
-                <article key={n.id} className="card card-pad">
+                <article key={n.id} className="card card-pad card-lift">
                   <span className="badge badge-info capitalize">{n.kind}</span>
                   <h3 className="mt-2 text-lg">{n.title}</h3>
                   <p className="mt-1 line-clamp-4 text-sm text-ink-2">{n.body}</p>
@@ -198,7 +199,7 @@ export default async function Home() {
             <SectionHead eyebrow="Our team" title="Teachers who lead by example" />
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               {staff.map((p) => (
-                <div key={p.id} className="card overflow-hidden">
+                <div key={p.id} className="card card-lift overflow-hidden">
                   <div className="aspect-square bg-paper-2">
                     {p.photo_file ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -224,7 +225,7 @@ export default async function Home() {
               { t: "Parents & guardians", d: "Follow every child: attendance, results, report cards and announcements.", href: "/register/parent", cta: "Create parent account" },
               { t: "Teachers & management", d: "Lesson notes, question banks, CBT, results, timetable and analytics.", href: "/login", cta: "Staff sign in" },
             ].map((p) => (
-              <div key={p.t} className="card card-pad flex flex-col">
+              <div key={p.t} className="card card-pad card-lift gold-top flex flex-col">
                 <h3 className="text-xl">{p.t}</h3>
                 <p className="mt-2 flex-1 text-sm text-ink-2">{p.d}</p>
                 <Link href={p.href} className="btn btn-primary mt-4 self-start">{p.cta}</Link>
