@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/ui";
 import { allSettings } from "@/lib/settings";
 
+import { FodanCredit } from "@/components/fodan-credit";
 const NAV = [
   { href: "/#about", label: "About" },
   { href: "/#academics", label: "Academics" },
@@ -75,6 +76,7 @@ export default async function PublicLayout({ children }: { children: React.React
           <p className="text-xs text-white/70">{s.footer?.text}</p>
           <Link href="/login?staff=1" className="mt-1 inline-block text-[10px] uppercase tracking-widest text-white/35 hover:text-white/70">Backend</Link>
         </div>
+        <FodanCredit />
       </footer>
     </div>
   );
