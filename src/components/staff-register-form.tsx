@@ -17,7 +17,7 @@ export function StaffRegisterForm({ positions, branches }: { positions: Pos[]; b
         <legend className="label mb-1">Staff type</legend>
         <div className="grid grid-cols-2 gap-2">
           {([["teaching", "Teaching staff"], ["non_teaching", "Non-teaching staff"]] as const).map(([v, l]) => (
-            <label key={v} className={`cursor-pointer rounded-xl border-2 px-4 py-3 text-center font-bold ${cat === v ? "border-royal bg-[#e8eeff]" : "border-line bg-white"}`}>
+            <label key={v} className={`cursor-pointer rounded-xl border-2 px-4 py-3 text-center font-bold ${cat === v ? "border-royal bg-[#e8eeff]" : "border-line bg-card"}`}>
               <input type="radio" name="category" value={v} checked={cat === v} onChange={() => setCat(v)} className="sr-only" />{l}
             </label>
           ))}

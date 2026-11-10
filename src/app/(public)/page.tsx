@@ -56,21 +56,21 @@ export default async function Home() {
             <p className="mt-5 font-display text-xl italic text-royal">{s.brand.tagline}</p>
           </div>
           <div className="relative mx-auto w-full max-w-md">
-            <div className="overflow-hidden rounded-t-[999px] rounded-b-3xl border border-line bg-white p-2 shadow-xl">
+            <div className="overflow-hidden rounded-t-[999px] rounded-b-3xl border border-line bg-card p-2 shadow-xl">
               <Image src="/brand/hero.webp" alt="Fodan College students in school uniform on the school lawn" width={1024} height={1024}
                 priority sizes="(max-width: 768px) 90vw, 440px" className="aspect-[4/5] w-full rounded-t-[999px] rounded-b-2xl object-cover object-top" />
             </div>
             <div className="absolute -bottom-5 -left-4 rounded-2xl border border-line bg-white p-2 shadow-lg"><Logo size={72} /></div>
-            <div className="absolute -right-3 top-10 rounded-2xl border border-gold-2/50 bg-ink px-4 py-3 text-white shadow-xl"><p className="font-display text-2xl leading-none text-gold-2">10·30·60</p><p className="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-white/70">Smart assessment</p></div>
+            <div className="absolute -right-3 top-10 rounded-2xl border border-gold-2/50 bg-strong px-4 py-3 text-white shadow-xl"><p className="font-display text-2xl leading-none text-gold-2">10·30·60</p><p className="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-white/70">Smart assessment</p></div>
           </div>
         </div>
       </section>
 
       {/* Key facts */}
-      <section aria-label="At a glance" className="border-b border-line bg-white">
+      <section aria-label="At a glance" className="border-b border-line bg-card">
         <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-px bg-line md:grid-cols-4">
           {(h.stats as { label: string; value: string }[]).map((x) => (
-            <div key={x.label} className="bg-white px-4 py-5 transition hover:bg-paper">
+            <div key={x.label} className="bg-card px-4 py-5 transition hover:bg-paper">
               <dt className="text-xs font-bold uppercase tracking-wider text-muted">{x.label}</dt>
               <dd className="mt-1 font-display text-lg text-ink">{x.value}</dd>
             </div>
@@ -95,7 +95,7 @@ export default async function Home() {
       </section>
 
       {/* Founder */}
-      <section className="border-y border-line bg-ink text-white">
+      <section className="border-y border-line bg-strong text-white">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-14 md:grid-cols-[260px_1fr]">
           <div className="mx-auto h-60 w-60 overflow-hidden rounded-full border-4 border-gold-2 bg-paper-2">
             {f.photoFile ? (
@@ -175,7 +175,7 @@ export default async function Home() {
 
       {/* News & events */}
       {((content.news?.length ?? 0) + (content.event?.length ?? 0) + (content.announcement?.length ?? 0)) > 0 && (
-        <section className="border-t border-line bg-white">
+        <section className="border-t border-line bg-card">
           <div className="mx-auto max-w-6xl px-4 py-16">
             <SectionHead eyebrow="News, announcements & events" title="What is happening" />
             <div className="grid gap-4 md:grid-cols-3">
@@ -238,7 +238,7 @@ export default async function Home() {
       {/* FAQ */}
       <section className="mx-auto max-w-3xl px-4 py-16">
         <SectionHead eyebrow="Questions" title="Frequently asked" />
-        <div className="divide-y divide-line rounded-2xl border border-line bg-white">
+        <div className="divide-y divide-line rounded-2xl border border-line bg-card">
           {(content.faq ?? []).map((q) => (
             <details key={q.id} className="group px-5 py-4">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-bold">
@@ -251,7 +251,7 @@ export default async function Home() {
       </section>
 
       {/* Contact */}
-      <section id="contact" className="border-t border-line bg-white">
+      <section id="contact" className="border-t border-line bg-card">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[0.8fr_1.2fr]">
           <div>
             <SectionHead eyebrow="Contact" title="We would like to hear from you" />

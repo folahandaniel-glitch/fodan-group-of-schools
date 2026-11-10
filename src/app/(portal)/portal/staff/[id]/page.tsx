@@ -7,7 +7,7 @@ import { isSenior, type Seniority } from "@/lib/logic/academics";
 import { Badge, Card, Field, Notice, PageHeader, Select, TextArea, statusTone } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { ResetLink } from "@/components/reset-link";
-import { ROLE_LABEL, STAFF_ROLES } from "@/lib/logic/permissions";
+import { ROLE_LABEL, STAFF_ROLES, isRoot } from "@/lib/logic/permissions";
 import { setStaffRole, setStaffStatus, updateStaff } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -85,17 +85,17 @@ export default async function StaffDetail({ params, searchParams }: { params: Pr
               </ul>
             )}
           </Card>
-          {can(me, "roles:manage") && u.role !== "super_admin" && (
+          {can(me, "roles:manage") && !isRoot(u.role) && (
             <Card>
               <h2 className="text-xl">Role</h2>
               <form action={setStaffRole} className="mt-3 flex gap-2">
                 <input type="hidden" name="id" value={id} />
-                <select name="role" className="select" defaultValue={u.role} aria-label="Role">{STAFF_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}</select>
+                <select name="role" className="select" defaultValue={u.role} aria-label="Role">{(isRoot(me.role) ? [...STAFF_ROLES, "super_admin"] : STAFF_ROLES).map((r) => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}</select>
                 <button className="btn btn-primary">Change</button>
               </form>
             </Card>
           )}
-          {can(me, "staff:archive") && u.id !== me.id && u.role !== "super_admin" && (
+          {can(me, "staff:archive") && u.id !== me.id && !isRoot(u.role) && (
             <Card>
               <h2 className="text-xl">Account control</h2>
               <div className="mt-3 flex flex-wrap gap-2">

@@ -1,7 +1,7 @@
 import { sql } from "./db";
 import type { Me } from "./auth";
 
-const WIDE_ROLES = ["super_admin", "proprietor", "principal", "vp_admin", "vp_academics", "hod", "senior_staff", "exam_officer", "ict_officer"];
+const WIDE_ROLES = ["developer", "super_admin", "academic_admin", "hr_admin", "student_affairs_admin", "content_admin", "finance_admin", "proprietor", "principal", "vp_admin", "vp_academics", "hod", "senior_staff", "exam_officer", "ict_officer"];
 
 export function wideScope(me: Me): boolean {
   return me.roles.some((r) => WIDE_ROLES.includes(r)) || me.perms.has("*");

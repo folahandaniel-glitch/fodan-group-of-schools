@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Figtree } from "next/font/google";
 import "./globals.css";
 import { InstallPrompt } from "@/components/install-prompt";
+import { themeCss } from "@/lib/themes";
+import { resolveTheme } from "@/lib/theme-server";
 
 const display = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", display: "swap", axes: ["opsz"] });
 const sans = Figtree({ subsets: ["latin"], variable: "--font-figtree", display: "swap" });
@@ -29,11 +31,13 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#0a1b3f", width: "device-width", initialScale: 1 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { id } = await resolveTheme();
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable}`}>
+    <html lang="en" data-theme={id} className={`${display.variable} ${sans.variable}`}>
+      <head><style dangerouslySetInnerHTML={{ __html: themeCss() }} /></head>
       <body>
-        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-ink focus:px-4 focus:py-2 focus:text-white">Skip to content</a>
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-strong focus:px-4 focus:py-2 focus:text-white">Skip to content</a>
         {children}
         <InstallPrompt />
       </body>

@@ -1,3 +1,4 @@
+import { isRoot } from "@/lib/logic/permissions";
 import { getSetting } from "./settings";
 import { ROLES } from "./logic/permissions";
 
@@ -12,7 +13,7 @@ export async function loadPositions(): Promise<Position[]> {
       const [title, role] = line.split("|").map((s) => s.trim());
       if (!title) continue;
       const fallback = group === "non_teaching" ? "support_staff" : "teacher";
-      out.push({ title, role: ROLES.includes(role as never) && role !== "super_admin" ? role : fallback, group });
+      out.push({ title, role: ROLES.includes(role as never) && !isRoot(role) ? role : fallback, group });
     }
   }
   return out;

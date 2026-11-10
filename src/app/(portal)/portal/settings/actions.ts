@@ -6,7 +6,8 @@ import { audit, clean, safeUrl } from "@/lib/security";
 import { allSettings, setSetting } from "@/lib/settings";
 import { IMAGE_EXT, saveUpload } from "@/lib/files";
 import { weightsValid } from "@/lib/logic/scoring";
-import { ACTIONS, RESOURCES, ROLES } from "@/lib/logic/permissions";
+import { THEME_SEEDS } from "@/lib/themes";
+import { ACTIONS, RESOURCES, ROLES, isRoot } from "@/lib/logic/permissions";
 
 type State = { error?: string; ok?: string };
 const line = (v: FormDataEntryValue | null) => String(v ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
@@ -50,11 +51,25 @@ export async function saveSettings(_p: State, fd: FormData): Promise<State> {
   } else if (group === "contact") {
     await setSetting("contact", { phone: T("phone", 40), email: T("email", 160), address: T("address", 300), whatsapp: T("whatsapp", 20).replace(/\D/g, ""), officeHours: T("officeHours", 160), emergency: T("emergency", 40) });
     const social: Record<string, string> = {};
-    for (const k of ["facebook", "youtube", "instagram", "tiktok", "linkedin", "x", "whatsapp", "website"]) {
+    for (const k of ["cbt", "facebook", "youtube", "instagram", "tiktok", "linkedin", "x", "telegram", "snapchat", "threads", "whatsapp", "website"]) {
       const v = T(`s_${k}`, 300);
       social[k] = v ? safeUrl(v) ?? "" : "";
     }
     await setSetting("social", social);
+    const custom: string[] = [];
+    for (const l of line(fd.get("customLinks")).slice(0, 12)) {
+      const [label, url] = l.split("|").map((x) => x.trim());
+      const u = url ? safeUrl(url) : null;
+      if (label && u) custom.push(`${label.slice(0, 40)} | ${u}`);
+    }
+    await setSetting("links", { custom });
+  } else if (group === "theme") {
+    const ids = new Set(THEME_SEEDS.map((t) => t.id));
+    const def = T("default", 40);
+    const offered = new Set(fd.getAll("offer").map(String));
+    await setSetting("theme", { default: ids.has(def) ? def : "fodan-classic", picker: fd.get("picker") === "on", hidden: [...ids].filter((i) => !offered.has(i)) });
+  } else if (group === "staffRules") {
+    await setSetting("staffRules", line(fd.get("rules")).slice(0, 40).map((l) => l.slice(0, 400)));
   } else if (group === "home") {
     await setSetting("home", {
       heroTitle: T("heroTitle", 160), heroSub: T("heroSub", 500), about: T("about", 1500), aboutCollege: T("aboutCollege", 1500), vision: T("vision", 600), mission: T("mission", 800),
@@ -115,7 +130,7 @@ export async function saveSettings(_p: State, fd: FormData): Promise<State> {
 export async function savePermissions(_p: State, fd: FormData): Promise<State> {
   const me = await requirePerm("roles:manage");
   const role = clean(fd.get("role"), 30);
-  if (!ROLES.includes(role as never) || role === "super_admin") return { error: "This role cannot be edited." };
+  if (!ROLES.includes(role as never) || isRoot(role)) return { error: "This role cannot be edited." };
   const valid = new Set<string>(RESOURCES.flatMap((r) => ACTIONS.map((a) => `${r}:${a}`)));
   const perms = fd.getAll("perm").map((v) => String(v)).filter((p) => valid.has(p));
   await sql`INSERT INTO role_permissions (school_id, role, permissions) VALUES (${me.schoolId}, ${role}, ${sql.json(perms)})

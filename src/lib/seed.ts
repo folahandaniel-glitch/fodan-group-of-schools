@@ -3,6 +3,8 @@ import { CLASS_LEVELS, DEFAULT_DEPARTMENTS, needsDepartment } from "./logic/acad
 import { hashPassword } from "./crypto";
 import { checkPassword } from "./logic/password";
 import { DEFAULT_CONTENT } from "./defaults";
+import { seedBible } from "./bible";
+import { seedHymns } from "./hymns-seed";
 
 export const SCHOOL_SLUG = "fodan-college";
 
@@ -63,6 +65,9 @@ export async function seedDefaults(): Promise<void> {
       await sql`INSERT INTO content_items (school_id, kind, title, body, data, sort) VALUES (${sid}, ${it.kind}, ${it.title}, ${it.body}, ${sql.json((it.data ?? {}) as never)}, ${it.sort ?? 100})`;
     }
   }
+
+  await seedBible(sid);
+  await seedHymns(sid);
 
   const [{ su }] = await sql`SELECT count(*)::int AS su FROM users WHERE role = 'super_admin'`;
   const email = process.env.SUPERADMIN_EMAIL?.trim().toLowerCase();

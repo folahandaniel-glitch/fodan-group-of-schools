@@ -4,18 +4,20 @@ import { requireMe, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { Logo } from "@/components/ui";
 import { PortalNav, type NavItem } from "@/components/portal-nav";
-import { ROLE_LABEL } from "@/lib/logic/permissions";
+import { ROLE_LABEL, isRoot } from "@/lib/logic/permissions";
 import { currentTerm, getSetting } from "@/lib/settings";
 import { canView, loadModules } from "@/lib/modules";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { logout } from "@/app/(auth)/actions";
+import { ThemePicker } from "@/components/theme-picker";
+import { resolveTheme } from "@/lib/theme-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const me = await requireMe();
   if (me.mustChange) redirect("/account/password?forced=1");
-  if (me.role === "super_admin" && !me.mfaEnabled) redirect("/account/security?setup=1");
+  if (isRoot(me.role) && !me.mfaEnabled) redirect("/account/security?setup=1");
 
   const [{ n }] = await sql`SELECT count(*)::int AS n FROM notifications WHERE user_id = ${me.id} AND read = false`;
   const term = await currentTerm();
@@ -26,6 +28,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const banner = await sql`SELECT id, title FROM content_items WHERE school_id = ${me.schoolId} AND published = true AND kind = 'announcement'
                            AND audience IN ('public','all', ${audience}) ORDER BY created_at DESC LIMIT 5`;
 
+  const th = await resolveTheme();
   const items: NavItem[] = [{ href: "/portal", label: "Dashboard", group: "Overview" }];
   const add = (cond: boolean, href: string, label: string, group: string) => cond && items.push({ href, label, group });
   add(me.role === "parent", "/portal/children", "My children", "Overview");
@@ -39,6 +42,9 @@ export default async function PortalLayout({ children }: { children: React.React
   add(!learner && (can(me, "promotion:view") || can(me, "promotion:create")), "/portal/promotion", "Promotion", "School");
   add(!learner && can(me, "clock:view"), "/portal/clock", "Clock in / out", "School");
   add(!learner && can(me, "branches:view"), "/portal/branches", "Branches & fines", "School");
+  add(true, "/portal/bible", "Holy Bible", "Faith");
+  add(true, "/portal/hymns", "Hymn books", "Faith");
+  add(!learner, "/portal/hrm", "HRM · rules & fines", "School");
   add(!learner && can(me, "performance:view"), "/portal/performance", "Staff performance", "School");
   add(!learner && me.role !== "student", "/portal/payslips", "My payslips", "School");
   add(can(me, "payroll:view"), "/portal/payroll", "Payroll", "Finance");
@@ -55,6 +61,8 @@ export default async function PortalLayout({ children }: { children: React.React
   add(!learner && can(me, "analytics:view"), "/portal/analytics", "Analytics", "Records");
   add(can(me, "announcements:view"), "/portal/announcements", "Announcements", "Communicate");
   add(can(me, "comments:view"), "/portal/comments", "Website messages", "Communicate");
+  const cbtUrl = (await getSetting<Record<string, string>>("social"))?.cbt;
+  add(!!cbtUrl, cbtUrl ?? "", "Fodan CBT Academy", "Learn");
   for (const m of mods) add(canView(me, m), `/portal/m/${m.key}`, m.label, m.key === "forum" || m.key === "kb" ? "Community" : "Workspace");
   add(can(me, "audit:view"), "/portal/audit", "Audit & security", "Administration");
   add(can(me, "settings:view") || can(me, "*"), "/portal/backend", "BackEnd console", "Administration");
@@ -77,10 +85,11 @@ export default async function PortalLayout({ children }: { children: React.React
         <header className="no-print sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-paper/95 px-4 py-2.5 backdrop-blur">
           <details className="relative lg:hidden">
             <summary className="btn btn-ghost btn-sm list-none">Menu</summary>
-            <div className="absolute left-0 top-12 max-h-[75dvh] w-72 overflow-y-auto rounded-2xl border border-line bg-white p-3 shadow-2xl"><PortalNav items={items.map((i) => ({ ...i, label: labels[i.label] ?? i.label }))} /></div>
+            <div className="absolute left-0 top-12 max-h-[75dvh] w-72 overflow-y-auto rounded-2xl border border-line bg-card p-3 shadow-2xl"><PortalNav items={items.map((i) => ({ ...i, label: labels[i.label] ?? i.label }))} /></div>
           </details>
           <form action="/portal/search" role="search" className="hidden flex-1 lg:block"><input name="q" className="input !min-h-9 max-w-xs !py-1" placeholder={term ? `Search · ${term.session_name} ${term.name}` : "Search"} aria-label="Search the portal" /></form>
           <div className="flex items-center gap-2">
+            {th.picker && <ThemePicker themes={th.choices} fallback={th.id} />}
             <Link href="/portal/notifications" className="btn btn-ghost btn-sm" aria-label={`Notifications, ${n} unread`}>
               Alerts{n > 0 && <span className="badge badge-bad">{n}</span>}
             </Link>

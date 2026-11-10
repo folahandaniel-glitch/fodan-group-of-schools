@@ -6,7 +6,7 @@ import { sql } from "@/lib/db";
 import { requirePerm, type Me } from "@/lib/auth";
 import { audit, clean } from "@/lib/security";
 import { createUser, UserError } from "@/lib/accounts";
-import { outranks, ROLES, STAFF_ROLES } from "@/lib/logic/permissions";
+import { outranks, ROLES, STAFF_ROLES, isRoot } from "@/lib/logic/permissions";
 import { normEmail } from "@/lib/logic/password";
 import { IMAGE_EXT, saveUpload } from "@/lib/files";
 
@@ -17,7 +17,7 @@ function strongRandom(): string {
 }
 
 function mayManage(me: Me, targetRole: string): boolean {
-  return me.role === "super_admin" || outranks(me.role, targetRole);
+  return isRoot(me.role) || outranks(me.role, targetRole);
 }
 
 export async function createStaff(_p: State, fd: FormData): Promise<State> {
@@ -71,7 +71,9 @@ export async function setStaffRole(fd: FormData): Promise<void> {
   const me = await requirePerm("roles:manage");
   const id = clean(fd.get("id"), 40), role = clean(fd.get("role"), 30);
   const [u] = await sql`SELECT role FROM users WHERE id = ${id} AND school_id = ${me.schoolId}`;
-  if (!u || !ROLES.includes(role as never) || role === "super_admin" || u.role === "super_admin") return;
+  if (!u || !ROLES.includes(role as never) || role === "developer" || u.role === "developer") return;
+  if ((role === "super_admin" || u.role === "super_admin") && !isRoot(me.role)) return;
+  if (id === me.id) return;
   if (!mayManage(me, u.role) || !mayManage(me, role)) return;
   await sql`UPDATE users SET role = ${role} WHERE id = ${id}`;
   await audit({ schoolId: me.schoolId, actorId: me.id, action: "role.change", entity: "user", entityId: id, meta: { from: u.role, to: role } });
@@ -82,7 +84,7 @@ export async function setStaffStatus(fd: FormData): Promise<void> {
   const me = await requirePerm("staff:archive");
   const id = clean(fd.get("id"), 40), op = clean(fd.get("op"), 12);
   const [u] = await sql`SELECT role FROM users WHERE id = ${id} AND school_id = ${me.schoolId}`;
-  if (!u || u.role === "super_admin" || !mayManage(me, u.role) || id === me.id) return;
+  if (!u || isRoot(u.role) || !mayManage(me, u.role) || id === me.id) return;
   const map: Record<string, [string, string]> = { approve: ["active", "active"], reject: ["archived", "archived"], suspend: ["suspended", "suspended"], archive: ["archived", "archived"], restore: ["active", "active"] };
   const m = map[op];
   if (!m) return;

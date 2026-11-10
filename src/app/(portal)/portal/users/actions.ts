@@ -3,13 +3,13 @@ import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { requirePerm } from "@/lib/auth";
 import { audit, clean } from "@/lib/security";
-import { outranks } from "@/lib/logic/permissions";
+import { outranks, isRoot } from "@/lib/logic/permissions";
 
 async function target(me: { schoolId: string; role: string; id: string }, id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id) || id === me.id) return null;
   const [u] = await sql`SELECT id, role FROM users WHERE id = ${id} AND school_id = ${me.schoolId}`;
-  if (!u || u.role === "super_admin") return null;
-  if (me.role !== "super_admin" && !outranks(me.role, u.role)) return null;
+  if (!u || u.role === "developer" || (u.role === "super_admin" && me.role !== "developer")) return null;
+  if (!isRoot(me.role) && !outranks(me.role, u.role)) return null;
   return u as { id: string; role: string };
 }
 

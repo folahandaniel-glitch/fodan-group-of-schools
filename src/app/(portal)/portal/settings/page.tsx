@@ -6,14 +6,15 @@ import { allSettings } from "@/lib/settings";
 import { str } from "@/lib/data";
 import { Card, Field, PageHeader, TextArea, Badge } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
-import { ACTIONS, defaultsFor, RESOURCES, ROLE_LABEL, ROLES } from "@/lib/logic/permissions";
+import { ACTIONS, defaultsFor, RESOURCES, ROLE_LABEL, ROLES, isRoot } from "@/lib/logic/permissions";
 import { CONTENT_KINDS } from "@/lib/content";
+import { THEME_SEEDS, themeVars } from "@/lib/themes";
 import { deleteContent, resetPermissions, saveContent, savePermissions, saveSettings } from "./actions";
 
 export const metadata = { title: "Settings & content" };
 
 const TABS = [
-  ["brand", "Branding"], ["founder", "Founder"], ["contact", "Contact & social"], ["home", "Homepage"], ["content", "News & content"],
+  ["brand", "Branding"], ["founder", "Founder"], ["contact", "Contact & social"], ["appearance", "Themes"], ["hrm", "Staff rules"], ["home", "Homepage"], ["content", "News & content"],
   ["academic", "Academic & grading"], ["eligibility", "Exams & features"], ["auth", "Sign-in & footer"], ["periods", "Timetable & documents"], ["permissions", "Roles & permissions"],
 ] as const;
 
@@ -72,8 +73,35 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <Field label="Office hours" name="officeHours" defaultValue={s.contact.officeHours} />
             <Field label="Emergency contact" name="emergency" defaultValue={s.contact.emergency} />
             <div className="sm:col-span-2 grid gap-3 sm:grid-cols-2">
-              {["facebook", "youtube", "instagram", "tiktok", "linkedin", "x", "whatsapp", "website"].map((k) => <Field key={k} label={`${k[0].toUpperCase()}${k.slice(1)} URL`} name={`s_${k}`} type="url" defaultValue={s.social[k]} />)}
+              <Field label="Fodan CBT Academy URL" name="s_cbt" type="url" defaultValue={s.social.cbt} />
+              {["facebook", "youtube", "instagram", "tiktok", "linkedin", "x", "telegram", "snapchat", "threads", "whatsapp", "website"].map((k) => <Field key={k} label={`${k[0].toUpperCase()}${k.slice(1)} URL`} name={`s_${k}`} type="url" defaultValue={s.social[k]} />)}
             </div>
+            <div className="sm:col-span-2"><TextArea label="Other links (footer): one per line as Label | URL" name="customLinks" defaultValue={(s.links?.custom ?? []).join("\n")} rows={4} /></div>
+          </ActionForm></div>
+        </Card>
+      )}
+      {tab === "appearance" && (
+        <Card><h2 className="text-xl">Themes</h2>
+          <p className="mt-1 text-sm text-muted">The primary theme uses the school logo colours. Visitors can switch to any theme from the Theme button; their choice is remembered on their device.</p>
+          <div className="mt-3"><ActionForm action={saveSettings} className="grid gap-3 sm:grid-cols-2">
+            {hidden("theme")}
+            <div className="field"><label htmlFor="th">Default theme for everyone</label>
+              <select id="th" name="default" className="select" defaultValue={s.theme.default}>{THEME_SEEDS.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+            <label className="flex items-center gap-2 self-end text-sm font-semibold"><input type="checkbox" name="picker" defaultChecked={s.theme.picker} /> Let visitors choose their own theme</label>
+            <fieldset className="sm:col-span-2"><legend className="label">Themes offered in the picker</legend>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">{THEME_SEEDS.map((t) => (
+                <label key={t.id} className="flex items-center gap-2 text-sm"><input type="checkbox" name="offer" value={t.id} defaultChecked={!(s.theme.hidden ?? []).includes(t.id)} />
+                  <span className="inline-flex overflow-hidden rounded"><i style={{ background: themeVars(t).strong }} className="block h-4 w-3" /><i style={{ background: t.accent }} className="block h-4 w-3" /><i style={{ background: t.paper }} className="block h-4 w-3 border border-line" /></span>{t.name}</label>))}</div>
+            </fieldset>
+          </ActionForm></div>
+        </Card>
+      )}
+      {tab === "hrm" && (
+        <Card><h2 className="text-xl">Standard staff rules &amp; fines</h2>
+          <p className="mt-1 text-sm text-muted">Every staff member sees these on the HRM page. Lateness and absence amounts are set under Branches &amp; fines. One rule per line as <code>Rule | Fine in naira | Details</code>.</p>
+          <div className="mt-3"><ActionForm action={saveSettings} className="grid gap-3">
+            {hidden("staffRules")}
+            <TextArea label="Rules" name="rules" defaultValue={(s.staffRules ?? []).join("\n")} rows={14} />
           </ActionForm></div>
         </Card>
       )}
@@ -142,7 +170,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             ))}
             <Field label="Sign-in caption" name="caption" defaultValue={s.authArt?.caption} />
             <div className="sm:col-span-2"><Field label="Footer text (public site and sign-in screens)" name="footer" defaultValue={s.footer?.text} /></div>
-            <p className="hint sm:col-span-2">Staff positions: one per line as <code>Title | role</code>. Roles: {ROLES.filter((r) => r !== "super_admin").join(", ")}.</p>
+            <p className="hint sm:col-span-2">Staff positions: one per line as <code>Title | role</code>. Roles: {ROLES.filter((r) => !isRoot(r)).join(", ")}.</p>
             {([["secondary", "Teaching — Secondary school"], ["primary", "Teaching — Primary school"], ["non_teaching", "Non-teaching staff"]] as const).map(([g, l]) => (
               <div key={g} className="sm:col-span-2"><TextArea label={l} name={`pos_${g}`} rows={8} defaultValue={((s.positions?.[g] ?? []) as string[]).join("\n")} /></div>
             ))}
@@ -212,7 +240,7 @@ async function ContentManager() {
 
 async function PermissionsManager({ role }: { role: string }) {
   const me = await requireMe();
-  const r = ROLES.includes(role as never) && role !== "super_admin" ? role : "teacher";
+  const r = ROLES.includes(role as never) && !isRoot(role) ? role : "teacher";
   const [row] = await sql`SELECT permissions FROM role_permissions WHERE school_id = ${me.schoolId} AND role = ${r}`;
   const current = new Set<string>(row ? (row.permissions as string[]) : defaultsFor(r));
   return (
@@ -221,7 +249,7 @@ async function PermissionsManager({ role }: { role: string }) {
       <p className="mt-1 text-sm text-muted">Every permission is enforced on the server. Super Admin always has full access and cannot be edited.
         {row ? <> <Badge tone="info">Customised</Badge></> : <> <Badge>Default</Badge></>}</p>
       <nav className="mt-3 flex flex-wrap gap-2" aria-label="Roles">
-        {ROLES.filter((x) => x !== "super_admin").map((x) => <Link key={x} href={`/portal/settings?tab=permissions&role=${x}`} className={`badge ${x === r ? "badge-info" : ""}`}>{ROLE_LABEL[x]}</Link>)}
+        {ROLES.filter((x) => !isRoot(x)).map((x) => <Link key={x} href={`/portal/settings?tab=permissions&role=${x}`} className={`badge ${x === r ? "badge-info" : ""}`}>{ROLE_LABEL[x]}</Link>)}
       </nav>
       <div className="mt-4">
         <ActionForm action={savePermissions} submit={`Save permissions for ${ROLE_LABEL[r]}`}>

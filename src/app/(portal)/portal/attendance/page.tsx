@@ -58,7 +58,7 @@ export default async function Attendance({ searchParams }: { searchParams: Promi
       <legend className="sr-only">Status</legend>
       {list.map((s) => (
         <label key={s} className="cursor-pointer"><input type="radio" name={name} value={s} defaultChecked={(current ?? "present") === s} className="peer sr-only" />
-          <span className="badge peer-checked:border-ink peer-checked:bg-ink peer-checked:text-white peer-focus-visible:ring-2 capitalize">{s}</span></label>
+          <span className="badge peer-checked:border-strong peer-checked:bg-strong peer-checked:text-white peer-focus-visible:ring-2 capitalize">{s}</span></label>
       ))}
     </fieldset>
   );

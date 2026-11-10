@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui";
 import { allSettings } from "@/lib/settings";
+import { ThemePicker } from "@/components/theme-picker";
+import { resolveTheme } from "@/lib/theme-server";
 
 const NAV = [
   { href: "/#about", label: "About" },
@@ -13,6 +15,9 @@ const NAV = [
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const s = await allSettings();
+  const th = await resolveTheme();
+  const custom = ((s.links?.custom ?? []) as string[]).map((l) => l.split("|").map((x) => x.trim())).filter((p) => p.length === 2);
+  const cbt = (s.social as Record<string, string>).cbt;
   const social = Object.entries(s.social as Record<string, string>).filter(([, v]) => v);
   return (
     <div className="flex min-h-dvh flex-col">
@@ -29,6 +34,8 @@ export default async function PublicLayout({ children }: { children: React.React
             {NAV.map((n) => <Link key={n.href} href={n.href} className="rounded-lg px-3 py-2 text-sm font-semibold text-ink-2 hover:bg-paper-2">{n.label}</Link>)}
           </nav>
           <div className="flex items-center gap-2">
+            {cbt && <a href={cbt} target="_blank" rel="noopener noreferrer" className="btn btn-gold btn-sm hidden sm:inline-flex">Fodan CBT</a>}
+            {th.picker && <ThemePicker themes={th.choices} fallback={th.id} />}
             <Link href="/login" className="btn btn-ghost btn-sm">Sign in</Link>
             <Link href="/register" className="btn btn-primary btn-sm">Register</Link>
           </div>
@@ -40,7 +47,7 @@ export default async function PublicLayout({ children }: { children: React.React
 
       <main id="main" className="flex-1">{children}</main>
 
-      <footer className="border-t border-line bg-ink text-white">
+      <footer className="border-t border-line bg-strong text-white">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-3">
           <div>
             <div className="inline-block rounded-xl bg-white p-2"><Logo size={64} /></div>
@@ -64,9 +71,10 @@ export default async function PublicLayout({ children }: { children: React.React
               <li><Link href="/register" className="hover:text-white">Student registration</Link></li>
               <li><Link href="/register/staff" className="hover:text-white">Staff registration</Link></li>
             </ul>
-            {social.length > 0 && (
+            {(social.length > 0 || custom.length > 0) && (
               <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-white/70">
-                {social.map(([k, v]) => <li key={k}><a className="capitalize hover:text-white" href={v} rel="noopener noreferrer" target="_blank">{k}</a></li>)}
+                {social.map(([k, v]) => <li key={k}><a className="hover:text-white" href={v} rel="noopener noreferrer" target="_blank">{k === "cbt" ? "Fodan CBT" : k === "x" ? "X" : k[0].toUpperCase() + k.slice(1)}</a></li>)}
+                {custom.map(([label, url]) => <li key={url}><a className="hover:text-white" href={url} rel="noopener noreferrer" target="_blank">{label}</a></li>)}
               </ul>
             )}
           </div>

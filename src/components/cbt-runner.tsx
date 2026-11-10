@@ -119,7 +119,7 @@ export function CbtRunner({ attemptId, backHref, showScore }: { attemptId: strin
 
   return (
     <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="lg:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3">
+      <div className="lg:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3">
         <div><p className="eyebrow">{v.kind.toUpperCase()}</p><h1 className="text-xl">{v.title}</h1></div>
         <div className="flex items-center gap-3">
           <span className={`badge ${net === "offline" ? "badge-bad" : net === "saving" ? "badge-warn" : "badge-ok"}`} aria-live="polite">
@@ -136,7 +136,7 @@ export function CbtRunner({ attemptId, backHref, showScore }: { attemptId: strin
           <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {v.questions.map((x, idx) => (
               <li key={x.id}>
-                <button onClick={() => { setI(idx); setReview(false); }} className={`w-full rounded-xl border px-3 py-2 text-left text-sm font-semibold ${answers[x.id] ? "border-ok bg-[#e6f4ec]" : "border-line bg-white"}`}>
+                <button onClick={() => { setI(idx); setReview(false); }} className={`w-full rounded-xl border px-3 py-2 text-left text-sm font-semibold ${answers[x.id] ? "border-ok bg-[#e6f4ec]" : "border-line bg-card"}`}>
                   Question {x.n}{flags.includes(x.id) ? " 🚩" : ""}<span className="block text-xs font-normal text-muted">{answers[x.id] ? "Answered" : "Not answered"}</span>
                 </button>
               </li>
@@ -157,7 +157,7 @@ export function CbtRunner({ attemptId, backHref, showScore }: { attemptId: strin
             {q.options.map((o) => {
               const sel = answers[q.id] === o.key;
               return (
-                <label key={o.key} className={`flex min-h-[48px] cursor-pointer items-start gap-3 rounded-xl border-2 px-4 py-3 ${sel ? "border-royal bg-[#e8eeff]" : "border-line bg-white hover:border-ink-2"}`}>
+                <label key={o.key} className={`flex min-h-[48px] cursor-pointer items-start gap-3 rounded-xl border-2 px-4 py-3 ${sel ? "border-royal bg-[#e8eeff]" : "border-line bg-card hover:border-ink-2"}`}>
                   <input type="radio" name={`q-${q.id}`} className="mt-1" checked={sel} onChange={() => setAnswers((a) => ({ ...a, [q.id]: o.key }))} />
                   <span><b className="mr-2">{o.label}.</b><MathText text={o.text} /></span>
                 </label>
@@ -182,7 +182,7 @@ export function CbtRunner({ attemptId, backHref, showScore }: { attemptId: strin
           {v.questions.map((x, idx) => (
             <li key={x.id}>
               <button onClick={() => { setI(idx); setReview(false); }} aria-label={`Question ${x.n}${answers[x.id] ? ", answered" : ""}${flags.includes(x.id) ? ", flagged" : ""}`}
-                className={`h-10 w-full rounded-lg border text-sm font-bold ${idx === i && !review ? "ring-2 ring-royal-2" : ""} ${flags.includes(x.id) ? "border-gold-2 bg-gold-soft" : answers[x.id] ? "border-ok bg-[#e6f4ec] text-ok" : "border-line bg-white"}`}>
+                className={`h-10 w-full rounded-lg border text-sm font-bold ${idx === i && !review ? "ring-2 ring-royal-2" : ""} ${flags.includes(x.id) ? "border-gold-2 bg-gold-soft" : answers[x.id] ? "border-ok bg-[#e6f4ec] text-ok" : "border-line bg-card"}`}>
                 {x.n}
               </button>
             </li>

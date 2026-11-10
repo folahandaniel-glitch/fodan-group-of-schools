@@ -1,4 +1,5 @@
 "use server";
+import { isRoot } from "@/lib/logic/permissions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { sql } from "@/lib/db";
@@ -60,7 +61,7 @@ export async function lessonTransition(fd: FormData): Promise<void> {
   if (!l || !t.from.includes(l.status)) return;
   if (t.own && l.teacher_id !== me.id) return;
   if (t.perm && !can(me, t.perm)) return;
-  if (["approve", "reject", "review"].includes(op) && l.teacher_id === me.id && me.role !== "super_admin") return; // no self-approval
+  if (["approve", "reject", "review"].includes(op) && l.teacher_id === me.id && !isRoot(me.role)) return; // no self-approval
   await sql`UPDATE lesson_notes SET status = ${TARGET[op]}, reviewer_id = CASE WHEN ${op} IN ('approve','review','reject') THEN ${me.id}::uuid ELSE reviewer_id END,
             review_comment = CASE WHEN ${op} IN ('approve','review','reject') THEN ${clean(fd.get("comment"), 1000) || null} ELSE review_comment END, updated_at = now() WHERE id = ${id}`;
   await audit({ schoolId: me.schoolId, actorId: me.id, action: `lesson.${op}`, entity: "lesson_note", entityId: id });

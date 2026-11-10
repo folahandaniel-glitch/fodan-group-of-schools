@@ -1,4 +1,5 @@
 "use server";
+import { isRoot } from "@/lib/logic/permissions";
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { requirePerm } from "@/lib/auth";
@@ -68,12 +69,12 @@ export async function advanceRun(fd: FormData): Promise<void> {
   if (!r) return;
   if (op === "approve" && r.status === "draft") {
     await requirePerm("payroll:approve");
-    if (r.created_by === me.id && me.role !== "super_admin") return;
+    if (r.created_by === me.id && !isRoot(me.role)) return;
     await sql`UPDATE payroll_runs SET status = 'approved', approved_by = ${me.id}, approved_at = now() WHERE id = ${id}`;
     await sql`INSERT INTO notifications (user_id, title, link) SELECT user_id, ${`Your ${r.period} payslip is ready`}, '/portal/payslips' FROM payslips WHERE run_id = ${id}`;
   } else if (op === "pay" && r.status === "approved") {
     await requirePerm("payroll:manage");
-    if (r.approved_by === me.id && me.role !== "super_admin") return;
+    if (r.approved_by === me.id && !isRoot(me.role)) return;
     await sql`UPDATE payroll_runs SET status = 'paid', paid_by = ${me.id}, paid_at = now() WHERE id = ${id}`;
     const [t] = await sql`SELECT COALESCE(sum(net), 0)::float AS net, COALESCE(sum(fines), 0)::float AS fines, COALESCE(sum(gross + allowances), 0)::float AS earnings FROM payslips WHERE run_id = ${id}`;
     await post({ schoolId: me.schoolId, description: `Payroll ${r.period} (net pay)`, debit: "5000", credit: "1000", amount: t.net, ref: `payroll:${id}:net`, by: me.id });

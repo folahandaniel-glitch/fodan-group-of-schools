@@ -1,3 +1,4 @@
+import { isRoot } from "@/lib/logic/permissions";
 import type { Me } from "./auth";
 import { getSetting } from "./settings";
 
@@ -10,7 +11,7 @@ export type ModuleDef = {
   enabled?: boolean;
 };
 
-const MGMT = ["super_admin", "premium_admin", "proprietor", "director", "principal", "headteacher", "vp_admin", "hr_manager", "vp_academics", "asst_headteacher"];
+const MGMT = ["developer", "super_admin", "hr_admin", "finance_admin", "premium_admin", "proprietor", "director", "principal", "headteacher", "vp_admin", "hr_manager", "vp_academics", "asst_headteacher"];
 
 /** Built-in modules carried over from Fodan College (forum, tasks) and WorkSuite (leave, memos, knowledge base, tickets, discipline). */
 export const MODULES: ModuleDef[] = [
@@ -24,7 +25,7 @@ export const MODULES: ModuleDef[] = [
   { key: "leave", label: "Leave requests", origin: "WorkSuite", blurb: "Staff request leave; school leaders approve or decline.",
     fields: [{ name: "type", label: "Leave type", type: "select", options: ["Annual", "Sick", "Maternity / paternity", "Compassionate", "Study", "Other"], required: true },
       { name: "from", label: "From", type: "date", required: true }, { name: "to", label: "To", type: "date", required: true }],
-    statuses: ["pending", "approved", "rejected", "cancelled"], defaultStatus: "pending", create: ["staff"], view: ["staff"], manage: ["super_admin", "principal", "vp_admin"],
+    statuses: ["pending", "approved", "rejected", "cancelled"], defaultStatus: "pending", create: ["staff"], view: ["staff"], manage: ["developer", "super_admin", "principal", "vp_admin"],
     ownOnly: true, ownerMay: ["cancelled"] },
   { key: "memos", label: "Memos & notices", origin: "WorkSuite", blurb: "Numbered staff memos; the sender sees who has acknowledged.",
     fields: [], statuses: ["published", "draft", "archived"], defaultStatus: "published", create: [...MGMT, "hod"], view: ["staff"], manage: [...MGMT], acknowledge: true },
@@ -40,7 +41,7 @@ export const MODULES: ModuleDef[] = [
     fields: [{ name: "amount", label: "Amount (₦)", type: "text", required: true },
       { name: "category", label: "Category", type: "select", options: ["Salaries", "Maintenance", "Utilities", "Learning materials", "Events", "Transport", "Other"], required: true }],
     statuses: ["pending", "approved", "rejected", "paid"], defaultStatus: "pending", create: ["staff"], view: ["staff"],
-    manage: ["super_admin", "premium_admin", "proprietor", "director", "accountant", "bursar", "principal", "headteacher"], ownOnly: true, replies: true, ownerMay: [] },
+    manage: ["developer", "super_admin", "premium_admin", "proprietor", "director", "accountant", "bursar", "principal", "headteacher"], ownOnly: true, replies: true, ownerMay: [] },
   { key: "rosters", label: "Rosters & shifts", origin: "WorkSuite", blurb: "Weekly duty rosters by branch; staff see their own shifts.",
     fields: [{ name: "date", label: "Date", type: "date", required: true }, { name: "shift", label: "Shift", type: "select", options: ["Morning", "Afternoon", "Night", "Weekend duty", "Off"], required: true },
       { name: "location", label: "Branch / post", type: "text" }],
@@ -56,7 +57,7 @@ export const MODULES: ModuleDef[] = [
     fields: [{ name: "vendor", label: "Vendor", type: "text", required: true }, { name: "amount", label: "Amount (₦)", type: "text", required: true },
       { name: "category", label: "Category", type: "select", options: ["Learning materials", "Maintenance", "Utilities", "Events", "Transport", "Other"] }],
     statuses: ["requested", "approved", "received", "rejected"], defaultStatus: "requested", create: ["staff"], view: ["staff"],
-    manage: ["super_admin", "premium_admin", "proprietor", "director", "principal", "headteacher", "accountant", "bursar"], ownOnly: true, replies: true },
+    manage: ["developer", "super_admin", "premium_admin", "proprietor", "director", "principal", "headteacher", "accountant", "bursar"], ownOnly: true, replies: true },
   { key: "contracts", label: "Contracts", origin: "WorkSuite", blurb: "Staff, vendor and partner contracts with start/end dates for renewal tracking.",
     fields: [{ name: "party", label: "Other party", type: "text", required: true }, { name: "start", label: "Start", type: "date" }, { name: "end", label: "End", type: "date" }, { name: "value", label: "Value (₦)", type: "text" }],
     statuses: ["draft", "sent", "signed", "expired", "terminated"], defaultStatus: "draft", create: [...MGMT, "hr_manager"], view: [...MGMT, "hr_manager", "accountant", "auditor"], manage: [...MGMT, "hr_manager"] },
@@ -78,7 +79,7 @@ export async function loadModules(): Promise<ModuleDef[]> {
 }
 
 export function matches(me: Me, aud: string[]): boolean {
-  if (me.role === "super_admin") return true;
+  if (isRoot(me.role)) return true;
   const staff = me.role !== "student" && me.role !== "parent";
   return aud.some((a) => a === "all" || (a === "staff" && staff) || (a === "student" && me.role === "student") || (a === "parent" && me.role === "parent") || me.roles.includes(a));
 }

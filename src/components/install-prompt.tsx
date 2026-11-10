@@ -37,7 +37,7 @@ export function InstallPrompt() {
 
   return (
     <div role="dialog" aria-label="Install Fodan Group of Schools Portal"
-      className="no-print fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-line bg-white p-4 shadow-2xl">
+      className="no-print fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-line bg-card p-4 shadow-2xl">
       <p className="font-display text-lg text-ink">Install Fodan Group of Schools Portal</p>
       <p className="mt-1 text-sm text-muted">
         {mode === "native"

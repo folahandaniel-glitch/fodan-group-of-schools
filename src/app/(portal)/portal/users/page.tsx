@@ -3,7 +3,7 @@ import { requirePerm, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { pageParams, str } from "@/lib/data";
 import { Badge, Card, Empty, PageHeader, Pager, statusTone } from "@/components/ui";
-import { ROLE_LABEL, ROLES } from "@/lib/logic/permissions";
+import { ROLE_LABEL, ROLES, isRoot } from "@/lib/logic/permissions";
 import { setUserStatus, revokeSessions } from "./actions";
 import { ResetLink } from "@/components/reset-link";
 
@@ -44,14 +44,14 @@ export default async function Users({ searchParams }: { searchParams: Promise<Re
                   <td><Badge tone={statusTone(u.status)}>{u.status}</Badge></td>
                   {manage && (
                     <td className="min-w-[14rem]">
-                      {u.role !== "super_admin" && u.id !== me.id && (
+                      {!isRoot(u.role) && u.id !== me.id && (
                         <div className="flex flex-wrap gap-1">
                           <form action={setUserStatus}><input type="hidden" name="id" value={u.id} /><input type="hidden" name="status" value={u.status === "active" ? "suspended" : "active"} />
                             <button className="btn btn-ghost btn-sm">{u.status === "active" ? "Suspend" : "Restore"}</button></form>
                           <form action={revokeSessions}><input type="hidden" name="id" value={u.id} /><button className="btn btn-ghost btn-sm">Sign out everywhere</button></form>
                         </div>
                       )}
-                      {u.role !== "super_admin" && <div className="mt-1"><ResetLink userId={u.id} /></div>}
+                      {!isRoot(u.role) && <div className="mt-1"><ResetLink userId={u.id} /></div>}
                       {["student"].includes(u.role) ? null : u.role !== "parent" && <Link className="mt-1 inline-block text-xs font-bold text-royal hover:underline" href={`/portal/staff/${u.id}`}>Profile</Link>}
                     </td>
                   )}

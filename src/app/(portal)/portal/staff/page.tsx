@@ -4,7 +4,7 @@ import { sql } from "@/lib/db";
 import { listDepartments, opts, pageParams, str } from "@/lib/data";
 import { Badge, Card, Empty, Field, PageHeader, Pager, Select, statusTone } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
-import { ROLE_LABEL, STAFF_ROLES } from "@/lib/logic/permissions";
+import { ROLE_LABEL, STAFF_ROLES, isRoot } from "@/lib/logic/permissions";
 import { createStaff } from "./actions";
 
 export const metadata = { title: "Staff" };
@@ -21,7 +21,7 @@ export default async function StaffList({ searchParams }: { searchParams: Promis
   const rows = await sql`SELECT u.id, u.first_name, u.last_name, u.email, u.role, u.status, p.position, p.is_senior, p.years_experience, d.name AS dept
                          FROM users u LEFT JOIN staff_profiles p ON p.user_id = u.id LEFT JOIN departments d ON d.id = p.department_id
                          WHERE ${where} ORDER BY u.last_name, u.first_name LIMIT ${size} OFFSET ${offset}`;
-  const creatable = STAFF_ROLES.filter((r) => me.role === "super_admin" || r !== "proprietor");
+  const creatable = (isRoot(me.role) ? [...STAFF_ROLES, "super_admin"] : STAFF_ROLES).filter((r) => isRoot(me.role) || r !== "proprietor");
   return (
     <>
       <PageHeader title="Staff" sub={`${n} ${status} staff account${n === 1 ? "" : "s"}`} />

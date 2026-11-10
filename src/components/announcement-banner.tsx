@@ -20,9 +20,9 @@ export function AnnouncementBanner({ items }: { items: { id: string; title: stri
         <Link href="/portal/announcements" className="min-w-0 flex-1 truncate font-semibold hover:underline" aria-live="polite">{cur.title}</Link>
         {items.length > 1 && (
           <span className="flex items-center gap-1">
-            <button className="rounded px-2 py-0.5 hover:bg-white" aria-label="Previous announcement" onClick={() => setI((x) => (x - 1 + items.length) % items.length)}>‹</button>
+            <button className="rounded px-2 py-0.5 hover:bg-card" aria-label="Previous announcement" onClick={() => setI((x) => (x - 1 + items.length) % items.length)}>‹</button>
             <span className="text-xs text-muted">{(i % items.length) + 1}/{items.length}</span>
-            <button className="rounded px-2 py-0.5 hover:bg-white" aria-label="Next announcement" onClick={() => setI((x) => (x + 1) % items.length)}>›</button>
+            <button className="rounded px-2 py-0.5 hover:bg-card" aria-label="Next announcement" onClick={() => setI((x) => (x + 1) % items.length)}>›</button>
           </span>
         )}
       </div>

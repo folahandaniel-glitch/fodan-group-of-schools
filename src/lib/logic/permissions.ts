@@ -1,7 +1,7 @@
 // Role + permission model. Defaults live here; Super Admin overrides are stored in the database.
 
 export const ROLES = [
-  "proprietor", "super_admin", "principal", "vp_admin", "vp_academics", "hod",
+  "developer", "proprietor", "super_admin", "academic_admin", "finance_admin", "hr_admin", "exam_admin", "content_admin", "student_affairs_admin", "principal", "vp_admin", "vp_academics", "hod",
   "senior_staff", "teacher", "class_teacher", "student", "parent",
   "accountant", "librarian", "nurse", "counsellor", "transport", "ict_officer", "reception", "exam_officer", "bursar",
   "director", "premium_admin", "headteacher", "asst_headteacher", "hr_manager", "auditor", "support_staff",
@@ -9,6 +9,8 @@ export const ROLES = [
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABEL: Record<string, string> = {
+  developer: "Developer", academic_admin: "Academic Admin", finance_admin: "Finance Admin", hr_admin: "HR Admin",
+  exam_admin: "Exam & CBT Admin", content_admin: "Website & Content Admin", student_affairs_admin: "Student Affairs Admin",
   proprietor: "Proprietor", super_admin: "Super Admin", principal: "Principal",
   vp_admin: "Vice Principal (Administration)", vp_academics: "Vice Principal (Academics)",
   hod: "Head of Department", senior_staff: "Senior Staff", teacher: "Teacher", class_teacher: "Class Teacher",
@@ -20,6 +22,7 @@ export const ROLE_LABEL: Record<string, string> = {
 };
 
 export const STAFF_ROLES: Role[] = [
+  "academic_admin", "finance_admin", "hr_admin", "exam_admin", "content_admin", "student_affairs_admin",
   "principal", "vp_admin", "vp_academics", "hod", "senior_staff", "teacher", "class_teacher",
   "proprietor", "accountant", "librarian", "nurse", "counsellor", "transport", "ict_officer", "reception", "exam_officer", "bursar",
   "director", "premium_admin", "headteacher", "asst_headteacher", "hr_manager", "auditor", "support_staff",
@@ -41,7 +44,14 @@ const full = (...r: string[]) => r.flatMap((x) => all(x));
 
 const ACADEMIC_VIEW = view("dashboard", "students", "classes", "subjects", "timetable", "calendar", "attendance", "lessons", "questions", "assessments", "results", "reports", "resources", "announcements", "analytics");
 
+/** Roles that hold every permission. Developer sits above Super Admin and cannot be managed by anyone else. */
+export const ROOT_ROLES = ["developer", "super_admin"];
+export const isRoot = (role: string | null | undefined): boolean => ROOT_ROLES.includes(role ?? "");
+/** Admin roles a root user can hand out, each scoped to one area of school life. */
+export const ADMIN_ROLES = ["super_admin", "academic_admin", "finance_admin", "hr_admin", "exam_admin", "content_admin", "student_affairs_admin"];
+
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
+  developer: ["*"],
   super_admin: ["*"],
   proprietor: [
     ...view("dashboard", "students", "parents", "staff", "classes", "subjects", "timetable", "calendar", "attendance", "lessons", "questions", "assessments", "results", "reports", "certificates", "resources", "announcements", "comments", "analytics", "audit"),
@@ -106,6 +116,15 @@ export function defaultsFor(role: string): string[] {
   if (["accountant", "bursar"].includes(role)) ["payroll:manage", "ledger:manage"].forEach((p) => extra.add(p));
   if (["principal", "headteacher", "vp_admin", "hr_manager", "vp_academics", "asst_headteacher", "hod"].includes(role)) ["performance:view"].forEach((p) => extra.add(p));
   if (["vp_admin", "hr_manager"].includes(role)) ["payroll:view", "payroll:manage", "performance:manage"].forEach((p) => extra.add(p));
+  const AREA: Record<string, string[]> = {
+    academic_admin: [...ACADEMIC_VIEW, ...full("classes", "subjects", "timetable", "calendar", "lessons", "assessments", "results", "reports", "promotion", "certificates", "resources", "students", "staff"), "questions:approve", "questions:review", "analytics:view", "announcements:create", "announcements:publish"],
+    finance_admin: [...view("dashboard", "students", "parents", "staff", "announcements", "calendar"), ...full("finance", "payroll", "ledger", "fines"), "audit:view", "audit:export", "reports:export", "reports:print", "branches:view", "analytics:view"],
+    hr_admin: [...view("dashboard", "students", "announcements", "calendar", "attendance"), ...full("staff", "branches", "clock", "fines", "performance"), "payroll:view", "payroll:manage", "finance:view", "audit:view", "reports:export", "reports:print", "users:view", "roles:view"],
+    exam_admin: [...view("dashboard", "students", "classes", "subjects", "timetable", "calendar", "announcements", "results", "reports"), ...full("questions", "assessments", "results"), "lessons:view", "reports:export", "reports:print", "analytics:view"],
+    content_admin: [...view("dashboard", "announcements", "calendar", "students", "staff"), ...full("cms", "announcements", "resources", "comments", "calendar")],
+    student_affairs_admin: [...view("dashboard", "classes", "subjects", "timetable", "calendar", "results", "reports", "announcements"), ...full("students", "parents", "attendance", "access_codes", "comments", "certificates"), "reports:export", "reports:print"],
+  };
+  AREA[role]?.forEach((p) => extra.add(p));
   if (role === "premium_admin") ACADEMIC_VIEW.forEach((p) => extra.add(p)), full("students", "classes", "subjects", "timetable", "calendar", "announcements", "lessons", "questions", "assessments", "results", "resources", "certificates", "promotion", "access_codes", "cms", "users", "comments", "parents").forEach((p) => extra.add(p));
   return [...new Set([...base, ...extra])];
 }
@@ -125,7 +144,7 @@ export function permits(perms: Set<string> | string[], need: string): boolean {
 
 /** Roles ordered by seniority — used to stop privilege escalation by lower roles. */
 export const HIERARCHY: string[] = [
-  "super_admin", "premium_admin", "proprietor", "director", "principal", "headteacher", "vp_academics", "vp_admin", "hr_manager", "asst_headteacher", "hod", "senior_staff", "auditor",
+  "developer", "super_admin", "premium_admin", "proprietor", "director", "academic_admin", "finance_admin", "hr_admin", "exam_admin", "content_admin", "student_affairs_admin", "principal", "headteacher", "vp_academics", "vp_admin", "hr_manager", "asst_headteacher", "hod", "senior_staff", "auditor",
   "class_teacher", "teacher", "accountant", "bursar", "exam_officer", "librarian", "nurse", "counsellor",
   "transport", "ict_officer", "reception", "parent", "student",
 ];

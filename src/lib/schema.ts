@@ -600,4 +600,43 @@ CREATE TABLE IF NOT EXISTS record_replies (
   hidden boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS bible_versions (
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  code text NOT NULL,
+  name text NOT NULL,
+  source text NOT NULL DEFAULT 'db',
+  api_bible_id text NOT NULL DEFAULT '',
+  license text NOT NULL DEFAULT '',
+  active boolean NOT NULL DEFAULT true,
+  sort int NOT NULL DEFAULT 100,
+  PRIMARY KEY (school_id, code)
+);
+CREATE TABLE IF NOT EXISTS bible_chapters (
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  version text NOT NULL,
+  book_no int NOT NULL,
+  chapter int NOT NULL,
+  verses jsonb NOT NULL,
+  PRIMARY KEY (school_id, version, book_no, chapter)
+);
+CREATE TABLE IF NOT EXISTS hymn_books (
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  code text NOT NULL,
+  name text NOT NULL,
+  sort int NOT NULL DEFAULT 100,
+  PRIMARY KEY (school_id, code)
+);
+CREATE TABLE IF NOT EXISTS hymns (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  book text NOT NULL,
+  number int,
+  title text NOT NULL,
+  author text NOT NULL DEFAULT '',
+  lyrics text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS hymns_book_title_idx ON hymns (school_id, book, lower(title));
+CREATE INDEX IF NOT EXISTS hymns_book_num_idx ON hymns (school_id, book, number);
 `;

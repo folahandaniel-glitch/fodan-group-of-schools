@@ -187,7 +187,7 @@ export async function registerStaff(_p: State, fd: FormData): Promise<State> {
   await sql`INSERT INTO staff_profiles (user_id, school_id, position, category, section, branch_id) VALUES (${uid}, ${school.id}, ${pos.title}, ${category}, ${section}, ${b?.id ?? null})`;
   await sql`INSERT INTO notifications (user_id, title, body, link)
             SELECT id, ${`New staff registration: ${first} ${last}`}, ${pos.title}, '/portal/staff?status=pending' FROM users
-            WHERE school_id = ${school.id} AND status = 'active' AND role IN ('super_admin','premium_admin','proprietor','director','vp_admin','hr_manager','principal','headteacher')`;
+            WHERE school_id = ${school.id} AND status = 'active' AND role IN ('developer','super_admin','premium_admin','proprietor','director','vp_admin','hr_manager','principal','headteacher')`;
   await audit({ schoolId: school.id, actorId: uid, action: "staff.register", entity: "user", entityId: uid, meta: { position: pos.title, category } });
   redirect("/login?registered=staff");
 }

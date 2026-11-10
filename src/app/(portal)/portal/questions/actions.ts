@@ -1,4 +1,5 @@
 "use server";
+import { isRoot } from "@/lib/logic/permissions";
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { can, requirePerm } from "@/lib/auth";
@@ -101,7 +102,7 @@ export async function reviewQuestions(fd: FormData): Promise<void> {
   // Authors cannot approve their own questions (separation of duties) unless they are Super Admin.
   const rows = await sql`UPDATE questions SET status = ${status}, reviewed_by = ${me.id}, version = version + 1
                          WHERE id = ANY(${ids}) AND school_id = ${me.schoolId}
-                           AND (${op !== "approve"} OR author_id IS DISTINCT FROM ${me.id} OR ${me.role === "super_admin"}) RETURNING id`;
+                           AND (${op !== "approve"} OR author_id IS DISTINCT FROM ${me.id} OR ${isRoot(me.role)}) RETURNING id`;
   await audit({ schoolId: me.schoolId, actorId: me.id, action: `question.${op}`, entity: "question", meta: { count: rows.length } });
   revalidatePath("/portal/questions");
 }

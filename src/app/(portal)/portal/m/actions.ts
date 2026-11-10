@@ -1,4 +1,5 @@
 "use server";
+import { isRoot } from "@/lib/logic/permissions";
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { requireMe } from "@/lib/auth";
@@ -58,7 +59,7 @@ export async function setRecordStatus(fd: FormData): Promise<void> {
   const own = (r.owner_id === me.id || r.assignee_id === me.id) && (m.ownerMay ?? []).includes(status);
   if (!mgr && !own) return;
   // Separation of duties for money: nobody approves or pays their own request.
-  if (["finance", "procurement"].includes(m.key) && r.owner_id === me.id && me.role !== "super_admin" && ["approved", "paid", "received"].includes(status)) return;
+  if (["finance", "procurement"].includes(m.key) && r.owner_id === me.id && !isRoot(me.role) && ["approved", "paid", "received"].includes(status)) return;
   await sql`UPDATE records SET status = ${status}, updated_at = now() WHERE id = ${r.id}`;
   if (m.key === "finance" && status === "paid") {
     const amount = Number(String(r.data?.amount ?? "").replace(/[^0-9.]/g, ""));

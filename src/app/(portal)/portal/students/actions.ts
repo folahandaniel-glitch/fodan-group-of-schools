@@ -1,4 +1,5 @@
 "use server";
+import { isRoot } from "@/lib/logic/permissions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { sql } from "@/lib/db";
@@ -119,7 +120,7 @@ export async function makeResetLink(_p: State & { link?: string }, fd: FormData)
   const userId = clean(fd.get("userId"), 40);
   const [u] = await sql`SELECT id, school_id, role FROM users WHERE id = ${userId} AND school_id = ${me.schoolId}`;
   if (!u) return { error: "User not found." };
-  if (u.role === "super_admin" && me.role !== "super_admin") return { error: "Not permitted." };
+  if (isRoot(u.role) && !isRoot(me.role)) return { error: "Not permitted." };
   const raw = await issueResetToken(u.id, me.id, 60);
   await sql`DELETE FROM sessions WHERE user_id = ${u.id}`;
   await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "password.reset.issued", entity: "user", entityId: u.id });
