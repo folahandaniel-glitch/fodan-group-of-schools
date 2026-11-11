@@ -56,7 +56,7 @@ export default async function Hrm({ searchParams }: { searchParams: Promise<Reco
               ))}
             </ul>
           )}
-          {manage && <details className="mt-4 border-t border-line pt-4"><summary className="cursor-pointer font-display text-lg">Add a rule</summary><RuleForm /></details>}
+          {manage && <details open className="mt-4 border-t border-line pt-4"><summary className="cursor-pointer font-display text-lg">＋ Add a new rule</summary><RuleForm /></details>}
         </Card>
         <div className="space-y-5">
           <Card>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePerm, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { getSetting } from "@/lib/settings";
@@ -54,6 +55,7 @@ export default async function Branches() {
 
         <Card>
           <h2 className="text-xl">Fine rules</h2>
+          {can(me, "hrm:manage") && <p className="text-sm"><Link href="/portal/hrm?tab=rules" className="font-bold text-royal">Add, edit or delete other staff rules and fines →</Link></p>}
           {can(me, "fines:manage") ? (
             <div className="mt-3"><ActionForm action={saveFineRules} submit="Save rules" className="grid gap-3 sm:grid-cols-2">
               <Field label="Resumption time" name="workStart" defaultValue={rules.workStart} hint="24-hour, e.g. 08:00" />
