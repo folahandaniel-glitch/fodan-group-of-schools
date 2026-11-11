@@ -17,6 +17,9 @@ export default async function ClockPage() {
     ? await sql`SELECT u.first_name || ' ' || u.last_name AS name, c.clock_in, c.clock_out, c.late_minutes, b.name AS branch FROM clock_entries c
                 JOIN users u ON u.id = c.user_id LEFT JOIN branches b ON b.id = c.branch_id WHERE c.school_id = ${me.schoolId} AND c.day = ${day} AND u.role <> 'developer' ORDER BY c.clock_in DESC LIMIT 100`
     : [];
+  const notices = can(me, "clock:manage")
+    ? await sql`SELECT u.first_name || ' ' || u.last_name AS name, n.kind, n.reason, n.created_at FROM clock_notices n JOIN users u ON u.id = n.user_id
+                WHERE n.school_id = ${me.schoolId} AND n.day = ${day} AND u.role <> 'developer' ORDER BY n.created_at DESC LIMIT 100` : [];
   const t = (d: unknown) => (d ? new Date(String(d)).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" }) : "—");
   return (
     <>
@@ -25,6 +28,11 @@ export default async function ClockPage() {
         <ClockButtons canIn={!today} canOut={!!today && !today.clock_out} />
         {today && <p className="mt-2 text-sm text-muted">Today: in {t(today.clock_in)} · out {t(today.clock_out)}{today.late_minutes > 0 ? ` · ${today.late_minutes} min late` : ""}</p>}
       </Card>
+      {notices.length > 0 && (
+        <Card className="mb-5"><h2 className="text-xl">Late or absent notices today</h2>
+          <ul className="mt-2 divide-y divide-line text-sm">{notices.map((n, i) => <li key={i} className="py-2"><b>{n.name}</b> <Badge tone={n.kind === "absent" ? "bad" : "warn"}>{n.kind}</Badge> <span className="text-xs text-muted">{t(n.created_at)}</span><br />{n.reason}</li>)}</ul>
+          <p className="mt-2 text-xs text-muted">A fine is still recorded if the staff member clocks in late; HR can waive it under Branches &amp; fines.</p></Card>
+      )}
       <div className="grid gap-5 lg:grid-cols-2">
         <Card><h2 className="text-xl">My recent days</h2>
           {mine.length === 0 ? <p className="mt-2 text-sm text-muted">No records yet.</p> : (

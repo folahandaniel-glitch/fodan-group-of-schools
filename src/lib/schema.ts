@@ -849,4 +849,15 @@ ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS payee text;
 ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS method text;
 ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS receipt_file uuid REFERENCES files(id) ON DELETE SET NULL;
 ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'manual';
+
+CREATE TABLE IF NOT EXISTS clock_notices (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day date NOT NULL,
+  kind text NOT NULL,
+  reason text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, day)
+);
 `;
