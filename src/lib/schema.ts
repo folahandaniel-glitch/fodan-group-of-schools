@@ -860,4 +860,12 @@ CREATE TABLE IF NOT EXISTS clock_notices (
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, day)
 );
+
+ALTER TABLE fines ADD COLUMN IF NOT EXISTS waived_by uuid;
+ALTER TABLE fines ADD COLUMN IF NOT EXISTS waive_reason text;
+ALTER TABLE fines ADD COLUMN IF NOT EXISTS waived_at timestamptz;
+ALTER TABLE clock_notices ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'pending';
+ALTER TABLE clock_notices ADD COLUMN IF NOT EXISTS reviewed_by uuid;
+ALTER TABLE clock_notices ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
+ALTER TABLE clock_notices ADD COLUMN IF NOT EXISTS review_note text;
 `;

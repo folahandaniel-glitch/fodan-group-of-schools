@@ -33,7 +33,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const showClock = !learner && can(me, "clock:create");
   const today = new Date(Date.now() + 3600_000).toISOString().slice(0, 10);
   const [ce] = showClock ? await sql`SELECT clock_in, clock_out FROM clock_entries WHERE user_id = ${me.id} AND day = ${today}` : [];
-  const [cn] = showClock ? await sql`SELECT kind, reason FROM clock_notices WHERE user_id = ${me.id} AND day = ${today}` : [];
+  const [cn] = showClock ? await sql`SELECT kind, reason, status FROM clock_notices WHERE user_id = ${me.id} AND day = ${today}` : [];
   const [cb] = showClock ? await sql`SELECT b.name, b.radius_m FROM staff_profiles p LEFT JOIN branches b ON b.id = p.branch_id WHERE p.user_id = ${me.id}` : [];
   const hm = (d: unknown) => (d ? new Date(String(d)).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" }) : null);
   const items: NavItem[] = [{ href: "/portal", label: "Dashboard", group: "Overview" }];
@@ -107,7 +107,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <Link href="/account" className="btn btn-ghost btn-sm">
               <span className="max-w-[10rem] truncate">{me.name}</span><span className="badge badge-info hidden sm:inline-flex">{ROLE_LABEL[me.role] ?? me.role}</span>
             </Link>
-            {showClock && <ClockPopup initial={!ce ? "none" : ce.clock_out ? "out" : "in"} notice={cn ? { kind: cn.kind as string, reason: cn.reason as string } : null} branch={(cb?.name as string) ?? null} radius={(cb?.radius_m as number) ?? null} clockedAt={hm(ce?.clock_in)} />}
+            {showClock && <ClockPopup initial={!ce ? "none" : ce.clock_out ? "out" : "in"} notice={cn ? { kind: cn.kind as string, reason: cn.reason as string, status: cn.status as string } : null} branch={(cb?.name as string) ?? null} radius={(cb?.radius_m as number) ?? null} clockedAt={hm(ce?.clock_in)} />}
             <form action={logout}><button className="btn btn-primary btn-sm">Sign out</button></form>
           </div>
         </header>

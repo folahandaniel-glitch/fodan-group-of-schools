@@ -1,3 +1,4 @@
+import { isRoot, outranks } from "./logic/permissions";
 import { sql } from "./db";
 import type { Me } from "./auth";
 
@@ -58,4 +59,11 @@ export function periodWindow(label: string): { start: number; end: number } | nu
   if (!m) return null;
   const h = (x: string) => { const n = Number(x); return n < 7 ? n + 12 : n; };
   return { start: h(m[1]) * 60 + Number(m[2]), end: h(m[3]) * 60 + Number(m[4]) };
+}
+
+export async function mayReviewStaff(me: Me, staffId: string): Promise<boolean> {
+  if (staffId === me.id) return false;
+  const [u] = await sql`SELECT role FROM users WHERE id = ${staffId} AND school_id = ${me.schoolId} AND role NOT IN ('student','parent')`;
+  if (!u || u.role === "developer") return false;
+  return isRoot(me.role) || me.perms.has("hrm:manage") || outranks(me.role, u.role as string) || me.roles.some((r) => outranks(r, u.role as string));
 }

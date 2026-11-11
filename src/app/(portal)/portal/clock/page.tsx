@@ -2,6 +2,7 @@ import { requirePerm, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { Badge, Card, Empty, PageHeader } from "@/components/ui";
 import { ClockButtons } from "@/components/clock-buttons";
+import { reviewNotice } from "./actions";
 
 export const metadata = { title: "Clock in / out" };
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function ClockPage() {
                 JOIN users u ON u.id = c.user_id LEFT JOIN branches b ON b.id = c.branch_id WHERE c.school_id = ${me.schoolId} AND c.day = ${day} AND u.role <> 'developer' ORDER BY c.clock_in DESC LIMIT 100`
     : [];
   const notices = can(me, "clock:manage")
-    ? await sql`SELECT u.first_name || ' ' || u.last_name AS name, n.kind, n.reason, n.created_at FROM clock_notices n JOIN users u ON u.id = n.user_id
+    ? await sql`SELECT n.id, n.user_id, n.status, n.review_note, u.first_name || ' ' || u.last_name AS name, n.kind, n.reason, n.created_at FROM clock_notices n JOIN users u ON u.id = n.user_id
                 WHERE n.school_id = ${me.schoolId} AND n.day = ${day} AND u.role <> 'developer' ORDER BY n.created_at DESC LIMIT 100` : [];
   const t = (d: unknown) => (d ? new Date(String(d)).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" }) : "—");
   return (
@@ -30,8 +31,12 @@ export default async function ClockPage() {
       </Card>
       {notices.length > 0 && (
         <Card className="mb-5"><h2 className="text-xl">Late or absent notices today</h2>
-          <ul className="mt-2 divide-y divide-line text-sm">{notices.map((n, i) => <li key={i} className="py-2"><b>{n.name}</b> <Badge tone={n.kind === "absent" ? "bad" : "warn"}>{n.kind}</Badge> <span className="text-xs text-muted">{t(n.created_at)}</span><br />{n.reason}</li>)}</ul>
-          <p className="mt-2 text-xs text-muted">A fine is still recorded if the staff member clocks in late; HR can waive it under Branches &amp; fines.</p></Card>
+          <ul className="mt-2 divide-y divide-line text-sm">{notices.map((n, i) => <li key={i} className="py-2"><b>{n.name}</b> <Badge tone={n.kind === "absent" ? "bad" : "warn"}>{n.kind}</Badge> <span className="text-xs text-muted">{t(n.created_at)}</span> <Badge tone={n.status === "accepted" ? "ok" : n.status === "declined" ? "bad" : "info"}>{n.status}</Badge><br />{n.reason}
+            {n.status === "pending" && n.user_id !== me.id && (
+              <form action={reviewNotice} className="mt-2 flex flex-wrap items-center gap-2"><input type="hidden" name="id" value={n.id} /><input name="note" className="input !min-h-9 max-w-xs !py-1" placeholder="Note (optional)" aria-label="Note" />
+                <button name="decision" value="accept" className="btn btn-primary btn-sm">Accept reason</button><button name="decision" value="decline" className="btn btn-ghost btn-sm">Decline</button></form>)}
+            {n.review_note && <span className="block text-xs text-muted">Decision note: {n.review_note}</span>}</li>)}</ul>
+          <p className="mt-2 text-xs text-muted">Accepting a reason waives that day&apos;s lateness fine. Only the Developer, Super Admin, HR or a superior of the staff member can accept. Declined reasons leave the fine in place.</p></Card>
       )}
       <div className="grid gap-5 lg:grid-cols-2">
         <Card><h2 className="text-xl">My recent days</h2>

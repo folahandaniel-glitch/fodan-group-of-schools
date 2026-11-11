@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { clock, submitClockNotice, type ClockResult } from "@/app/(portal)/portal/clock/actions";
 
 type State = "none" | "in" | "out";
-export type ClockNotice = { kind: string; reason: string } | null;
+export type ClockNotice = { kind: string; reason: string; status?: string } | null;
 
 /** Header button: "Clock in" before you clock in, "Clock out" after, then a done state. Opens a popup with the clock button and a form to explain lateness or absence. */
 export function ClockPopup({ initial, notice, branch, radius, clockedAt }: { initial: State; notice: ClockNotice; branch: string | null; radius: number | null; clockedAt: string | null }) {
@@ -41,7 +41,7 @@ export function ClockPopup({ initial, notice, branch, radius, clockedAt }: { ini
   const send = () => nstart(async () => {
     const r = await submitClockNotice(kind, reason);
     setNmsg(r);
-    if (r.ok) { setSaved({ kind, reason }); router.refresh(); }
+    if (r.ok) { setSaved({ kind, reason, status: "pending" }); router.refresh(); }
   });
 
   const label = state === "none" ? "Clock in" : state === "in" ? "Clock out" : "Clocked out ✓";
@@ -74,7 +74,7 @@ export function ClockPopup({ initial, notice, branch, radius, clockedAt }: { ini
             <div className="mt-3 border-t border-line pt-4">
               <h3 className="text-lg">Will you be late or absent?</h3>
               <p className="text-sm text-muted">Tell the office why, without clocking in. You can still clock in later, once you are within your branch&apos;s range.</p>
-              {saved && <p className="mt-2 rounded-lg bg-paper-2 p-2 text-sm"><strong>Sent today ({saved.kind === "late" ? "late" : "absent"}):</strong> {saved.reason}</p>}
+              {saved && <p className="mt-2 rounded-lg bg-paper-2 p-2 text-sm"><strong>Sent today ({saved.kind === "late" ? "late" : "absent"}, {saved.status === "accepted" ? "accepted by management" : saved.status === "declined" ? "not accepted" : "awaiting a decision"}):</strong> {saved.reason}</p>}
               <div className="mt-3 grid gap-3">
                 <div className="field"><label htmlFor="nk">I will be</label>
                   <select id="nk" className="select" value={kind} onChange={(e) => setKind(e.target.value)}><option value="late">Late to school</option><option value="absent">Absent from school</option></select></div>

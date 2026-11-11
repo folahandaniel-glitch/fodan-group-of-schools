@@ -2,7 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { requirePerm } from "@/lib/auth";
-import { audit, rateLimit } from "@/lib/security";
+import { audit, clean, rateLimit } from "@/lib/security";
+import { mayReviewStaff } from "@/lib/scope";
 import { getSetting } from "@/lib/settings";
 import { distanceM, lateMinutes } from "@/lib/geo";
 
@@ -34,9 +35,10 @@ export async function clock(kind: "in" | "out", lat: number, lng: number, accura
     if (r.length === 0) return { error: "You have already clocked in today." };
     if (late > 0 && rules.enabled) {
       const amount = (rules.lateFlat ?? 0) + (rules.perMinute ?? 0) * late;
-      const [notice] = await sql`SELECT 1 FROM clock_notices WHERE user_id = ${me.id} AND day = ${day}`;
-      // A fine is still recorded, but it is marked when the staff member explained beforehand, so HR can waive it.
-      if (amount > 0) await sql`INSERT INTO fines (school_id, user_id, day, reason, amount) VALUES (${me.schoolId}, ${me.id}, ${day}, ${`Late by ${late} minutes${notice ? " (reason given beforehand)" : ""}`}, ${amount}) ON CONFLICT DO NOTHING`;
+      const [notice] = await sql`SELECT status FROM clock_notices WHERE user_id = ${me.id} AND day = ${day}`;
+      // The fine stands unless management accepted the reason. A note still waiting for a decision is flagged on the fine.
+      const accepted = notice?.status === "accepted";
+      if (amount > 0) await sql`INSERT INTO fines (school_id, user_id, day, reason, amount, status, waive_reason, waived_at) VALUES (${me.schoolId}, ${me.id}, ${day}, ${`Late by ${late} minutes${notice && !accepted ? " (reason given, awaiting decision)" : ""}`}, ${amount}, ${accepted ? "waived" : "applied"}, ${accepted ? "Reason accepted by management before arrival" : null}, ${accepted ? sql`now()` : null}) ON CONFLICT DO NOTHING`;
     }
     await audit({ schoolId: me.schoolId, actorId: me.id, action: "clock.in", meta: { dist, late } });
     revalidatePath("/portal/clock");
@@ -59,11 +61,28 @@ export async function submitClockNotice(kind: string, reason: string): Promise<C
   if (why.length < 5) return { error: "Write the reason in a few words." };
   const day = new Date(Date.now() + 3600_000).toISOString().slice(0, 10);
   await sql`INSERT INTO clock_notices (school_id, user_id, day, kind, reason) VALUES (${me.schoolId}, ${me.id}, ${day}, ${kind}, ${why})
-            ON CONFLICT (user_id, day) DO UPDATE SET kind = EXCLUDED.kind, reason = EXCLUDED.reason, created_at = now()`;
+            ON CONFLICT (user_id, day) DO UPDATE SET kind = EXCLUDED.kind, reason = EXCLUDED.reason, created_at = now(), status = 'pending', reviewed_by = NULL, reviewed_at = NULL, review_note = NULL`;
   await sql`INSERT INTO notifications (user_id, title, body, link)
             SELECT id, ${`${me.name} will be ${kind === "late" ? "late" : "absent"} today`}, ${why.slice(0, 160)}, '/portal/clock'
             FROM users WHERE school_id = ${me.schoolId} AND status = 'active' AND role IN ('vp_admin','hr_manager','hr_admin','super_admin') AND id <> ${me.id}`;
   await audit({ schoolId: me.schoolId, actorId: me.id, action: "clock.notice", meta: { kind } });
   revalidatePath("/portal/clock");
   return { ok: kind === "late" ? "Your office has been told you will be late. You can still clock in when you arrive." : "Your office has been told you will be absent." };
+}
+
+/** Accept or decline a staff member's reason for being late or absent. Accepting waives that day's lateness/absence fines. */
+export async function reviewNotice(fd: FormData): Promise<void> {
+  const me = await requirePerm("clock:manage");
+  const id = clean(fd.get("id"), 40), decision = clean(fd.get("decision"), 10), note = clean(fd.get("note"), 300);
+  if (!/^[0-9a-f-]{36}$/i.test(id) || !["accept", "decline"].includes(decision)) return;
+  const [n] = await sql`SELECT * FROM clock_notices WHERE id = ${id} AND school_id = ${me.schoolId} AND status = 'pending'`;
+  if (!n || !(await mayReviewStaff(me, n.user_id))) return;
+  const accepted = decision === "accept";
+  await sql`UPDATE clock_notices SET status = ${accepted ? "accepted" : "declined"}, reviewed_by = ${me.id}, reviewed_at = now(), review_note = ${note || null} WHERE id = ${id}`;
+  if (accepted) await sql`UPDATE fines SET status = 'waived', waived_by = ${me.id}, waived_at = now(), waive_reason = ${`Reason accepted: ${n.reason.slice(0, 160)}`}
+      WHERE user_id = ${n.user_id} AND day = (SELECT day FROM clock_notices WHERE id = ${id}) AND status = 'applied' AND (reason LIKE 'Late by%' OR reason LIKE 'Absent%')`;
+  await sql`INSERT INTO notifications (user_id, title, body, link) VALUES (${n.user_id}, ${accepted ? "Your reason was accepted" : "Your reason was not accepted"}, ${note || (accepted ? "Any lateness or absence fine for the day is waived." : "The fine for the day stands.")}, '/portal/clock')`;
+  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: `clock.notice.${decision}`, entity: "clock_notice", entityId: id });
+  revalidatePath("/portal/clock");
+  revalidatePath("/portal/branches");
 }

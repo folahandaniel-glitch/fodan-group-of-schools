@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { getSetting } from "@/lib/settings";
 import { Badge, Card, Empty, Field, PageHeader } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
+import { CoordsInput } from "@/components/coords-input";
 import { assignBranch, saveBranch, saveFineRules, waiveFine } from "./actions";
 
 export const metadata = { title: "Branches & fines" };
@@ -15,7 +16,7 @@ export default async function Branches() {
   const branches = await sql`SELECT b.*, (SELECT count(*)::int FROM staff_profiles p WHERE p.branch_id = b.id) AS staff FROM branches b WHERE b.school_id = ${me.schoolId} ORDER BY b.name`;
   const staff = manage ? await sql`SELECT u.id, u.first_name, u.last_name, p.branch_id FROM users u JOIN staff_profiles p ON p.user_id = u.id
                                    WHERE u.school_id = ${me.schoolId} AND u.status = 'active' AND u.role <> 'developer' ORDER BY u.last_name LIMIT 300` : [];
-  const fines = can(me, "fines:view") ? await sql`SELECT f.id, f.day, f.reason, f.amount, f.status, u.first_name || ' ' || u.last_name AS name FROM fines f JOIN users u ON u.id = f.user_id
+  const fines = can(me, "fines:view") ? await sql`SELECT f.id, f.day, f.reason, f.amount, f.status, f.waive_reason, u.first_name || ' ' || u.last_name AS name FROM fines f JOIN users u ON u.id = f.user_id
                                                   WHERE f.school_id = ${me.schoolId} AND u.role <> 'developer' ORDER BY f.day DESC, f.created_at DESC LIMIT 40` : [];
   return (
     <>
@@ -33,7 +34,7 @@ export default async function Branches() {
                     <details className="mt-2"><summary className="cursor-pointer text-sm font-bold text-royal">Edit</summary>
                       <div className="mt-2"><ActionForm action={saveBranch} submit="Save" small className="grid gap-2 sm:grid-cols-2">
                         <input type="hidden" name="id" value={b.id} />
-                        <Field label="Name" name="name" defaultValue={b.name} required /><Field label="Coordinates (lat, lng)" name="coords" defaultValue={`${b.lat}, ${b.lng}`} required />
+                        <Field label="Name" name="name" defaultValue={b.name} required /><CoordsInput id={`coords-${b.id}`} defaultValue={`${b.lat}, ${b.lng}`} />
                         <Field label="Address" name="address" defaultValue={b.address} /><Field label="Radius (m)" name="radius" type="number" defaultValue={b.radius_m} />
                         <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="active" defaultChecked={b.active} /> Active</label>
                       </ActionForm></div></details>
@@ -45,7 +46,7 @@ export default async function Branches() {
           {manage && (
             <div className="mt-4 border-t border-line pt-4"><h3 className="text-lg">Add a branch</h3>
               <ActionForm action={saveBranch} submit="Add branch" className="mt-2 grid gap-3 sm:grid-cols-2">
-                <Field label="Name" name="name" required /><Field label="Coordinates" name="coords" required placeholder="6.5244, 3.3792" hint="Right-click the spot in Google Maps and copy the numbers." />
+                <Field label="Name" name="name" required /><CoordsInput id="coords-new" label="Coordinates" />
                 <Field label="Address" name="address" /><Field label="Clock-in radius (m)" name="radius" type="number" defaultValue={rules.defaultRadius} />
               </ActionForm></div>
           )}
@@ -84,9 +85,11 @@ export default async function Branches() {
         <Card className="mt-5"><h2 className="text-xl">Recent fines</h2>
           <div className="mt-3 overflow-x-auto"><table className="tbl"><thead><tr><th>Staff</th><th>Date</th><th>Reason</th><th>Amount</th><th>Status</th><th></th></tr></thead>
             <tbody>{fines.map((f) => (
-              <tr key={f.id}><td>{f.name}</td><td>{new Date(f.day).toLocaleDateString("en-GB")}</td><td>{f.reason}</td><td>₦{Number(f.amount).toLocaleString()}</td>
+              <tr key={f.id}><td>{f.name}</td><td>{new Date(f.day).toLocaleDateString("en-GB")}</td><td>{f.reason}{f.waive_reason && <span className="block text-xs text-muted">Waived: {f.waive_reason}</span>}</td><td>₦{Number(f.amount).toLocaleString()}</td>
                 <td><Badge tone={f.status === "waived" ? "ok" : "warn"}>{f.status}</Badge></td>
-                <td>{can(me, "fines:manage") && <form action={waiveFine}><input type="hidden" name="id" value={f.id} /><button className="btn btn-ghost btn-sm">{f.status === "waived" ? "Re-apply" : "Waive"}</button></form>}</td></tr>))}</tbody></table></div>
+                <td>{can(me, "fines:manage") && (f.status === "waived"
+                  ? (can(me, "hrm:manage") || can(me, "*")) && <form action={waiveFine}><input type="hidden" name="id" value={f.id} /><button className="btn btn-ghost btn-sm">Reinstate</button></form>
+                  : f.status === "applied" && <form action={waiveFine} className="flex min-w-[14rem] gap-1"><input type="hidden" name="id" value={f.id} /><input name="reason" required minLength={5} className="input !min-h-8 !py-1 text-xs" placeholder="Reason accepted…" aria-label="Reason accepted" /><button className="btn btn-ghost btn-sm">Waive</button></form>)}</td></tr>))}</tbody></table></div>
         </Card>
       )}
     </>

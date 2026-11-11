@@ -5,6 +5,8 @@ import { requirePerm } from "@/lib/auth";
 import { audit, clean } from "@/lib/security";
 import { setSetting } from "@/lib/settings";
 import { parseCoords } from "@/lib/geo";
+import { mayReviewStaff } from "@/lib/scope";
+import { can } from "@/lib/auth";
 
 type State = { error?: string; ok?: string };
 
@@ -55,11 +57,22 @@ export async function assignBranch(fd: FormData): Promise<void> {
   revalidatePath("/portal/branches");
 }
 
+/** Waiving needs a written reason and someone with authority over the staff member (Developer, Super Admin, HR or a superior). Reinstating is for HR and above. */
 export async function waiveFine(fd: FormData): Promise<void> {
   const me = await requirePerm("fines:manage");
-  const id = clean(fd.get("id"), 40);
+  const id = clean(fd.get("id"), 40), reason = clean(fd.get("reason"), 300);
   if (!/^[0-9a-f-]{36}$/i.test(id)) return;
-  await sql`UPDATE fines SET status = CASE WHEN status = 'waived' THEN 'applied' ELSE 'waived' END WHERE id = ${id} AND school_id = ${me.schoolId}`;
-  await audit({ schoolId: me.schoolId, actorId: me.id, action: "fine.toggle", entity: "fine", entityId: id });
+  const [f] = await sql`SELECT user_id, status FROM fines WHERE id = ${id} AND school_id = ${me.schoolId}`;
+  if (!f) return;
+  if (f.status === "waived") {
+    if (!(can(me, "hrm:manage") || me.perms.has("*"))) return;
+    await sql`UPDATE fines SET status = 'applied', waived_by = NULL, waived_at = NULL, waive_reason = NULL WHERE id = ${id}`;
+    await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "fine.reinstate", entity: "fine", entityId: id });
+  } else if (f.status === "applied") {
+    if (reason.length < 5 || !(await mayReviewStaff(me, f.user_id))) return;
+    await sql`UPDATE fines SET status = 'waived', waived_by = ${me.id}, waived_at = now(), waive_reason = ${reason} WHERE id = ${id}`;
+    await sql`INSERT INTO notifications (user_id, title, body, link) VALUES (${f.user_id}, 'A fine was waived', ${reason}, '/portal/hrm')`;
+    await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "fine.waive", entity: "fine", entityId: id, meta: { reason } });
+  }
   revalidatePath("/portal/branches");
 }
