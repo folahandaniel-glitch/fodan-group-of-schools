@@ -68,8 +68,6 @@ export async function saveSettings(_p: State, fd: FormData): Promise<State> {
     const def = T("default", 40);
     const offered = new Set(fd.getAll("offer").map(String));
     await setSetting("theme", { default: ids.has(def) ? def : "fodan-classic", picker: fd.get("picker") === "on", hidden: [...ids].filter((i) => !offered.has(i)) });
-  } else if (group === "staffRules") {
-    await setSetting("staffRules", line(fd.get("rules")).slice(0, 40).map((l) => l.slice(0, 400)));
   } else if (group === "home") {
     await setSetting("home", {
       heroTitle: T("heroTitle", 160), heroSub: T("heroSub", 500), about: T("about", 1500), aboutCollege: T("aboutCollege", 1500), vision: T("vision", 600), mission: T("mission", 800),

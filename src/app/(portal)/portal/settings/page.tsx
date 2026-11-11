@@ -14,7 +14,7 @@ import { deleteContent, resetPermissions, saveContent, savePermissions, saveSett
 export const metadata = { title: "Settings & content" };
 
 const TABS = [
-  ["brand", "Branding"], ["founder", "Founder"], ["contact", "Contact & social"], ["appearance", "Themes"], ["hrm", "Staff rules"], ["home", "Homepage"], ["content", "News & content"],
+  ["brand", "Branding"], ["founder", "Founder"], ["contact", "Contact & social"], ["appearance", "Themes"], ["home", "Homepage"], ["content", "News & content"],
   ["academic", "Academic & grading"], ["eligibility", "Exams & features"], ["auth", "Sign-in & footer"], ["periods", "Timetable & documents"], ["permissions", "Roles & permissions"],
 ] as const;
 
@@ -93,15 +93,6 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                 <label key={t.id} className="flex items-center gap-2 text-sm"><input type="checkbox" name="offer" value={t.id} defaultChecked={!(s.theme.hidden ?? []).includes(t.id)} />
                   <span className="inline-flex overflow-hidden rounded"><i style={{ background: themeVars(t).strong }} className="block h-4 w-3" /><i style={{ background: t.accent }} className="block h-4 w-3" /><i style={{ background: t.paper }} className="block h-4 w-3 border border-line" /></span>{t.name}</label>))}</div>
             </fieldset>
-          </ActionForm></div>
-        </Card>
-      )}
-      {tab === "hrm" && (
-        <Card><h2 className="text-xl">Standard staff rules &amp; fines</h2>
-          <p className="mt-1 text-sm text-muted">Every staff member sees these on the HRM page. Lateness and absence amounts are set under Branches &amp; fines. One rule per line as <code>Rule | Fine in naira | Details</code>.</p>
-          <div className="mt-3"><ActionForm action={saveSettings} className="grid gap-3">
-            {hidden("staffRules")}
-            <TextArea label="Rules" name="rules" defaultValue={(s.staffRules ?? []).join("\n")} rows={14} />
           </ActionForm></div>
         </Card>
       )}

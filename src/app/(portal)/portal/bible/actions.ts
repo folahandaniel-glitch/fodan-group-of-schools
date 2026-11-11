@@ -59,10 +59,10 @@ export async function loadVersionText(_p: State, fd: FormData): Promise<State> {
   }
   await sql`DELETE FROM bible_chapters WHERE school_id = ${me.schoolId} AND version = ${code}`;
   for (let i = 0; i < rows.length; i += 200) {
-    const part = rows.slice(i, i + 200).map((r) => ({ ...r, verses: JSON.stringify(r.verses) }));
+    const part = rows.slice(i, i + 200);
     await sql`INSERT INTO bible_chapters (school_id, version, book_no, chapter, verses)
               SELECT school_id::uuid, version, book_no::int, chapter::int, verses::jsonb
-              FROM jsonb_to_recordset(${JSON.stringify(part)}::jsonb) AS x(school_id text, version text, book_no int, chapter int, verses text)`;
+              FROM jsonb_to_recordset(${sql.json(part as never)}) AS x(school_id text, version text, book_no int, chapter int, verses jsonb)`;
   }
   await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "bible.load", entity: "bible", entityId: code, meta: { chapters: rows.length } });
   revalidatePath("/portal/bible");

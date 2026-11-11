@@ -32,7 +32,7 @@ export const RESOURCES = [
   "dashboard", "students", "parents", "staff", "classes", "subjects", "timetable", "calendar", "attendance",
   "promotion", "access_codes", "lessons", "questions", "assessments", "results", "reports", "certificates",
   "resources", "announcements", "comments", "analytics", "audit", "cms", "settings", "roles", "users",
-  "branches", "clock", "fines", "finance", "payroll", "ledger", "performance",
+  "branches", "clock", "fines", "finance", "payroll", "ledger", "performance", "curriculum", "holiday", "crm", "hrm",
 ] as const;
 export const ACTIONS = ["view", "create", "edit", "archive", "approve", "publish", "export", "print", "assign", "transfer", "review", "manage"] as const;
 
@@ -116,6 +116,16 @@ export function defaultsFor(role: string): string[] {
   if (["accountant", "bursar"].includes(role)) ["payroll:manage", "ledger:manage"].forEach((p) => extra.add(p));
   if (["principal", "headteacher", "vp_admin", "hr_manager", "vp_academics", "asst_headteacher", "hod"].includes(role)) ["performance:view"].forEach((p) => extra.add(p));
   if (["vp_admin", "hr_manager"].includes(role)) ["payroll:view", "payroll:manage", "performance:manage"].forEach((p) => extra.add(p));
+  // Study centre, holiday hub and HRM: who sees and who manages is editable per role in Settings > Roles & permissions.
+  const learnerRole = role === "student" || role === "parent";
+  if (learnerRole) ["curriculum:view", "holiday:view"].forEach((p) => extra.add(p));
+  if (staff) ["curriculum:view", "holiday:view", "hrm:view"].forEach((p) => extra.add(p));
+  if (["principal", "headteacher", "vp_academics", "asst_headteacher", "academic_admin", "premium_admin"].includes(role)) ["curriculum:manage", "holiday:manage"].forEach((p) => extra.add(p));
+  if (["hod", "senior_staff", "teacher", "class_teacher"].includes(role)) ["curriculum:create", "curriculum:edit"].forEach((p) => extra.add(p));
+  if (["vp_admin", "hr_manager", "hr_admin", "premium_admin", "director", "proprietor"].includes(role)) extra.add("hrm:manage");
+  if (["principal", "headteacher", "student_affairs_admin"].includes(role)) ["hrm:view", "hrm:review"].forEach((p) => extra.add(p));
+  if (["premium_admin", "director", "proprietor", "principal", "headteacher", "vp_admin", "hr_manager", "reception", "accountant", "bursar", "finance_admin", "student_affairs_admin"].includes(role)) ["crm:view", "crm:create", "crm:edit"].forEach((p) => extra.add(p));
+  if (["premium_admin", "director", "proprietor", "vp_admin", "hr_manager", "reception", "student_affairs_admin"].includes(role)) extra.add("crm:manage");
   const AREA: Record<string, string[]> = {
     academic_admin: [...ACADEMIC_VIEW, ...full("classes", "subjects", "timetable", "calendar", "lessons", "assessments", "results", "reports", "promotion", "certificates", "resources", "students", "staff"), "questions:approve", "questions:review", "analytics:view", "announcements:create", "announcements:publish"],
     finance_admin: [...view("dashboard", "students", "parents", "staff", "announcements", "calendar"), ...full("finance", "payroll", "ledger", "fines"), "audit:view", "audit:export", "reports:export", "reports:print", "branches:view", "analytics:view"],

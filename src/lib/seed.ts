@@ -5,6 +5,7 @@ import { checkPassword } from "./logic/password";
 import { DEFAULT_CONTENT } from "./defaults";
 import { seedBible } from "./bible";
 import { seedHymns } from "./hymns-seed";
+import { migrateCrmRecords, seedHrm } from "./hrm";
 
 export const SCHOOL_SLUG = "fodan-college";
 
@@ -68,6 +69,8 @@ export async function seedDefaults(): Promise<void> {
 
   await seedBible(sid);
   await seedHymns(sid);
+  await seedHrm(sid);
+  await migrateCrmRecords(sid);
 
   const [{ su }] = await sql`SELECT count(*)::int AS su FROM users WHERE role = 'super_admin'`;
   const email = process.env.SUPERADMIN_EMAIL?.trim().toLowerCase();

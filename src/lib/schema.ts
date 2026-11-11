@@ -639,4 +639,194 @@ CREATE TABLE IF NOT EXISTS hymns (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS hymns_book_title_idx ON hymns (school_id, book, lower(title));
 CREATE INDEX IF NOT EXISTS hymns_book_num_idx ON hymns (school_id, book, number);
+
+CREATE TABLE IF NOT EXISTS curriculum_topics (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  level int NOT NULL,
+  subject text NOT NULL,
+  term int NOT NULL,
+  week text NOT NULL DEFAULT '',
+  topic text NOT NULL,
+  content text NOT NULL DEFAULT '',
+  teaching boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS curriculum_topics_uq ON curriculum_topics (school_id, level, lower(subject), term, week, lower(topic));
+CREATE INDEX IF NOT EXISTS curriculum_topics_ix ON curriculum_topics (school_id, level, subject, term);
+CREATE TABLE IF NOT EXISTS topic_lessons (
+  topic_id uuid PRIMARY KEY REFERENCES curriculum_topics(id) ON DELETE CASCADE,
+  body text NOT NULL,
+  status text NOT NULL DEFAULT 'approved',
+  author_id uuid,
+  approved_by uuid,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS topic_progress (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  topic_id uuid NOT NULL REFERENCES curriculum_topics(id) ON DELETE CASCADE,
+  done_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, topic_id)
+);
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS topic_id uuid REFERENCES curriculum_topics(id) ON DELETE SET NULL;
+CREATE TABLE IF NOT EXISTS holiday_programmes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  level int NOT NULL,
+  subject text NOT NULL DEFAULT '',
+  term int,
+  starts_on date NOT NULL,
+  ends_on date NOT NULL,
+  fee numeric NOT NULL DEFAULT 0,
+  capacity int,
+  active boolean NOT NULL DEFAULT true,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS holiday_sessions (
+  programme_id uuid NOT NULL REFERENCES holiday_programmes(id) ON DELETE CASCADE,
+  session_no int NOT NULL,
+  title text NOT NULL,
+  topic_id uuid REFERENCES curriculum_topics(id) ON DELETE SET NULL,
+  PRIMARY KEY (programme_id, session_no)
+);
+CREATE TABLE IF NOT EXISTS holiday_enrolments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  programme_id uuid NOT NULL REFERENCES holiday_programmes(id) ON DELETE CASCADE,
+  student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  enrolled_by uuid,
+  paid boolean NOT NULL DEFAULT false,
+  paid_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (programme_id, student_id)
+);
+CREATE TABLE IF NOT EXISTS holiday_attendance (
+  programme_id uuid NOT NULL REFERENCES holiday_programmes(id) ON DELETE CASCADE,
+  student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  session_no int NOT NULL,
+  marked_by uuid,
+  PRIMARY KEY (programme_id, student_id, session_no)
+);
+CREATE TABLE IF NOT EXISTS hr_rules (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  code text NOT NULL,
+  title text NOT NULL,
+  category text NOT NULL DEFAULT 'Conduct',
+  description text NOT NULL DEFAULT '',
+  guidance text NOT NULL DEFAULT '',
+  default_action text NOT NULL DEFAULT 'query',
+  fine_amount numeric NOT NULL DEFAULT 0,
+  escalate_after int NOT NULL DEFAULT 0,
+  escalate_days int NOT NULL DEFAULT 90,
+  escalate_to text NOT NULL DEFAULT '',
+  active boolean NOT NULL DEFAULT true,
+  sort int NOT NULL DEFAULT 100,
+  UNIQUE (school_id, code)
+);
+CREATE TABLE IF NOT EXISTS hr_cases (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  number text NOT NULL,
+  user_id uuid NOT NULL REFERENCES users(id),
+  rule_id uuid REFERENCES hr_rules(id) ON DELETE SET NULL,
+  kind text NOT NULL,
+  title text NOT NULL,
+  facts text NOT NULL DEFAULT '',
+  incident_on date NOT NULL DEFAULT current_date,
+  status text NOT NULL DEFAULT 'open',
+  response text,
+  response_at timestamptz,
+  decision text,
+  fine_amount numeric NOT NULL DEFAULT 0,
+  fine_id uuid,
+  raised_by uuid,
+  decided_by uuid,
+  decided_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (school_id, number)
+);
+CREATE INDEX IF NOT EXISTS hr_cases_user_ix ON hr_cases (school_id, user_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS hr_courses (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  description text NOT NULL DEFAULT '',
+  mandatory boolean NOT NULL DEFAULT false,
+  valid_months int,
+  archived boolean NOT NULL DEFAULT false,
+  UNIQUE (school_id, name)
+);
+CREATE TABLE IF NOT EXISTS hr_training (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_id uuid NOT NULL REFERENCES hr_courses(id) ON DELETE CASCADE,
+  due_on date,
+  status text NOT NULL DEFAULT 'assigned',
+  completed_on date,
+  expires_on date,
+  assigned_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS hr_training_open_uq ON hr_training (user_id, course_id) WHERE status = 'assigned';
+CREATE TABLE IF NOT EXISTS hr_holidays (
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  day date NOT NULL,
+  name text NOT NULL,
+  PRIMARY KEY (school_id, day)
+);
+CREATE TABLE IF NOT EXISTS crm_accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  kind text NOT NULL DEFAULT 'family',
+  status text NOT NULL DEFAULT 'lead',
+  phone text,
+  email text,
+  address text,
+  source text,
+  notes text,
+  owner_id uuid REFERENCES users(id),
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS crm_accounts_name_uq ON crm_accounts (school_id, lower(name));
+CREATE TABLE IF NOT EXISTS crm_contacts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  account_id uuid NOT NULL REFERENCES crm_accounts(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  title text,
+  phone text,
+  email text,
+  is_primary boolean NOT NULL DEFAULT false
+);
+CREATE TABLE IF NOT EXISTS crm_opportunities (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  account_id uuid NOT NULL REFERENCES crm_accounts(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  value numeric NOT NULL DEFAULT 0,
+  stage text NOT NULL DEFAULT 'new',
+  expected_close date,
+  lost_reason text,
+  owner_id uuid REFERENCES users(id),
+  closed_at timestamptz,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS crm_activities (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  account_id uuid NOT NULL REFERENCES crm_accounts(id) ON DELETE CASCADE,
+  opportunity_id uuid REFERENCES crm_opportunities(id) ON DELETE SET NULL,
+  kind text NOT NULL,
+  summary text NOT NULL,
+  follow_up_on date,
+  follow_up_done boolean NOT NULL DEFAULT false,
+  by_user uuid REFERENCES users(id),
+  occurred_at timestamptz NOT NULL DEFAULT now()
+);
 `;

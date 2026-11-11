@@ -69,20 +69,6 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   payroll: { pensionPct: 0, taxPct: 0 },
   footer: { text: "(08067578112) Powered by Fodan Softnet and Solar Energy" },
   authArt: { login: "", register: "", staff: "", caption: "Learn. Practise. Test. Improve." },
-  // Standard staff rules, visible to every staff member on the HRM page. One per line: Rule | Fine in naira (0 = none) | Details.
-  staffRules: [
-    "Punctuality | 500 | Clock in before resumption time plus grace. Late arrival attracts the flat fine, plus the per-minute amount where set.",
-    "Absence without leave | 2000 | Absent without approved leave or permission. Apply for leave before the day, except in emergencies.",
-    "Clock in at your branch | 0 | Clock in and out only within your branch radius; remote clock-ins are not accepted.",
-    "Dress code | 0 | Staff dress modestly and professionally. Teachers wear the approved school uniform on designated days.",
-    "Lesson notes | 0 | Submit lesson notes for approval before the lesson. Unapproved notes may not be taught.",
-    "Results deadline | 1000 | Enter CA and exam scores before the deadline set by the Examination Officer. Late submission is recorded.",
-    "Confidentiality | 0 | Never share student records, results, or access codes. Passwords are personal and must not be shared.",
-    "Student welfare | 0 | No corporal punishment. Report abuse, bullying or injury to the Principal immediately.",
-    "Phones in class | 500 | Personal phone use during lessons is not allowed except for teaching.",
-    "School property | 0 | Damage or loss of school property through negligence may be recovered from the staff concerned.",
-    "Fine appeals | 0 | A fine can be queried within 7 days. HR may waive it with a recorded reason.",
-  ] as string[],
   fines: { workStart: "08:00", graceMinutes: 10, perMinute: 0, lateFlat: 500, absentFine: 2000, defaultRadius: 150, enabled: true },
   // One position per line: Title | role key. Editable in the BackEnd.
   positions: {
