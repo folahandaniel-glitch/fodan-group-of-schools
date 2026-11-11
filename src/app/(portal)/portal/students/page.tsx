@@ -37,7 +37,7 @@ export default async function Students({ searchParams }: { searchParams: Promise
   return (
     <>
       <PageHeader title="Students" sub={`${n} record${n === 1 ? "" : "s"}`}
-        actions={can(me, "students:export") && <a className="btn btn-ghost" href={`/portal/export/students?class=${classId}&status=${status}`}>Export CSV</a>} />
+        actions={<>{can(me, "students:create") && <Link className="btn btn-gold" href="/portal/students/import">Import students</Link>}{can(me, "students:export") && <a className="btn btn-ghost" href={`/portal/export/students?class=${classId}&status=${status}`}>Download Excel</a>}</>} />
       <Card className="mb-5">
         <form className="grid gap-3 sm:grid-cols-[1fr_200px_160px_auto]" role="search">
           <input name="q" defaultValue={q} className="input" placeholder="Search name or admission number" aria-label="Search students" />

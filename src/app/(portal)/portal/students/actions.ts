@@ -8,18 +8,10 @@ import { audit, clean } from "@/lib/security";
 import { encrypt, lookupHash } from "@/lib/crypto";
 import { generateAccessCode } from "@/lib/logic/access-code";
 import { issueResetToken } from "@/lib/accounts";
+import { newAccessCode } from "@/lib/student-codes";
 
 type State = { error?: string; ok?: string };
 
-async function newCode(): Promise<{ plain: string; hash: string; enc: string }> {
-  for (let i = 0; i < 5; i++) {
-    const plain = generateAccessCode();
-    const hash = lookupHash(plain);
-    const [dup] = await sql`SELECT 1 FROM students WHERE code_hash = ${hash}`;
-    if (!dup) return { plain, hash, enc: encrypt(plain) };
-  }
-  throw new Error("Could not generate a unique code");
-}
 
 export async function enrolStudent(_p: State, fd: FormData): Promise<State> {
   const me = await requirePerm("students:create");
@@ -35,7 +27,7 @@ export async function enrolStudent(_p: State, fd: FormData): Promise<State> {
     if (!c) return { error: "Choose a valid class." };
     deptId = c.department_id;
   }
-  const code = await newCode();
+  const code = await newAccessCode();
   const [s] = await sql`INSERT INTO students (school_id, admission_no, first_name, middle_name, last_name, dob, gender, class_id, department_id,
       guardian_name, guardian_phone, guardian_email, admission_year, code_hash, code_enc)
     VALUES (${me.schoolId}, ${adm}, ${first}, ${clean(fd.get("middleName"), 80) || null}, ${last}, ${clean(fd.get("dob"), 10) || null}, ${clean(fd.get("gender"), 12) || null},
@@ -55,7 +47,7 @@ export async function codeAction(fd: FormData): Promise<void> {
   const [s] = await sql`SELECT id, user_id FROM students WHERE id = ${id} AND school_id = ${me.schoolId}`;
   if (!s) return;
   if (op === "regenerate") {
-    const code = await newCode();
+    const code = await newAccessCode();
     await sql`UPDATE students SET code_hash = ${code.hash}, code_enc = ${code.enc}, code_status = 'active' WHERE id = ${id}`;
     await audit({ schoolId: me.schoolId, actorId: me.id, action: "access_code.regenerate", entity: "student", entityId: id });
   } else if (op === "revoke" || op === "suspend") {

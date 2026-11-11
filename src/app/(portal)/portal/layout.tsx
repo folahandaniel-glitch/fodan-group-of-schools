@@ -62,6 +62,7 @@ export default async function PortalLayout({ children }: { children: React.React
   add(!learner, "/portal/exports", "Downloads", "Records");
   add(can(me, "timetable:view"), "/portal/timetable", "Timetable", "School");
   add(can(me, "attendance:view"), "/portal/attendance", "Attendance", "School");
+  add(!learner, "/portal/roster", "Duty roster", "School");
   add(can(me, "calendar:view"), "/portal/calendar", "Academic calendar", "School");
   add(!learner && can(me, "lessons:view"), "/portal/lessons", "Lesson notes", "Teaching");
   add(!learner && can(me, "questions:view"), "/portal/questions", "Question bank", "Teaching");
@@ -82,10 +83,10 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[272px_minmax(0,1fr)]">
-      <aside className="no-print hidden border-r border-line bg-paper-2/60 lg:block">
+      <aside className="no-print rail hidden lg:block">
         <div className="sticky top-0 flex h-dvh flex-col gap-5 overflow-y-auto p-4">
           <Link href="/portal" className="flex items-center gap-3 rounded-xl p-1">
-            <Logo size={46} />
+            <span className="rounded-xl bg-white p-1"><Logo size={40} /></span>
             <span className="leading-tight"><span className="block font-display text-[0.98rem]">Fodan College</span><span className="block text-[0.65rem] font-bold uppercase tracking-[0.14em] text-gold">International</span></span>
           </Link>
           <PortalNav items={items.map((i) => ({ ...i, label: labels[i.label] ?? i.label }))} />
@@ -93,20 +94,21 @@ export default async function PortalLayout({ children }: { children: React.React
       </aside>
 
       <div className="min-w-0">
-        <header className="no-print sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-paper/95 px-4 py-2.5 backdrop-blur">
+        <header className="no-print topbar sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
           <details className="relative lg:hidden">
             <summary className="btn btn-ghost btn-sm list-none">Menu</summary>
-            <div className="absolute left-0 top-12 max-h-[75dvh] w-72 overflow-y-auto rounded-2xl border border-line bg-card p-3 shadow-2xl"><PortalNav items={items.map((i) => ({ ...i, label: labels[i.label] ?? i.label }))} /></div>
+            <div className="absolute left-0 top-12 max-h-[75dvh] w-72 overflow-y-auto rail rounded-2xl p-3 shadow-2xl"><PortalNav items={items.map((i) => ({ ...i, label: labels[i.label] ?? i.label }))} /></div>
           </details>
           <form action="/portal/search" role="search" className="hidden flex-1 lg:block"><input name="q" className="input !min-h-9 max-w-xs !py-1" placeholder={term ? `Search · ${term.session_name} ${term.name}` : "Search"} aria-label="Search the portal" /></form>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {th.picker && <ThemePicker themes={th.choices} fallback={th.id} />}
             <Link href="/portal/notifications" className="btn btn-ghost btn-sm" aria-label={`Notifications, ${n} unread`}>
-              Alerts{n > 0 && <span className="badge badge-bad">{n}</span>}
+              <span className="hidden sm:inline">Alerts</span><span className="sm:hidden" aria-hidden>🔔</span>{n > 0 && <span className="badge badge-bad">{n}</span>}
             </Link>
-            <Link href="/account" className="btn btn-ghost btn-sm">
+            <Link href="/account" className="btn btn-ghost btn-sm !hidden sm:!inline-flex">
               <span className="max-w-[10rem] truncate">{me.name}</span><span className="badge badge-info hidden sm:inline-flex">{ROLE_LABEL[me.role] ?? me.role}</span>
             </Link>
+            <Link href="/account" className="btn btn-ghost btn-sm sm:!hidden" aria-label="My account">👤</Link>
             {showClock && <ClockPopup initial={!ce ? "none" : ce.clock_out ? "out" : "in"} notice={cn ? { kind: cn.kind as string, reason: cn.reason as string, status: cn.status as string } : null} branch={(cb?.name as string) ?? null} radius={(cb?.radius_m as number) ?? null} clockedAt={hm(ce?.clock_in)} />}
             <form action={logout}><button className="btn btn-primary btn-sm">Sign out</button></form>
           </div>

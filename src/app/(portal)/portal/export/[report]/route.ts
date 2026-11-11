@@ -7,6 +7,7 @@ import { teacherClassIds, wideScope } from "@/lib/scope";
 import { isRoot } from "@/lib/logic/permissions";
 import { hideDevAudit } from "@/lib/visibility";
 import { buildXlsx, XLSX_MIME } from "@/lib/xlsx";
+import { decrypt } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -37,6 +38,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ report: string 
       FROM students s LEFT JOIN classes c ON c.id = s.class_id LEFT JOIN departments d ON d.id = c.department_id
       WHERE s.school_id = ${S} ${UUID.test(cls) ? sql`AND s.class_id = ${cls}` : sql``} ${status ? sql`AND s.status = ${status}` : sql``}
         ${myClasses ? sql`AND s.class_id = ANY(${myClasses})` : sql``} ORDER BY c.name, s.last_name, s.first_name` }];
+  } else if (report === "access-codes") {
+    if (!root && !can(me, "access_codes:manage")) return deny();
+    const rows = await sql`SELECT s.admission_no, s.last_name, s.first_name, c.name AS class, c.arm, s.code_enc, s.code_status FROM students s LEFT JOIN classes c ON c.id = s.class_id
+      WHERE s.school_id = ${S} AND s.code_enc IS NOT NULL ${UUID.test(cls) ? sql`AND s.class_id = ${cls}` : sql``} ${myClasses ? sql`AND s.class_id = ANY(${myClasses})` : sql``} ORDER BY c.name, s.last_name`;
+    sheets = [{ name: "Access codes", rows: rows.map((r) => ({ admission_no: r.admission_no, last_name: r.last_name, first_name: r.first_name, class: `${r.class ?? ""}${r.arm ?? ""}`, access_code: (() => { try { return decrypt(r.code_enc as string); } catch { return ""; } })(), status: r.code_status })) }];
   } else if (report === "student-attendance") {
     if (!root && !can(me, "attendance:export") && !can(me, "attendance:view")) return deny();
     sheets = [{ name: "Student attendance", rows: await sql`SELECT a.day, c.name AS class, c.arm, s.admission_no, s.last_name, s.first_name, a.status

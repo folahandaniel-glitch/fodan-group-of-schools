@@ -868,4 +868,13 @@ ALTER TABLE clock_notices ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 
 ALTER TABLE clock_notices ADD COLUMN IF NOT EXISTS reviewed_by uuid;
 ALTER TABLE clock_notices ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
 ALTER TABLE clock_notices ADD COLUMN IF NOT EXISTS review_note text;
+
+CREATE TABLE IF NOT EXISTS roster_shifts (
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day date NOT NULL,
+  shift text NOT NULL,
+  set_by uuid,
+  PRIMARY KEY (user_id, day)
+);
 `;

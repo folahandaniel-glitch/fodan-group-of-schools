@@ -24,6 +24,7 @@ export default async function Exports() {
 
   const items = ([
     { slug: "students", title: "Student records", blurb: "Admission numbers, class, guardian contacts.", filters: ["class", "status"], show: root || can(me, "students:export") },
+    { slug: "access-codes", title: "Student access codes", blurb: "Codes students and parents use to register. Handle with care.", filters: ["class"], show: root || can(me, "access_codes:manage") },
     { slug: "student-attendance", title: "Student attendance", blurb: "Daily attendance for a class and date range.", filters: ["class", "range"], show: root || can(me, "attendance:export") || can(me, "attendance:view") },
     { slug: "results", title: "Results", blurb: "Scores, grades and remarks for a class and term.", filters: ["class", "term"], classRequired: true, show: root || can(me, "results:export") || can(me, "reports:export") },
     { slug: "timetable", title: "Timetable", blurb: "Every period, subject and teacher for a class.", filters: ["class"], show: can(me, "timetable:view") || can(me, "timetable:edit") },

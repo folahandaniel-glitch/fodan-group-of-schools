@@ -5,7 +5,7 @@ import { getSetting } from "@/lib/settings";
 import { Badge, Card, Empty, Field, PageHeader } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { CoordsInput } from "@/components/coords-input";
-import { assignBranch, saveBranch, saveFineRules, waiveFine } from "./actions";
+import { assignBranch, runAbsenceCheck, saveBranch, saveFineRules, waiveFine } from "./actions";
 
 export const metadata = { title: "Branches & fines" };
 export const dynamic = "force-dynamic";
@@ -65,7 +65,10 @@ export default async function Branches() {
               <Field label="Absence fine (₦)" name="absentFine" type="number" defaultValue={rules.absentFine} />
               <Field label="Default radius (m)" name="defaultRadius" type="number" defaultValue={rules.defaultRadius} />
               <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="enabled" defaultChecked={rules.enabled} /> Apply fines automatically</label>
-            </ActionForm></div>
+            </ActionForm>
+            <div className="mt-4 border-t border-line pt-4"><h3 className="text-lg">Absence check</h3>
+              <p className="text-sm text-muted">Runs automatically every morning for the day before. Run it by hand for any earlier school day: it fines staff with no clock-in, no leave and no accepted reason.</p>
+              <ActionForm action={runAbsenceCheck} submit="Run absence check" small className="mt-2 flex flex-wrap items-end gap-2"><Field label="Day" name="day" type="date" defaultValue={new Date(Date.now() + 3600_000 - 86400_000).toISOString().slice(0, 10)} /></ActionForm></div></div>
           ) : <p className="mt-2 text-sm text-muted">Resume {rules.workStart}, grace {rules.graceMinutes} min, flat ₦{rules.lateFlat}.</p>}
         </Card>
       </div>

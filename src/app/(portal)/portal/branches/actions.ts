@@ -6,6 +6,7 @@ import { audit, clean } from "@/lib/security";
 import { setSetting } from "@/lib/settings";
 import { parseCoords } from "@/lib/geo";
 import { mayReviewStaff } from "@/lib/scope";
+import { applyAbsenceFines } from "@/lib/absence";
 import { can } from "@/lib/auth";
 
 type State = { error?: string; ok?: string };
@@ -75,4 +76,16 @@ export async function waiveFine(fd: FormData): Promise<void> {
     await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "fine.waive", entity: "fine", entityId: id, meta: { reason } });
   }
   revalidatePath("/portal/branches");
+}
+
+/** Records the absence fine for everyone who was expected on a past school day and did not clock in, have leave, or have an accepted reason. */
+export async function runAbsenceCheck(_p: State, fd: FormData): Promise<State> {
+  const me = await requirePerm("fines:manage");
+  const day = clean(fd.get("day"), 10);
+  const today = new Date(Date.now() + 3600_000).toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day >= today) return { error: "Choose a day before today." };
+  const r = await applyAbsenceFines(me.schoolId, day, me.id);
+  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "fines.absence.run", meta: { day, ...r } });
+  revalidatePath("/portal/branches");
+  return r.skipped ? { error: r.skipped } : { ok: `${r.fined} absence fine${r.fined === 1 ? "" : "s"} recorded (${r.checked} staff had no clock-in, leave or accepted reason).` };
 }

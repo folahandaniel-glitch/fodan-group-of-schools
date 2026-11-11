@@ -36,7 +36,7 @@ export default async function Backend() {
       <PageHeader title="BackEnd console" sub="One place to run the school: every module, label and permission below is editable and takes effect immediately." />
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {AREAS.map(([href, t, d]) => (
-          <Link key={href} href={href} className="card card-pad block hover:border-ink"><p className="font-display text-lg">{t}</p><p className="text-sm text-muted">{d}</p></Link>
+          <Link key={href} href={href} className="tile"><p className="font-display text-lg pr-6">{t}</p><p className="text-sm text-muted">{d}</p></Link>
         ))}
       </div>
 
