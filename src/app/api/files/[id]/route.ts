@@ -13,6 +13,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!f.public) {
     const me = await getMe();
     if (!me || !me.mfaPassed) return new Response("Sign in required", { status: 401 });
+    const [rcp] = await sql`SELECT 1 FROM ledger_entries WHERE receipt_file = ${id} LIMIT 1`;
+    if (rcp && !me.perms.has("*") && !me.perms.has("ledger:view") && !me.perms.has("expenses:view") && !me.perms.has("expenses:manage")) return new Response("Not found", { status: 404 });
     const isLearner = me.role === "student" || me.role === "parent";
     if (isLearner) {
       // Learners may only open files attached to published resources or their own photo.

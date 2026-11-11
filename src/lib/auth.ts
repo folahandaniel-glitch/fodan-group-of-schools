@@ -56,6 +56,13 @@ export const getMe = cache(async (): Promise<Me | null> => {
   if (!u) return null;
   const extra = await sql`SELECT role FROM user_roles WHERE user_id = ${u.id}`;
   const roles = [u.role, ...extra.map((r) => r.role as string)];
+  if (!["student", "parent"].includes(u.role)) {
+    // One person can be class teacher and subject teacher at once: roles follow the assignments on the Classes page.
+    const [as] = await sql`SELECT EXISTS (SELECT 1 FROM classes WHERE class_teacher_id = ${u.id} AND NOT archived) AS ct,
+                                  EXISTS (SELECT 1 FROM class_subjects WHERE teacher_id = ${u.id}) AS st`;
+    if (as?.ct) roles.push("class_teacher");
+    if (as?.st) roles.push("teacher");
+  }
   const overrides = await sql`SELECT role, permissions FROM role_permissions WHERE school_id = ${u.school_id} AND role = ANY(${roles})`;
   const perms = new Set<string>();
   for (const r of roles) {

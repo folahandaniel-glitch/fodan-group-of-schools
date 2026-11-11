@@ -1,3 +1,4 @@
+import { hideDevAudit } from "@/lib/visibility";
 import { requirePerm, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { pageParams, str } from "@/lib/data";
@@ -11,7 +12,7 @@ export default async function Audit({ searchParams }: { searchParams: Promise<Re
   const sp = await searchParams;
   const cat = str(sp.category), q = str(sp.q).trim(), actor = str(sp.actor).trim();
   const { page, size, offset } = pageParams(sp, 40);
-  const where = sql`school_id = ${me.schoolId} ${cat ? sql`AND category = ${cat}` : sql``} ${q ? sql`AND action ILIKE ${"%" + q + "%"}` : sql``}
+  const where = sql`school_id = ${me.schoolId} ${hideDevAudit(me)} ${cat ? sql`AND category = ${cat}` : sql``} ${q ? sql`AND action ILIKE ${"%" + q + "%"}` : sql``}
     ${actor ? sql`AND actor_label ILIKE ${"%" + actor + "%"}` : sql``}`;
   const [{ n }] = await sql`SELECT count(*)::int AS n FROM audit_logs WHERE ${where}`;
   const rows = await sql`SELECT id, category, actor_label, action, entity, entity_id, meta, ip, created_at FROM audit_logs WHERE ${where} ORDER BY id DESC LIMIT ${size} OFFSET ${offset}`;
@@ -19,11 +20,11 @@ export default async function Audit({ searchParams }: { searchParams: Promise<Re
                                count(*) FILTER (WHERE action = 'login' AND created_at > now() - interval '24 hours')::int AS logins,
                                count(*) FILTER (WHERE category = 'security' AND created_at > now() - interval '24 hours')::int AS sec,
                                count(DISTINCT actor_id) FILTER (WHERE created_at > now() - interval '24 hours')::int AS actors
-                        FROM audit_logs WHERE school_id = ${me.schoolId}`;
+                        FROM audit_logs WHERE school_id = ${me.schoolId} ${hideDevAudit(me)}`;
   return (
     <>
       <PageHeader title="Audit & security" sub="An append-only record of important activity. Entries cannot be edited or deleted."
-        actions={can(me, "audit:export") && <a className="btn btn-ghost btn-sm" href="/portal/export/audit">Export CSV</a>} />
+        actions={can(me, "audit:export") && <a className="btn btn-ghost btn-sm" href="/portal/export/audit">Download Excel</a>} />
       <div className="mb-5 grid gap-4 sm:grid-cols-4">
         <Stat label="Sign-ins (24h)" value={t.logins} /><Stat label="Failed sign-ins (24h)" value={t.failed} tone="royal" />
         <Stat label="Security events (24h)" value={t.sec} /><Stat label="Active people (24h)" value={t.actors} tone="royal" />

@@ -63,7 +63,11 @@ export async function setRecordStatus(fd: FormData): Promise<void> {
   await sql`UPDATE records SET status = ${status}, updated_at = now() WHERE id = ${r.id}`;
   if (m.key === "finance" && status === "paid") {
     const amount = Number(String(r.data?.amount ?? "").replace(/[^0-9.]/g, ""));
-    await post({ schoolId: me.schoolId, description: `${r.title} (${r.data?.category ?? "expense"})`, debit: expenseAccountFor(String(r.data?.category ?? "")), credit: "1000", amount, ref: `finance:${r.id}`, by: me.id });
+    await post({ schoolId: me.schoolId, description: `${r.title} (${r.data?.category ?? "expense"})`, debit: expenseAccountFor(String(r.data?.category ?? "")), credit: "1000", amount, ref: `finance:${r.id}`, by: me.id, payee: String(r.data?.payee ?? "") || null, source: "finance" });
+  }
+  if (m.key === "procurement" && status === "received") {
+    const amount = Number(String(r.data?.amount ?? "").replace(/[^0-9.]/g, ""));
+    await post({ schoolId: me.schoolId, description: `${r.title} (purchase)`, debit: expenseAccountFor(String(r.data?.category ?? "")), credit: "1000", amount, ref: `procurement:${r.id}`, by: me.id, payee: String(r.data?.vendor ?? "") || null, source: "procurement" });
   }
   if (r.owner_id && r.owner_id !== me.id) {
     await sql`INSERT INTO notifications (user_id, title, link) VALUES (${r.owner_id}, ${`${m.label}: "${r.title}" is now ${status.replace("_", " ")}`}, ${`/portal/m/${m.key}/${r.id}`})`;

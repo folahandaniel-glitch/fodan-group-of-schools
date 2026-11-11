@@ -33,7 +33,7 @@ export async function markStaffAttendance(_p: State, fd: FormData): Promise<Stat
   if (!can(me, "attendance:edit") && !can(me, "attendance:manage")) return { error: "Not permitted." };
   const day = clean(fd.get("day"), 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return { error: "Choose a date." };
-  const staff = await sql`SELECT id FROM users WHERE school_id = ${me.schoolId} AND role NOT IN ('student','parent') AND status = 'active'`;
+  const staff = await sql`SELECT id FROM users WHERE school_id = ${me.schoolId} AND role NOT IN ('student','parent','developer') AND status = 'active'`;
   let n = 0;
   for (const s of staff) {
     const st = clean(fd.get(`a_${s.id}`), 10);

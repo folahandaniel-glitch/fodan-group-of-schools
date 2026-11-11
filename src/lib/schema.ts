@@ -829,4 +829,24 @@ CREATE TABLE IF NOT EXISTS crm_activities (
   by_user uuid REFERENCES users(id),
   occurred_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS period_registers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  class_id uuid NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  subject_id uuid REFERENCES subjects(id) ON DELETE SET NULL,
+  teacher_id uuid NOT NULL REFERENCES users(id),
+  day date NOT NULL,
+  period int NOT NULL,
+  status text NOT NULL DEFAULT 'on_time',
+  note text,
+  registered_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (class_id, day, period)
+);
+CREATE INDEX IF NOT EXISTS period_registers_ix ON period_registers (school_id, day, teacher_id);
+
+ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS payee text;
+ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS method text;
+ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS receipt_file uuid REFERENCES files(id) ON DELETE SET NULL;
+ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'manual';
 `;

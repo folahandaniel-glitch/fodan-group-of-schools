@@ -34,7 +34,7 @@ export function Card({ children, className = "", pad = true }: { children: React
   return <section className={`card ${pad ? "card-pad" : ""} ${className}`}>{children}</section>;
 }
 
-export function Stat({ label, value, hint, tone }: { label: string; value: ReactNode; hint?: string; tone?: "gold" | "royal" }) {
+export function Stat({ label, value, hint, tone }: { label: string; value: ReactNode; hint?: ReactNode; tone?: "gold" | "royal" }) {
   return (
     <div className="card card-pad relative overflow-hidden">
       <span className={`absolute inset-y-0 left-0 w-1 ${tone === "royal" ? "bg-royal" : "bg-gold-2"}`} />

@@ -17,6 +17,7 @@ function strongRandom(): string {
 }
 
 function mayManage(me: Me, targetRole: string): boolean {
+  if (targetRole === "developer") return me.role === "developer";
   return isRoot(me.role) || outranks(me.role, targetRole);
 }
 
@@ -92,5 +93,29 @@ export async function setStaffStatus(fd: FormData): Promise<void> {
   await sql`UPDATE staff_profiles SET employment_status = ${m[1]} WHERE user_id = ${id}`;
   if (m[0] !== "active") await sql`DELETE FROM sessions WHERE user_id = ${id}`;
   await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: `staff.${op}`, entity: "user", entityId: id });
+  revalidatePath(`/portal/staff/${id}`);
+}
+
+/** Extra roles let one person do several jobs (for example subject teacher + class teacher + HR admin). Root users only. */
+export async function addExtraRole(fd: FormData): Promise<void> {
+  const me = await requirePerm("roles:manage");
+  if (!isRoot(me.role)) return;
+  const id = clean(fd.get("id"), 40), role = clean(fd.get("role"), 30);
+  const [u] = await sql`SELECT role FROM users WHERE id = ${id} AND school_id = ${me.schoolId}`;
+  if (!u || id === me.id || !ROLES.includes(role as never) || role === "developer" || role === u.role) return;
+  if (u.role === "developer" || (role === "super_admin" && me.role !== "developer" && me.role !== "super_admin")) return;
+  await sql`INSERT INTO user_roles (user_id, role) VALUES (${id}, ${role}) ON CONFLICT DO NOTHING`;
+  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "role.add", entity: "user", entityId: id, meta: { role } });
+  revalidatePath(`/portal/staff/${id}`);
+}
+
+export async function removeExtraRole(fd: FormData): Promise<void> {
+  const me = await requirePerm("roles:manage");
+  if (!isRoot(me.role)) return;
+  const id = clean(fd.get("id"), 40), role = clean(fd.get("role"), 30);
+  const [u] = await sql`SELECT role FROM users WHERE id = ${id} AND school_id = ${me.schoolId}`;
+  if (!u || u.role === "developer") return;
+  await sql`DELETE FROM user_roles WHERE user_id = ${id} AND role = ${role}`;
+  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "role.remove", entity: "user", entityId: id, meta: { role } });
   revalidatePath(`/portal/staff/${id}`);
 }

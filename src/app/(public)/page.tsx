@@ -26,7 +26,7 @@ export default async function Home() {
   const school = await getSchool();
   const staff = await sql`
     SELECT u.id, u.first_name, u.last_name, u.photo_file, p.position, p.qualification
-    FROM staff_profiles p JOIN users u ON u.id = p.user_id
+    FROM staff_profiles p JOIN users u ON u.id = p.user_id AND u.role <> 'developer'
     WHERE p.school_id = ${school.id} AND p.public = true AND p.employment_status = 'active' AND u.status = 'active'
     ORDER BY p.sort, u.last_name LIMIT 4`;
   const h = s.home, f = s.founder;

@@ -24,7 +24,7 @@ export default async function Hrm({ searchParams }: { searchParams: Promise<Reco
   const tab = tabs.find((t) => t[0] === str(sp.tab))?.[0] ?? "rules";
   const S = me.schoolId;
 
-  const staff: Row[] = manage ? await sql`SELECT id, first_name, last_name FROM users WHERE school_id = ${S} AND status = 'active' AND role NOT IN ('student','parent') ORDER BY last_name, first_name LIMIT 400` : [];
+  const staff: Row[] = manage ? await sql`SELECT id, first_name, last_name FROM users WHERE school_id = ${S} AND status = 'active' AND role NOT IN ('student','parent','developer') ORDER BY last_name, first_name LIMIT 400` : [];
   const rules: Row[] = await sql`SELECT * FROM hr_rules WHERE school_id = ${S} ${manage ? sql`` : sql`AND active`} ORDER BY sort, title`;
   const staffOpts = staff.map((s) => <option key={s.id} value={s.id}>{s.last_name}, {s.first_name}</option>);
 

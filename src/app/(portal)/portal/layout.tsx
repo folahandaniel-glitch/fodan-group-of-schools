@@ -51,6 +51,8 @@ export default async function PortalLayout({ children }: { children: React.React
   add(!learner && me.role !== "student", "/portal/payslips", "My payslips", "School");
   add(can(me, "payroll:view"), "/portal/payroll", "Payroll", "Finance");
   add(can(me, "ledger:view"), "/portal/ledger", "Ledger", "Finance");
+  add(can(me, "expenses:view") || can(me, "expenses:manage") || can(me, "ledger:view"), "/portal/expenses", "Expense register", "Finance");
+  add(!learner, "/portal/exports", "Downloads", "Records");
   add(can(me, "timetable:view"), "/portal/timetable", "Timetable", "School");
   add(can(me, "attendance:view"), "/portal/attendance", "Attendance", "School");
   add(can(me, "calendar:view"), "/portal/calendar", "Academic calendar", "School");

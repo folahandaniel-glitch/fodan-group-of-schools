@@ -1,3 +1,4 @@
+import { hideDev } from "@/lib/visibility";
 import Link from "next/link";
 import { requireMe, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -22,7 +23,7 @@ export default async function Search({ searchParams }: { searchParams: Promise<R
       rows.forEach((r) => out.push({ group: "Students", title: `${r.first_name} ${r.last_name}`, sub: r.admission_no, href: `/portal/students/${r.id}` }));
     }
     if (staffUser && can(me, "staff:view")) {
-      const rows = await sql`SELECT id, first_name, last_name, email FROM users WHERE school_id = ${me.schoolId} AND role NOT IN ('student','parent')
+      const rows = await sql`SELECT id, first_name, last_name, email FROM users WHERE school_id = ${me.schoolId} AND role NOT IN ('student','parent') ${hideDev(me)}
         AND (first_name ILIKE ${like} OR last_name ILIKE ${like} OR email ILIKE ${like}) LIMIT 8`;
       rows.forEach((r) => out.push({ group: "Staff", title: `${r.first_name} ${r.last_name}`, sub: r.email, href: `/portal/staff/${r.id}` }));
     }

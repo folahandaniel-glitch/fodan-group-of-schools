@@ -1,9 +1,10 @@
+import { hideDevAudit } from "@/lib/visibility";
 import Link from "next/link";
 import { requireMe, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { currentTerm, classLabel, getSetting } from "@/lib/settings";
 import { Banner, PageHeader, Stat, Card, Badge, Empty } from "@/components/ui";
-import { studentOf, teacherClassIds, childIds, wideScope } from "@/lib/scope";
+import { studentOf, teacherClassIds, childIds, wideScope, watToday } from "@/lib/scope";
 import { ROLE_LABEL } from "@/lib/logic/permissions";
 
 export const metadata = { title: "Dashboard" };
@@ -46,6 +47,10 @@ export default async function Dashboard() {
     const recent = await sql`SELECT r.total, r.grade, s.name AS subject FROM results r JOIN subjects s ON s.id = r.subject_id
                              WHERE r.student_id = ${st.id} AND r.released = true ORDER BY r.updated_at DESC LIMIT 6`;
     const best = [...recent].sort((a, b) => b.total - a.total);
+    const nowS = watToday();
+    const todays = nowS.dow > 4 || !st.class_id ? [] : await sql`SELECT t.period, s.name AS subject, u.first_name || ' ' || u.last_name AS teacher FROM timetable_slots t
+        LEFT JOIN subjects s ON s.id = t.subject_id LEFT JOIN users u ON u.id = t.teacher_id AND u.role <> 'developer'
+        WHERE t.class_id = ${st.class_id} AND t.day = ${nowS.dow} AND t.published ORDER BY t.period`;
     return (
       <>
         <Banner eyebrow={classLabel({ name: st.class_name ?? "No class", arm: st.class_arm, department: st.dept_name })} title={hello}
@@ -56,6 +61,12 @@ export default async function Dashboard() {
           <Stat label="Access status" value={<span className="text-2xl">{st.code_status === "active" ? "Active" : "Suspended"}</span>} hint="School access code" />
         </div>
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          <Card>
+            <h2 className="text-xl">Today's classes</h2>
+            {todays.length === 0 ? <p className="mt-2 text-sm text-muted">No timetable for today.</p> : (
+              <ul className="mt-3 divide-y divide-line text-sm">{todays.map((t) => <li key={t.period} className="flex justify-between gap-3 py-2"><span><b>Period {t.period}</b> · {t.subject}</span><span className="text-muted">{t.teacher}</span></li>)}</ul>)}
+            <div className="mt-3 flex flex-wrap gap-2"><Link className="btn btn-ghost btn-sm" href="/portal/timetable">Full timetable</Link><Link className="btn btn-ghost btn-sm" href="/portal/study">Study centre</Link><Link className="btn btn-ghost btn-sm" href="/portal/holiday">Holiday hub</Link></div>
+          </Card>
           <Card>
             <h2 className="text-xl">Pending work</h2>
             {pending.length === 0 ? <p className="mt-2 text-sm text-muted">You are all caught up.</p> : (
@@ -112,6 +123,9 @@ export default async function Dashboard() {
                       <Link className="btn btn-ghost btn-sm" href={`/portal/results?student=${c.id}`}>Results</Link>
                       <Link className="btn btn-ghost btn-sm" href={`/portal/report/${c.id}`}>Report card</Link>
                       <Link className="btn btn-ghost btn-sm" href={`/portal/attendance?student=${c.id}`}>Attendance</Link>
+                      <Link className="btn btn-ghost btn-sm" href="/portal/timetable">Timetable</Link>
+                      <Link className="btn btn-ghost btn-sm" href="/portal/study">Study centre</Link>
+                      <Link className="btn btn-ghost btn-sm" href="/portal/holiday">Holiday hub</Link>
                     </div>
                   </>
                 )}
@@ -129,7 +143,7 @@ export default async function Dashboard() {
   const myClasses = wide ? [] : await teacherClassIds(me.id);
   const [cnt] = await sql`
     SELECT (SELECT count(*)::int FROM students WHERE school_id = ${me.schoolId} AND status IN ('active','enrolled')) AS students,
-           (SELECT count(*)::int FROM users WHERE school_id = ${me.schoolId} AND role NOT IN ('student','parent') AND status = 'active') AS staff,
+           (SELECT count(*)::int FROM users WHERE school_id = ${me.schoolId} AND role NOT IN ('student','parent','developer') AND status = 'active') AS staff,
            (SELECT count(*)::int FROM users WHERE school_id = ${me.schoolId} AND role = 'parent') AS parents,
            (SELECT count(*)::int FROM classes WHERE school_id = ${me.schoolId} AND NOT archived) AS classes,
            (SELECT count(*)::int FROM lesson_notes WHERE school_id = ${me.schoolId} AND status = 'submitted') AS lessons_pending,
@@ -140,10 +154,30 @@ export default async function Dashboard() {
     SELECT (SELECT count(*)::int FROM lesson_notes WHERE teacher_id = ${me.id} AND status IN ('draft','rejected')) AS lessons_open,
            (SELECT count(*)::int FROM assessments WHERE created_by = ${me.id} AND status = 'draft') AS drafts,
            (SELECT count(*)::int FROM students WHERE class_id = ANY(${myClasses}) AND status IN ('active','enrolled')) AS my_students`;
-  const recentAudit = can(me, "audit:view") ? await sql`SELECT action, actor_label, created_at, category FROM audit_logs WHERE school_id = ${me.schoolId} ORDER BY created_at DESC LIMIT 8` : [];
+  const recentAudit = can(me, "audit:view") ? await sql`SELECT action, actor_label, created_at, category FROM audit_logs WHERE school_id = ${me.schoolId} ${hideDevAudit(me)} ORDER BY created_at DESC LIMIT 8` : [];
   const classes = (!wide && myClasses.length ? await sql`SELECT id, name, arm FROM classes WHERE id = ANY(${myClasses})` : []) as unknown as { id: string; name: string; arm: string }[];
-  const seniority = await getSetting("seniority");
-  void seniority;
+  const now = watToday();
+  const [teachToday] = await sql`SELECT count(*)::int AS n, count(r.id)::int AS done FROM timetable_slots t
+      LEFT JOIN period_registers r ON r.class_id = t.class_id AND r.day = ${now.day} AND r.period = t.period
+      WHERE t.teacher_id = ${me.id} AND t.day = ${now.dow} AND t.published`;
+  const ops = wide || can(me, "clock:manage") ? (await sql`SELECT
+      (SELECT count(*)::int FROM clock_entries c JOIN users u ON u.id = c.user_id WHERE c.school_id = ${me.schoolId} AND c.day = ${now.day} AND u.role <> 'developer') AS clocked,
+      (SELECT count(*)::int FROM timetable_slots t WHERE t.school_id = ${me.schoolId} AND t.day = ${now.dow} AND t.published AND t.teacher_id IS NOT NULL) AS periods,
+      (SELECT count(*)::int FROM period_registers r WHERE r.school_id = ${me.schoolId} AND r.day = ${now.day}) AS registered`)[0] : null;
+  const spend = can(me, "expenses:view") || can(me, "expenses:manage") || can(me, "ledger:view")
+    ? (await sql`SELECT coalesce(sum(e.amount), 0)::float AS total FROM ledger_entries e JOIN ledger_accounts a ON a.school_id = e.school_id AND a.code = e.debit_code AND a.kind = 'expense'
+        WHERE e.school_id = ${me.schoolId} AND e.entry_date >= date_trunc('month', current_date)`)[0] : null;
+  const quick: [string, string, boolean][] = [
+    ["/portal/timetable?view=mine", "Register my periods", teachToday.n > 0],
+    ["/portal/timetable", "Draft class timetable", me.roles.includes("class_teacher")],
+    ["/portal/clock", "Clock in / out", can(me, "clock:view")],
+    ["/portal/attendance", "Take attendance", can(me, "attendance:create") || can(me, "attendance:edit")],
+    ["/portal/mark-sheet", "Enter scores", can(me, "results:edit")],
+    ["/portal/exports", "Download records", true],
+    ["/portal/expenses", "Expense register", can(me, "expenses:view") || can(me, "expenses:manage") || can(me, "ledger:view")],
+    ["/portal/hrm", "HRM", can(me, "hrm:view")],
+    ["/portal/crm", "CRM", can(me, "crm:view")],
+  ];
 
   return (
     <>
@@ -166,7 +200,19 @@ export default async function Dashboard() {
         )}
       </div>
 
+      {(ops || spend) && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {ops && <Stat label="Staff clocked in today" value={ops.clocked} hint="Across all branches" />}
+          {ops && <Stat label="Periods registered today" value={`${ops.registered}/${ops.periods}`} tone="royal" hint={<Link className="underline" href="/portal/timetable?view=log">Open register log</Link>} />}
+          {spend && <Stat label="Spent this month" value={`₦${Number(spend.total).toLocaleString("en-NG")}`} hint={<Link className="underline" href="/portal/expenses">Expense register</Link>} />}
+        </div>
+      )}
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <Card>
+          <h2 className="text-xl">Quick actions</h2>
+          <ul className="mt-3 flex flex-wrap gap-2">{quick.filter((q) => q[2]).map(([href, label]) => <li key={href}><Link className="btn btn-ghost btn-sm" href={href}>{label}</Link></li>)}</ul>
+          {teachToday.n > 0 && <p className="mt-3 text-sm">Today you teach <b>{teachToday.n}</b> period{teachToday.n === 1 ? "" : "s"}: <b>{teachToday.done}</b> registered. {teachToday.done < teachToday.n && <Link className="font-bold text-royal" href="/portal/timetable?view=mine">Register now →</Link>}</p>}
+        </Card>
         <Card>
           <h2 className="text-xl">Needs attention</h2>
           <ul className="mt-3 divide-y divide-line text-sm">

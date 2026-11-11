@@ -30,6 +30,21 @@ describe("developer and admin roles", () => {
   });
 });
 
+describe("CRM, HRM, timetable and money access", () => {
+  it("CRM is for HR roles and whoever is assigned; HRM rules likewise", () => {
+    for (const r of ["hr_manager", "hr_admin", "vp_admin"]) expect(has(r, "crm:manage") && has(r, "hrm:manage")).toBe(true);
+    for (const r of ["teacher", "class_teacher", "accountant", "principal", "proprietor", "reception"]) expect(has(r, "crm:view") || has(r, "hrm:manage")).toBe(false);
+  });
+  it("class teachers can draft a timetable and download their class records", () => {
+    expect(has("class_teacher", "timetable:edit") && has("class_teacher", "students:export") && has("teacher", "results:export")).toBe(true);
+    expect(has("teacher", "timetable:publish")).toBe(false);
+  });
+  it("bursar and accountant run payroll views and the expense register; teachers cannot", () => {
+    for (const r of ["bursar", "accountant", "finance_admin"]) expect(has(r, "payroll:view") && has(r, "expenses:manage")).toBe(true);
+    expect(has("teacher", "payroll:view") || has("teacher", "expenses:view")).toBe(false);
+  });
+});
+
 describe("themes", () => {
   it("offers more than 20 themes with unique ids, the logo theme first", () => {
     expect(THEME_SEEDS.length).toBeGreaterThan(20);

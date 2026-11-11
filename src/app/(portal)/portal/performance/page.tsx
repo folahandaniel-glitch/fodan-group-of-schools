@@ -22,7 +22,7 @@ export default async function Performance({ searchParams }: { searchParams: Prom
       (SELECT count(*)::int FROM records r WHERE r.module = 'tasks' AND r.assignee_id = u.id AND r.created_at >= ${from}::date AND r.created_at < ${from}::date + interval '1 month') AS t_total,
       (SELECT count(*)::int FROM records r WHERE r.module = 'tasks' AND r.assignee_id = u.id AND r.status = 'done' AND r.created_at >= ${from}::date AND r.created_at < ${from}::date + interval '1 month') AS t_ok
     FROM users u LEFT JOIN staff_profiles p ON p.user_id = u.id
-    WHERE u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent') AND u.status = 'active' ${all ? sql`` : sql`AND u.id = ${me.id}`}
+    WHERE u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent','developer') AND u.status = 'active' ${all ? sql`` : sql`AND u.id = ${me.id}`}
     ORDER BY u.last_name LIMIT 300`;
   const scored = (rows as unknown as Record<string, any>[]).map((r) => {
     const score = kpiScore({ punctuality: r.days ? Math.round((r.ontime / r.days) * 100) : null, deliverables: r.d_total ? Math.round((r.d_ok / r.d_total) * 100) : null, tasks: r.t_total ? Math.round((r.t_ok / r.t_total) * 100) : null });

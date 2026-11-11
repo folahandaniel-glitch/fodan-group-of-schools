@@ -1,3 +1,4 @@
+import { hideDev } from "@/lib/visibility";
 import Link from "next/link";
 import { requirePerm, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -14,7 +15,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<Re
   const sp = await searchParams;
   const q = str(sp.q).trim(), role = str(sp.role), status = str(sp.status);
   const { page, size, offset } = pageParams(sp, 25);
-  const where = sql`school_id = ${me.schoolId} ${role ? sql`AND role = ${role}` : sql``} ${status ? sql`AND status = ${status}` : sql``}
+  const where = sql`school_id = ${me.schoolId} ${hideDev(me)} ${role ? sql`AND role = ${role}` : sql``} ${status ? sql`AND status = ${status}` : sql``}
     ${q ? sql`AND (email ILIKE ${"%" + q + "%"} OR first_name ILIKE ${"%" + q + "%"} OR last_name ILIKE ${"%" + q + "%"})` : sql``}`;
   const [{ n }] = await sql`SELECT count(*)::int AS n FROM users WHERE ${where}`;
   const rows = await sql`SELECT id, email, first_name, last_name, role, status, mfa_enabled, last_login, failed_logins FROM users WHERE ${where} ORDER BY created_at DESC LIMIT ${size} OFFSET ${offset}`;
@@ -25,7 +26,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<Re
       <Card className="mb-4">
         <form className="grid gap-3 sm:grid-cols-[1fr_200px_160px_auto]" role="search">
           <input name="q" defaultValue={q} className="input" placeholder="Search name or email" aria-label="Search users" />
-          <select name="role" defaultValue={role} className="select" aria-label="Role"><option value="">All roles</option>{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select>
+          <select name="role" defaultValue={role} className="select" aria-label="Role"><option value="">All roles</option>{ROLES.filter((r) => r !== "developer").map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select>
           <select name="status" defaultValue={status} className="select" aria-label="Status"><option value="">Any status</option>{["active", "suspended", "archived"].map((s) => <option key={s}>{s}</option>)}</select>
           <button className="btn btn-primary">Filter</button>
         </form>

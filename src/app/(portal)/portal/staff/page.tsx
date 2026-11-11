@@ -1,3 +1,4 @@
+import { hideDev } from "@/lib/visibility";
 import Link from "next/link";
 import { requirePerm, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -15,7 +16,7 @@ export default async function StaffList({ searchParams }: { searchParams: Promis
   const q = str(sp.q).trim(), status = str(sp.status) || "active";
   const { page, size, offset } = pageParams(sp);
   const depts = await listDepartments(me.schoolId);
-  const where = sql`u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent') AND u.status = ${status}
+  const where = sql`u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent') ${hideDev(me, "u.role")} AND u.status = ${status}
     ${q ? sql`AND (u.first_name ILIKE ${"%" + q + "%"} OR u.last_name ILIKE ${"%" + q + "%"} OR u.email ILIKE ${"%" + q + "%"})` : sql``}`;
   const [{ n }] = await sql`SELECT count(*)::int AS n FROM users u WHERE ${where}`;
   const rows = await sql`SELECT u.id, u.first_name, u.last_name, u.email, u.role, u.status, p.position, p.is_senior, p.years_experience, d.name AS dept

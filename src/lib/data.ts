@@ -33,7 +33,7 @@ export async function listTerms(schoolId: string) {
 
 export async function listStaff(schoolId: string) {
   return (await sql`SELECT u.id, u.first_name, u.last_name, u.email, u.role, u.status
-                    FROM users u WHERE u.school_id = ${schoolId} AND u.role NOT IN ('student','parent') AND u.status <> 'archived'
+                    FROM users u WHERE u.school_id = ${schoolId} AND u.role NOT IN ('student','parent','developer') AND u.status <> 'archived'
                     ORDER BY u.last_name, u.first_name`) as unknown as
     { id: string; first_name: string; last_name: string; email: string; role: string; status: string }[];
 }

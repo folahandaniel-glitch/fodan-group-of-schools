@@ -55,7 +55,7 @@ export async function raiseCase(_p: State, fd: FormData): Promise<State> {
   const userId = clean(fd.get("user"), 40), ruleId = clean(fd.get("rule"), 40);
   if (!UUID.test(userId) || userId === me.id) return { error: "Choose a staff member (not yourself)." };
   const [u] = await sql`SELECT id, role FROM users WHERE id = ${userId} AND school_id = ${me.schoolId} AND role NOT IN ('student','parent')`;
-  if (!u || (isRoot(u.role) && !isRoot(me.role))) return { error: "You cannot raise a case against that person." };
+  if (!u || u.role === "developer" || (isRoot(u.role) && !isRoot(me.role))) return { error: "You cannot raise a case against that person." };
   const [rule] = UUID.test(ruleId) ? await sql`SELECT * FROM hr_rules WHERE id = ${ruleId} AND school_id = ${me.schoolId} AND active` : [];
   let kind = ACTIONS.includes(clean(fd.get("kind"), 20) as never) ? clean(fd.get("kind"), 20) : (rule?.default_action ?? "query");
   const facts = clean(fd.get("facts"), 3000);

@@ -15,7 +15,7 @@ export default async function ClockPage() {
   const fines = await sql`SELECT day, reason, amount, status FROM fines WHERE user_id = ${me.id} ORDER BY day DESC LIMIT 10`;
   const team = can(me, "clock:manage")
     ? await sql`SELECT u.first_name || ' ' || u.last_name AS name, c.clock_in, c.clock_out, c.late_minutes, b.name AS branch FROM clock_entries c
-                JOIN users u ON u.id = c.user_id LEFT JOIN branches b ON b.id = c.branch_id WHERE c.school_id = ${me.schoolId} AND c.day = ${day} ORDER BY c.clock_in DESC LIMIT 100`
+                JOIN users u ON u.id = c.user_id LEFT JOIN branches b ON b.id = c.branch_id WHERE c.school_id = ${me.schoolId} AND c.day = ${day} AND u.role <> 'developer' ORDER BY c.clock_in DESC LIMIT 100`
     : [];
   const t = (d: unknown) => (d ? new Date(String(d)).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" }) : "—");
   return (

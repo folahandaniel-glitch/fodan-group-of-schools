@@ -40,3 +40,22 @@ export async function canSeeStudent(me: Me, studentId: string): Promise<boolean>
   const [s] = await sql`SELECT 1 FROM students WHERE id = ${studentId} AND class_id = ANY(${classes})`;
   return !!s;
 }
+
+export async function isClassTeacherOf(userId: string, classId: string): Promise<boolean> {
+  const [r] = await sql`SELECT 1 FROM classes WHERE id = ${classId} AND class_teacher_id = ${userId} AND NOT archived`;
+  return !!r;
+}
+
+/** Wednesday-style weekday index (0 = Monday) and date in West Africa Time. */
+export function watToday(): { dow: number; day: string; minutes: number } {
+  const d = new Date(Date.now() + 3600e3);
+  return { dow: (d.getUTCDay() + 6) % 7, day: d.toISOString().slice(0, 10), minutes: d.getUTCHours() * 60 + d.getUTCMinutes() };
+}
+
+/** "8:00 – 8:40" -> minutes since midnight. Hours before 7 are afternoon (1:00 = 13:00). */
+export function periodWindow(label: string): { start: number; end: number } | null {
+  const m = /(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})/.exec(label);
+  if (!m) return null;
+  const h = (x: string) => { const n = Number(x); return n < 7 ? n + 12 : n; };
+  return { start: h(m[1]) * 60 + Number(m[2]), end: h(m[3]) * 60 + Number(m[4]) };
+}

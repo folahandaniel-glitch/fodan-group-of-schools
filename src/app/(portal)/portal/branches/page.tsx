@@ -14,9 +14,9 @@ export default async function Branches() {
   const rules = (await getSetting<{ workStart: string; graceMinutes: number; perMinute: number; lateFlat: number; absentFine: number; defaultRadius: number; enabled: boolean }>("fines")) ?? { workStart: "08:00", graceMinutes: 10, perMinute: 0, lateFlat: 500, absentFine: 0, defaultRadius: 150, enabled: true };
   const branches = await sql`SELECT b.*, (SELECT count(*)::int FROM staff_profiles p WHERE p.branch_id = b.id) AS staff FROM branches b WHERE b.school_id = ${me.schoolId} ORDER BY b.name`;
   const staff = manage ? await sql`SELECT u.id, u.first_name, u.last_name, p.branch_id FROM users u JOIN staff_profiles p ON p.user_id = u.id
-                                   WHERE u.school_id = ${me.schoolId} AND u.status = 'active' ORDER BY u.last_name LIMIT 300` : [];
+                                   WHERE u.school_id = ${me.schoolId} AND u.status = 'active' AND u.role <> 'developer' ORDER BY u.last_name LIMIT 300` : [];
   const fines = can(me, "fines:view") ? await sql`SELECT f.id, f.day, f.reason, f.amount, f.status, u.first_name || ' ' || u.last_name AS name FROM fines f JOIN users u ON u.id = f.user_id
-                                                  WHERE f.school_id = ${me.schoolId} ORDER BY f.day DESC, f.created_at DESC LIMIT 40` : [];
+                                                  WHERE f.school_id = ${me.schoolId} AND u.role <> 'developer' ORDER BY f.day DESC, f.created_at DESC LIMIT 40` : [];
   return (
     <>
       <PageHeader title="Branches, clock-in rules & fines" sub="Add branches with map coordinates, assign staff, and set the rules that fines are calculated from." />

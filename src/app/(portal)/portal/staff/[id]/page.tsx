@@ -1,3 +1,4 @@
+import { hideDev } from "@/lib/visibility";
 import { notFound } from "next/navigation";
 import { requirePerm, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -8,7 +9,7 @@ import { Badge, Card, Field, Notice, PageHeader, Select, TextArea, statusTone } 
 import { ActionForm } from "@/components/action-form";
 import { ResetLink } from "@/components/reset-link";
 import { ROLE_LABEL, STAFF_ROLES, isRoot } from "@/lib/logic/permissions";
-import { setStaffRole, setStaffStatus, updateStaff } from "../actions";
+import { addExtraRole, removeExtraRole, setStaffRole, setStaffStatus, updateStaff } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,11 @@ export default async function StaffDetail({ params, searchParams }: { params: Pr
   const sp = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const [u] = await sql`SELECT u.*, p.* , u.id AS id FROM users u LEFT JOIN staff_profiles p ON p.user_id = u.id
-                         WHERE u.id = ${id} AND u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent')`;
+                         WHERE u.id = ${id} AND u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent') ${hideDev(me, "u.role")}`;
   if (!u) notFound();
   const depts = await listDepartments(me.schoolId);
   const rule = await getSetting<Seniority>("seniority");
+  const extraRoles = await sql`SELECT role FROM user_roles WHERE user_id = ${id}`;
   const classTeacherOf = await sql`SELECT c.name, c.arm, d.name AS dept FROM classes c LEFT JOIN departments d ON d.id = c.department_id WHERE c.class_teacher_id = ${id} AND NOT c.archived`;
   const subjectLoad = await sql`SELECT c.name, c.arm, d.name AS dept, s.name AS subject FROM class_subjects cs JOIN classes c ON c.id = cs.class_id JOIN subjects s ON s.id = cs.subject_id
                                 LEFT JOIN departments d ON d.id = c.department_id WHERE cs.teacher_id = ${id} AND NOT c.archived`;
@@ -93,6 +95,19 @@ export default async function StaffDetail({ params, searchParams }: { params: Pr
                 <select name="role" className="select" defaultValue={u.role} aria-label="Role">{(isRoot(me.role) ? [...STAFF_ROLES, "super_admin"] : STAFF_ROLES).map((r) => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}</select>
                 <button className="btn btn-primary">Change</button>
               </form>
+            </Card>
+          )}
+          {isRoot(me.role) && !isRoot(u.role) && u.id !== me.id && (
+            <Card>
+              <h2 className="text-xl">Additional roles</h2>
+              <p className="mt-1 text-sm text-muted">One person can do several jobs, for example subject teacher, class teacher and HR admin. Their permissions are the combination of all their roles.</p>
+              <ul className="mt-3 flex flex-wrap gap-2">{extraRoles.length === 0 && <li className="text-sm text-muted">None.</li>}
+                {extraRoles.map((r) => (
+                  <li key={r.role} className="badge badge-info">{ROLE_LABEL[r.role as string] ?? r.role}
+                    <form action={removeExtraRole} className="inline"><input type="hidden" name="id" value={id} /><input type="hidden" name="role" value={r.role} /><button className="ml-1 font-bold" aria-label="Remove this role">×</button></form></li>))}</ul>
+              <form action={addExtraRole} className="mt-3 flex gap-2"><input type="hidden" name="id" value={id} />
+                <select name="role" className="select" aria-label="Add a role">{[...STAFF_ROLES, "super_admin"].filter((r) => r !== u.role && !extraRoles.some((x) => x.role === r)).map((r) => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}</select>
+                <button className="btn btn-primary">Add role</button></form>
             </Card>
           )}
           {can(me, "staff:archive") && u.id !== me.id && !isRoot(u.role) && (

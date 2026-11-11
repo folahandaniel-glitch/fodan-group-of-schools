@@ -9,7 +9,7 @@ export default async function StaffPage() {
   const staff = await sql`
     SELECT u.id, u.first_name, u.last_name, u.photo_file, p.position, p.qualification, p.years_experience,
            p.specialization, p.bio, p.subjects_text, d.name AS dept
-    FROM staff_profiles p JOIN users u ON u.id = p.user_id LEFT JOIN departments d ON d.id = p.department_id
+    FROM staff_profiles p JOIN users u ON u.id = p.user_id AND u.role <> 'developer' LEFT JOIN departments d ON d.id = p.department_id
     WHERE p.school_id = ${school.id} AND p.public = true AND p.employment_status = 'active' AND u.status = 'active'
     ORDER BY p.sort, u.last_name`;
   return (

@@ -17,11 +17,11 @@ const CATEGORY_ACCOUNT: Record<string, string> = { Salaries: "5000", Maintenance
 export const expenseAccountFor = (category: string) => CATEGORY_ACCOUNT[category] ?? "5900";
 
 /** Idempotent double-entry posting: the same `ref` is never posted twice. */
-export async function post(o: { schoolId: string; description: string; debit: string; credit: string; amount: number; ref: string; by?: string | null; date?: string }): Promise<boolean> {
+export async function post(o: { schoolId: string; description: string; debit: string; credit: string; amount: number; ref: string; by?: string | null; date?: string; payee?: string | null; method?: string | null; receiptFile?: string | null; source?: string }): Promise<boolean> {
   if (!(o.amount > 0)) return false;
   await ensureAccounts(o.schoolId);
-  const r = await sql`INSERT INTO ledger_entries (school_id, entry_date, description, debit_code, credit_code, amount, ref, created_by)
-    VALUES (${o.schoolId}, ${o.date ?? new Date().toISOString().slice(0, 10)}, ${o.description}, ${o.debit}, ${o.credit}, ${o.amount}, ${o.ref}, ${o.by ?? null})
+  const r = await sql`INSERT INTO ledger_entries (school_id, entry_date, description, debit_code, credit_code, amount, ref, created_by, payee, method, receipt_file, source)
+    VALUES (${o.schoolId}, ${o.date ?? new Date().toISOString().slice(0, 10)}, ${o.description}, ${o.debit}, ${o.credit}, ${o.amount}, ${o.ref}, ${o.by ?? null}, ${o.payee ?? null}, ${o.method ?? null}, ${o.receiptFile ?? null}, ${o.source ?? "manual"})
     ON CONFLICT (school_id, ref) DO NOTHING RETURNING id`;
   return r.length > 0;
 }

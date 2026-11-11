@@ -1,3 +1,4 @@
+import { isRoot } from "@/lib/logic/permissions";
 import Link from "next/link";
 import { requirePerm, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -17,7 +18,7 @@ export default async function Payroll() {
   const runs = await sql`SELECT r.*, (SELECT count(*)::int FROM payslips p WHERE p.run_id = r.id) AS slips, (SELECT COALESCE(sum(net),0) FROM payslips p WHERE p.run_id = r.id) AS net
                          FROM payroll_runs r WHERE r.school_id = ${me.schoolId} ORDER BY r.period DESC LIMIT 24`;
   const staff = manage ? await sql`SELECT u.id, u.first_name, u.last_name, s.gross_monthly, s.allowances, s.bank_name FROM users u LEFT JOIN salary_profiles s ON s.user_id = u.id
-                                   WHERE u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent') AND u.status = 'active' ORDER BY u.last_name LIMIT 300` : [];
+                                   WHERE u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent','developer') AND u.status = 'active' ORDER BY u.last_name LIMIT 300` : [];
   const month = new Date().toISOString().slice(0, 7);
   return (
     <>
@@ -45,8 +46,8 @@ export default async function Payroll() {
               <tr key={r.id}><td className="font-bold"><Link className="text-royal hover:underline" href={`/portal/payroll/${r.id}`}>{r.period}</Link></td><td>{r.slips}</td><td>{ngn(r.net)}</td>
                 <td><Badge tone={statusTone(r.status)}>{r.status}</Badge></td>
                 <td className="whitespace-nowrap">
-                  {r.status === "draft" && can(me, "payroll:approve") && r.created_by !== me.id && <form action={advanceRun} className="inline"><input type="hidden" name="id" value={r.id} /><button name="op" value="approve" className="btn btn-gold btn-sm">Approve</button></form>}
-                  {r.status === "approved" && manage && r.approved_by !== me.id && <form action={advanceRun} className="inline"><input type="hidden" name="id" value={r.id} /><button name="op" value="pay" className="btn btn-primary btn-sm">Mark paid</button></form>}
+                  {r.status === "draft" && can(me, "payroll:approve") && (r.created_by !== me.id || isRoot(me.role)) && <form action={advanceRun} className="inline"><input type="hidden" name="id" value={r.id} /><button name="op" value="approve" className="btn btn-gold btn-sm">Approve</button></form>}
+                  {r.status === "approved" && manage && (r.approved_by !== me.id || isRoot(me.role)) && <form action={advanceRun} className="inline"><input type="hidden" name="id" value={r.id} /><button name="op" value="pay" className="btn btn-primary btn-sm">Mark paid</button></form>}
                 </td></tr>))}</tbody></table></div>
         )}
       </Card>

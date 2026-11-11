@@ -52,7 +52,7 @@ export default async function Attendance({ searchParams }: { searchParams: Promi
                 WHERE s.class_id = ${classId} AND s.status IN ('active','enrolled') ORDER BY s.last_name, s.first_name` : [];
   const showStaff = str(sp.mode) === "staff" && (can(me, "attendance:edit") || can(me, "attendance:manage"));
   const staff = showStaff ? await sql`SELECT u.id, u.first_name, u.last_name, a.status FROM users u LEFT JOIN attendance a ON a.subject_ref = u.id AND a.kind = 'staff' AND a.day = ${day}
-                                      WHERE u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent') AND u.status = 'active' ORDER BY u.last_name` : [];
+                                      WHERE u.school_id = ${me.schoolId} AND u.role NOT IN ('student','parent','developer') AND u.status = 'active' ORDER BY u.last_name` : [];
   const opt = (name: string, current: string | null, list: string[]) => (
     <fieldset className="flex gap-1">
       <legend className="sr-only">Status</legend>

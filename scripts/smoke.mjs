@@ -38,7 +38,7 @@ const pages = [
   "/account", "/account/password", "/account/security",
   "/portal/payroll", "/portal/payslips", "/portal/ledger", "/portal/performance", "/portal/branches", "/portal/clock", "/portal/backend", "/portal/search?q=a",
   ...["rosters", "deliverables", "procurement", "contracts", "finance", "forum", "leave"].map((m) => `/portal/m/${m}`),
-  "/portal/study?view=library", "/portal/study/manage", "/portal/holiday", "/portal/crm", "/portal/bible", "/portal/hymns",
+  "/portal/exports", "/portal/expenses", "/portal/timetable?view=mine", "/portal/timetable?view=log", "/portal/payslips", "/portal/study?view=library", "/portal/study/manage", "/portal/holiday", "/portal/crm", "/portal/bible", "/portal/hymns",
   ...["rules", "mine", "cases", "training", "holidays"].map((t) => `/portal/hrm?tab=${t}`),
 ].filter(Boolean);
 
