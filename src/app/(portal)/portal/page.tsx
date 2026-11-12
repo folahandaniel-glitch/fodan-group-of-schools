@@ -3,7 +3,9 @@ import Link from "next/link";
 import { requireMe, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { currentTerm, classLabel, getSetting } from "@/lib/settings";
-import { Banner, PageHeader, Stat, Card, Badge, Empty } from "@/components/ui";
+import { Banner, PageHeader, Stat, Card, Badge, Empty, Field } from "@/components/ui";
+import { ActionForm } from "@/components/action-form";
+import { linkMyChild } from "./children/actions";
 import { studentOf, teacherClassIds, childIds, wideScope, watToday } from "@/lib/scope";
 import { ROLE_LABEL } from "@/lib/logic/permissions";
 
@@ -97,6 +99,9 @@ export default async function Dashboard() {
 
   /* ───────── Parent ───────── */
   if (me.role === "parent") {
+    const founder = (await getSetting<{ name: string; position: string; photoFile: string; toParents: string }>("founder"));
+    const cbtLink = (await getSetting<Record<string, string>>("social"))?.cbt || "";
+    const linking = (await getSetting<{ parentLinking?: boolean }>("features"))?.parentLinking !== false;
     const links = await sql`
       SELECT l.status, s.id, s.first_name, s.last_name, s.admission_no, c.name AS class_name, c.arm AS class_arm, d.name AS dept,
              (SELECT round(avg(total)::numeric,1) FROM results r WHERE r.student_id = s.id AND r.released = true AND r.term_id = ${term?.id ?? null}) AS avg
@@ -105,7 +110,21 @@ export default async function Dashboard() {
     return (
       <>
         <Banner eyebrow="Parent portal" title={hello} sub="Follow every child's progress in one place."
-          actions={<Link className="btn btn-primary" href="/portal/children">Add or manage children</Link>} />
+          actions={<Link className="btn btn-primary" href="#add-child">Add a child</Link>} />
+        <section className="card mb-5 flex items-center gap-4 p-4 sm:gap-6 sm:p-5">
+          {founder?.photoFile ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={`/api/files/${founder.photoFile}`} alt={founder.name} className="h-28 w-20 shrink-0 rounded-2xl object-cover object-top" /> : <div className="grid h-28 w-20 shrink-0 place-items-center rounded-2xl bg-paper-2 font-display text-3xl text-gold">{String(founder?.name ?? "F")[0]}</div>}
+          <div className="min-w-0">
+            <p className="eyebrow">Parent / guardian</p>
+            <h2 className="text-2xl">Welcome, {me.firstName}</h2>
+            <p className="mt-1 text-sm text-muted">{founder?.toParents}</p>
+            <p className="mt-2 text-xs font-bold text-ink-2">— {founder?.name}, {founder?.position}</p>
+          </div>
+        </section>
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {[["/portal/study", "📚", "Study centre"], ["/portal/holiday", "🏖️", "Holiday hub"], ["/portal/timetable", "🗓️", "Timetable"], ["/portal/calendar", "📅", "School calendar"],
+            ...(cbtLink ? [[cbtLink, "↗️", "Fodan CBT Academy"]] : [])].map(([href, icon, label]) => (
+            <Link key={href} href={href} className="card card-lift gold-top flex flex-col items-center gap-1 p-4 text-center"><span className="text-2xl" aria-hidden>{icon}</span><span className="text-sm font-bold">{label}</span></Link>))}
+        </div>
         {links.length === 0 ? <Empty title="No children linked yet">Use your child's access code, admission number and date of birth to link them.</Empty> : (
           <div className="grid gap-4 md:grid-cols-2">
             {links.map((c) => (
@@ -133,6 +152,23 @@ export default async function Dashboard() {
             ))}
           </div>
         )}
+        {links.some((c) => c.status !== "active") && (
+          <Card className="mt-5"><h2 className="text-xl">Link requests</h2>
+            <p className="text-sm text-muted">Nothing about a child is shown until the school office confirms the link.</p>
+            <ul className="mt-2 divide-y divide-line text-sm">{links.filter((c) => c.status !== "active").map((c) => <li key={c.id} className="flex items-center justify-between py-2"><span>{c.first_name} {c.last_name} · {c.admission_no}</span><Badge tone="warn">Awaiting school approval</Badge></li>)}</ul></Card>
+        )}
+        <Card id="add-child" className="mt-5">
+          <h2 className="text-xl">Add a child</h2>
+          <p className="text-sm text-muted">Use the access code the school gave you for your child, plus their admission number and date of birth.</p>
+          {!linking ? <p className="mt-2 text-sm text-muted">Linking is currently disabled. Please contact the school.</p> : (
+            <ActionForm action={linkMyChild} submit="Verify and link" className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Field label="Student access code" name="code" required placeholder="FDN-XXXXX-XXXXX-XXXXX" />
+              <Field label="Admission number" name="admissionNo" required />
+              <Field label="Student's date of birth" name="dob" type="date" required />
+              <Field label="You are the child's" name="relationship" placeholder="Father, Mother, Guardian…" />
+            </ActionForm>)}
+          <p className="hint mt-2">A code alone is never enough. If your email or phone matches the school&apos;s guardian record the link is immediate; otherwise the school office approves it.</p>
+        </Card>
         <div className="mt-6">{newsCard}</div>
       </>
     );

@@ -1,3 +1,4 @@
+import { DEFAULT_SCHEDULE } from "./schedule";
 import { DEFAULT_COMMENTS, DEFAULT_GRADES, DEFAULT_WEIGHTS } from "./logic/scoring";
 import { DEFAULT_EXAM_ELIGIBILITY } from "./logic/academics";
 
@@ -57,11 +58,8 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   seniority: { minYears: 5, minPositionRank: 0, requireDegree: false },
   results: { release: "manual", showPosition: true },
   features: { registration: true, parentLinking: true, mocks: true, studyCentre: true, ai: false },
-  periods: [
-    { n: 1, label: "8:00 – 8:40" }, { n: 2, label: "8:40 – 9:20" }, { n: 3, label: "9:20 – 10:00" },
-    { n: 4, label: "10:30 – 11:10" }, { n: 5, label: "11:10 – 11:50" }, { n: 6, label: "11:50 – 12:30" },
-    { n: 7, label: "1:00 – 1:40" }, { n: 8, label: "1:40 – 2:20" },
-  ],
+  // School day: start, period length, breaks and each weekday's closing time. Edited in Settings > Timetable.
+  schedule: DEFAULT_SCHEDULE,
   report: { stamp: "School Stamp", signatories: ["Class Teacher", "Principal"], showAttendance: true },
   certificate: { heading: "Certificate of Achievement", proprietorSign: "Founder & Proprietor", principalSign: "Principal" },
   pwa: { name: "Fodan Group of Schools Portal", short: "Fodan Portal", theme: "#0a1b3f" },

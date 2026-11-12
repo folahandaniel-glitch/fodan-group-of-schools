@@ -2,8 +2,10 @@ import Link from "next/link";
 import { requireMe, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { listClasses, listStaff, listSubjects, str } from "@/lib/data";
-import { childIds, isClassTeacherOf, periodWindow, studentOf, watToday, wideScope } from "@/lib/scope";
-import { allSettings, currentTerm, getSetting } from "@/lib/settings";
+import { childIds, isClassTeacherOf, studentOf, watToday, wideScope } from "@/lib/scope";
+import { allSettings, currentTerm } from "@/lib/settings";
+import { getSchedule } from "@/lib/schedule-server";
+import { availability, breakAfterIndex, toHm, type Period } from "@/lib/schedule";
 import { PrintButton } from "@/components/print-button";
 import { Logo } from "@/components/ui";
 import { Badge, Card, Empty, PageHeader } from "@/components/ui";
@@ -22,17 +24,12 @@ const tintOf = (name: string | null | undefined) => {
   let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return { background: `color-mix(in srgb, var(${TINTS[h % TINTS.length]}) 17%, var(--color-card))`, borderColor: `color-mix(in srgb, var(${TINTS[h % TINTS.length]}) 45%, transparent)` };
 };
-/** A break row appears wherever the gap between two periods is 20 minutes or more. */
-function breakAfter(periods: { n: number; label: string }[], i: number): number {
-  const a = periodWindow(periods[i]?.label ?? ""), b = periodWindow(periods[i + 1]?.label ?? "");
-  return a && b && b.start - a.end >= 20 ? b.start - a.end : 0;
-}
 
 export default async function Timetable({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await requireMe();
   if (!can(me, "timetable:view") && !can(me, "timetable:edit")) return <Empty title="Not permitted" />;
   const sp = await searchParams;
-  const periods = (await getSetting<{ n: number; label: string }[]>("periods")) ?? [];
+  const { schedule, periods } = await getSchedule();
   const learner = me.role === "student" || me.role === "parent";
   const wide = wideScope(me);
   const manager = !learner && (wide || can(me, "attendance:manage") || can(me, "hrm:manage"));
@@ -63,7 +60,7 @@ export default async function Timetable({ searchParams }: { searchParams: Promis
         <Card><h2 className="text-xl">Today · {now.dow < 5 ? DAYS[now.dow] : "Weekend"}</h2>
           {mine.length === 0 ? <p className="mt-2 text-sm text-muted">No periods assigned to you today.</p> : (
             <ul className="mt-3 divide-y divide-line">{mine.map((p) => {
-              const w = periodWindow(label(p.period));
+              const w = periods.find((x) => x.n === p.period) ?? null;
               const open = !w || now.minutes >= w.start - 10;
               return (
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
@@ -133,6 +130,7 @@ export default async function Timetable({ searchParams }: { searchParams: Promis
   const term = await currentTerm();
   const className = all.find((c) => c.id === classId)?.label ?? (slots[0] ? "Your class" : "");
   const draft = slots.length > 0 && slots.some((s) => !s.published);
+  const dayNo = /^[0-4]$/.test(str(sp.day)) ? Number(str(sp.day)) : null;
 
   return (
     <>
@@ -150,6 +148,42 @@ export default async function Timetable({ searchParams }: { searchParams: Promis
       {!classId ? <Empty title="Choose a class" /> : !canEditThis && visible.length === 0 ? <Empty title={learner ? "No timetable published yet" : "Nothing timetabled yet"} /> : (
         <>
           {canEditThis && draft && <p className="mb-3"><Badge tone="warn">Draft: not yet visible to students and parents</Badge></p>}
+          {canEditThis && (
+            <div className="no-print mb-5">
+              <p className="mb-2 text-sm font-bold">Click a day to add its timetable</p>
+              <nav className="flex flex-wrap gap-2" aria-label="Choose a day">
+                {DAYS.map((d, i) => <Link key={d} href={`/portal/timetable?class=${classId}&day=${i}`} className={`btn btn-sm ${dayNo === i ? "btn-primary" : "btn-ghost"}`}>{d}</Link>)}
+              </nav>
+              {dayNo !== null && (
+                <Card className="mt-3">
+                  <h2 className="text-xl">{DAYS[dayNo]}</h2>
+                  <p className="text-sm text-muted">Closes at {schedule.days[dayNo]?.close ?? schedule.close}{(schedule.days[dayNo]?.noLesson ?? []).length ? ` · no lessons in period${(schedule.days[dayNo]?.noLesson ?? []).length > 1 ? "s" : ""} ${(schedule.days[dayNo]?.noLesson ?? []).join(", ")}` : ""} · {schedule.periodMinutes}-minute periods. An admin sets these under Settings → Timetable.</p>
+                  <ActionForm action={saveTimetable} submit={`Save ${DAYS[dayNo]}${can(me, "timetable:publish") ? "" : " (draft)"}`} className="mt-3 grid gap-2">
+                    <input type="hidden" name="classId" value={classId} /><input type="hidden" name="day" value={dayNo} />
+                    {periods.map((p, i) => {
+                      const av = availability(schedule, periods, dayNo, p.n);
+                      const c = at(dayNo, p.n);
+                      const gap = breakAfterIndex(periods, i);
+                      return (
+                        <div key={p.n}>
+                          {!av.open ? (
+                            <div className="tt-off flex items-center gap-3 rounded-xl px-3 py-2 text-sm"><b className="w-24 shrink-0">Period {p.n}</b><span className="text-muted">{p.label}</span><span className="ml-auto font-bold">{av.reason}</span></div>
+                          ) : (
+                            <div className="grid items-center gap-2 rounded-xl border border-line p-2 sm:grid-cols-[7rem_1fr_1fr_6rem]" style={tintOf(c?.subject)}>
+                              <span className="text-sm"><b>Period {p.n}</b><br /><span className="text-xs text-muted">{p.label}</span></span>
+                              <select name={`s_${dayNo}_${p.n}`} defaultValue={c?.subject_id ?? ""} className="select" aria-label={`Subject, ${DAYS[dayNo]} period ${p.n}`}><option value="">— No lesson —</option>{subjects.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+                              <select name={`t_${dayNo}_${p.n}`} defaultValue={c?.teacher_id ?? ""} className="select" aria-label={`Teacher, ${DAYS[dayNo]} period ${p.n}`}><option value="">Teacher…</option>{staff.map((x) => <option key={x.id} value={x.id}>{x.last_name} {x.first_name[0]}.</option>)}</select>
+                              <input name={`r_${dayNo}_${p.n}`} defaultValue={c?.room ?? ""} className="input" placeholder="Room" aria-label="Room" />
+                            </div>
+                          )}
+                          {gap > 0 && <div className="tt-break mt-2"><div className="rounded-lg py-1 text-center text-xs font-extrabold uppercase tracking-[0.3em] text-gold">Break · {gap} min</div></div>}
+                        </div>);
+                    })}
+                  </ActionForm>
+                </Card>
+              )}
+            </div>
+          )}
           <div className="tt-sheet">
             <div className="tt-head">
               <span className="rounded-xl bg-white p-1"><Logo size={44} /></span>
@@ -158,26 +192,12 @@ export default async function Timetable({ searchParams }: { searchParams: Promis
               <span className="no-print"><PrintButton /></span>
             </div>
             <div className="overflow-x-auto p-2">
-              {canEditThis ? (
-                <ActionForm action={saveTimetable} submit={can(me, "timetable:publish") ? "Save timetable" : "Save draft"} className="grid gap-3">
-                  <input type="hidden" name="classId" value={classId} />
-                  <TimetableTable periods={periods} cell={(d, p) => {
-                    const c = at(d, p.n);
-                    return (
-                      <td key={d} className="tt-c" style={tintOf(c?.subject)}>
-                        <select name={`s_${d}_${p.n}`} defaultValue={c?.subject_id ?? ""} className="select !min-h-8 !py-1 text-xs" aria-label={`Subject, ${DAYS[d]} period ${p.n}`}>
-                          <option value="">—</option>{subjects.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
-                        <select name={`t_${d}_${p.n}`} defaultValue={c?.teacher_id ?? ""} className="select mt-1 !min-h-8 !py-1 text-xs" aria-label={`Teacher, ${DAYS[d]} period ${p.n}`}>
-                          <option value="">Teacher…</option>{staff.map((x) => <option key={x.id} value={x.id}>{x.last_name} {x.first_name[0]}.</option>)}</select>
-                      </td>);
-                  }} />
-                </ActionForm>
-              ) : (
-                <TimetableTable periods={periods} cell={(d, p) => {
-                  const c = at(d, p.n);
-                  return <td key={d} className="tt-c" style={tintOf(c?.subject)}>{c ? <><b>{c.subject}</b><span className="tt-t">{c.teacher}</span>{c.room && <span className="tt-room">{c.room}</span>}</> : <span className="text-muted">—</span>}</td>;
-                }} />
-              )}
+              <TimetableTable periods={periods} dayHref={canEditThis ? (d) => `/portal/timetable?class=${classId}&day=${d}` : undefined} activeDay={dayNo} cell={(d, p) => {
+                const av = availability(schedule, periods, d, p.n);
+                if (!av.open) return <td key={d} className="tt-c tt-off">{av.reason}</td>;
+                const c = at(d, p.n);
+                return <td key={d} className="tt-c" style={tintOf(c?.subject)}>{c ? <><b>{c.subject}</b><span className="tt-t">{c.teacher}</span>{c.room && <span className="tt-room">{c.room}</span>}</> : <span className="text-muted">—</span>}</td>;
+              }} />
             </div>
           </div>
           {canEditThis && can(me, "timetable:publish") && (
@@ -190,13 +210,13 @@ export default async function Timetable({ searchParams }: { searchParams: Promis
   );
 }
 
-function TimetableTable({ periods, cell }: { periods: { n: number; label: string }[]; cell: (d: number, p: { n: number; label: string }) => React.ReactNode }) {
+function TimetableTable({ periods, cell, dayHref, activeDay }: { periods: Period[]; cell: (d: number, p: Period) => React.ReactNode; dayHref?: (d: number) => string; activeDay?: number | null }) {
   return (
     <table className="tt">
-      <thead><tr><th>Period</th>{DAYS.map((d) => <th key={d} className="tt-day">{d}</th>)}</tr></thead>
+      <thead><tr><th>Period</th>{DAYS.map((d, i) => <th key={d} className="tt-day" style={activeDay === i ? { outline: "3px solid var(--color-gold-2)" } : undefined}>{dayHref ? <Link href={dayHref(i)} className="block underline-offset-4 hover:underline">{d} ✎</Link> : d}</th>)}</tr></thead>
       <tbody>
         {periods.map((p, i) => {
-          const gap = breakAfter(periods, i);
+          const gap = breakAfterIndex(periods, i);
           return (
             <FragmentRows key={p.n}>
               <tr><td className="tt-p">{p.n}<small>{p.label}</small></td>{DAYS.map((_, d) => cell(d, p))}</tr>
@@ -209,3 +229,4 @@ function TimetableTable({ periods, cell }: { periods: { n: number; label: string
   );
 }
 function FragmentRows({ children }: { children: React.ReactNode }) { return <>{children}</>; }
+void toHm;

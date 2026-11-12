@@ -30,8 +30,8 @@ export function Banner({ eyebrow, title, sub, actions }: { eyebrow?: string; tit
   );
 }
 
-export function Card({ children, className = "", pad = true }: { children: ReactNode; className?: string; pad?: boolean }) {
-  return <section className={`card ${pad ? "card-pad" : ""} ${className}`}>{children}</section>;
+export function Card({ children, className = "", pad = true, id }: { children: ReactNode; className?: string; pad?: boolean; id?: string }) {
+  return <section id={id} className={`card ${pad ? "card-pad" : ""} ${className}`}>{children}</section>;
 }
 
 export function Stat({ label, value, hint, tone }: { label: string; value: ReactNode; hint?: ReactNode; tone?: "gold" | "royal" }) {

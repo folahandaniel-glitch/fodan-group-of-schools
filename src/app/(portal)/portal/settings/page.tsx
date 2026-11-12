@@ -18,12 +18,15 @@ const TABS = [
   ["academic", "Academic & grading"], ["eligibility", "Exams & features"], ["auth", "Sign-in & footer"], ["periods", "Timetable & documents"], ["permissions", "Roles & permissions"],
 ] as const;
 
+import { DAY_NAMES, buildPeriods, normaliseSchedule } from "@/lib/schedule";
+
 export default async function Settings({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await requireMe();
   if (!can(me, "settings:view") && !can(me, "cms:view") && !can(me, "*")) redirect("/forbidden");
   const sp = await searchParams;
   const tab = TABS.find((t) => t[0] === str(sp.tab))?.[0] ?? "brand";
   const s = await allSettings();
+  const sched = normaliseSchedule(s.schedule);
   const hidden = (g: string) => <input type="hidden" name="_group" value={g} />;
 
   return (
@@ -172,7 +175,21 @@ export default async function Settings({ searchParams }: { searchParams: Promise
         <Card><h2 className="text-xl">Timetable periods &amp; printed documents</h2>
           <div className="mt-3"><ActionForm action={saveSettings} className="grid gap-3 sm:grid-cols-2">
             {hidden("periods")}
-            <div className="sm:col-span-2"><TextArea label="Periods — one per line (period 1 first)" name="periods" rows={8} defaultValue={(s.periods as { label: string }[]).map((p) => p.label).join("\n")} /></div>
+            <fieldset className="sm:col-span-2 rounded-2xl border border-line p-4"><legend className="px-2 font-display text-lg">School day &amp; timetable periods</legend>
+              <div className="grid gap-3 sm:grid-cols-4">
+                <Field label="School starts" name="start" type="time" defaultValue={sched.start} required />
+                <Field label="Minutes per period" name="periodMinutes" type="number" min={10} max={120} defaultValue={sched.periodMinutes} required />
+                <Field label="Periods in a full day" name="count" type="number" min={1} max={20} defaultValue={sched.count} required />
+                <Field label="Closing time (Mon–Thu)" name="close" type="time" defaultValue={sched.close} required />
+              </div>
+              <div className="mt-3"><TextArea label="Breaks: one per line as  after period | minutes  (e.g. 4 | 30)" name="breaks" rows={3} defaultValue={sched.breaks.map((b) => `${b.after} | ${b.minutes}`).join("\n")} /></div>
+              <p className="label mt-3">Different closing time or periods with no lessons on a weekday</p>
+              <div className="mt-1 grid gap-2">{DAY_NAMES.map((d, i) => (
+                <div key={d} className="grid items-end gap-2 sm:grid-cols-[7rem_1fr_1fr]"><span className="pb-2 text-sm font-bold">{d}</span>
+                  <Field label="Closes at (blank = normal)" name={`close_${i}`} type="time" defaultValue={sched.days[i]?.close ?? ""} />
+                  <Field label="No lessons in periods (e.g. 1, 2)" name={`nl_${i}`} defaultValue={(sched.days[i]?.noLesson ?? []).join(", ")} /></div>))}</div>
+              <p className="hint mt-3">Resulting periods: {buildPeriods(sched).map((p) => `${p.n}: ${p.label}`).join(" · ")}</p>
+            </fieldset>
             <Field label="Report card stamp text" name="stamp" defaultValue={s.report.stamp} />
             <label className="flex items-center gap-2 pt-7 text-sm font-semibold"><input type="checkbox" name="showAttendance" defaultChecked={s.report.showAttendance} /> Show attendance on report cards</label>
             <Field label="Certificate heading" name="heading" defaultValue={s.certificate.heading} />

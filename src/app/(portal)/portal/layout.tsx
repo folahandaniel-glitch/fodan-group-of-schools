@@ -81,6 +81,15 @@ export default async function PortalLayout({ children }: { children: React.React
   add(can(me, "users:view") || can(me, "*"), "/portal/users", "Users & access", "Administration");
   add(can(me, "settings:view") || can(me, "cms:view") || can(me, "*"), "/portal/settings", "Settings & content", "Administration");
 
+  if (me.role === "parent") {
+    add(true, "/portal/children", "Add a child", "Overview");
+    add(true, "/account", "Account & password", "Account");
+    const G: Record<string, string> = { "/portal": "Overview", "/portal/children": "Overview", "/portal/study": "Learn", "/portal/holiday": "Learn", "/portal/bible": "Learn", "/portal/hymns": "Learn",
+      "/portal/results": "Family", "/portal/timetable": "Family", "/portal/attendance": "Family", "/portal/calendar": "Family", "/portal/announcements": "Family", "/portal/certificates": "Family", "/portal/m/forum": "Family", "/portal/m/tickets": "Family" };
+    for (const i of items) i.group = /^https?:/.test(i.href) ? "Learn" : (G[i.href] ?? i.group);
+    const order = ["Overview", "Learn", "Family", "Account", "Community", "Workspace"];
+    items.sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group));
+  }
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[272px_minmax(0,1fr)]">
       <aside className="no-print rail hidden lg:block">

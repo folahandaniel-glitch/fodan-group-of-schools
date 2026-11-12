@@ -3,8 +3,9 @@ import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { can, requireMe, requirePerm } from "@/lib/auth";
 import { audit, clean } from "@/lib/security";
-import { isClassTeacherOf, periodWindow, watToday, wideScope } from "@/lib/scope";
-import { getSetting } from "@/lib/settings";
+import { isClassTeacherOf, watToday, wideScope } from "@/lib/scope";
+import { getSchedule } from "@/lib/schedule-server";
+import { availability } from "@/lib/schedule";
 
 type State = { error?: string; ok?: string };
 const uuid = (v: unknown) => { const s = clean(v, 40); return /^[0-9a-f-]{36}$/i.test(s) ? s : null; };
@@ -18,14 +19,20 @@ export async function saveTimetable(_p: State, fd: FormData): Promise<State> {
   if (!c) return { error: "Class not found." };
   if (!wideScope(me) && !(await isClassTeacherOf(me.id, classId))) return { error: "You can only draft the timetable of the class you are class teacher of." };
   const publisher = can(me, "timetable:publish");
+  const { schedule, periods } = await getSchedule();
+  const dayOnly = fd.get("day") === null ? null : Number(fd.get("day"));
+  if (dayOnly !== null && !(dayOnly >= 0 && dayOnly <= 4)) return { error: "Choose a weekday." };
   const conflicts: string[] = [];
   const ops: { day: number; period: number; subject: string | null; teacher: string | null; room: string | null }[] = [];
   for (const [k, v] of fd.entries()) {
     const m = /^s_(\d)_(\d+)$/.exec(k);
     if (!m) continue;
+    if (dayOnly !== null && Number(m[1]) !== dayOnly) continue;
     ops.push({ day: Number(m[1]), period: Number(m[2]), subject: uuid(v), teacher: uuid(fd.get(`t_${m[1]}_${m[2]}`)), room: clean(fd.get(`r_${m[1]}_${m[2]}`), 40) || null });
   }
   for (const o of ops) {
+    // Lessons cannot sit in periods that are closed or marked "no lesson" for that weekday.
+    if (!availability(schedule, periods, o.day, o.period).open) { await sql`DELETE FROM timetable_slots WHERE class_id = ${classId} AND day = ${o.day} AND period = ${o.period}`; continue; }
     if (!o.subject) { await sql`DELETE FROM timetable_slots WHERE class_id = ${classId} AND day = ${o.day} AND period = ${o.period}`; continue; }
     if (o.teacher) {
       const [t] = await sql`SELECT 1 FROM users WHERE id = ${o.teacher} AND school_id = ${me.schoolId} AND role NOT IN ('student','parent','developer')`;
@@ -65,8 +72,7 @@ export async function registerPeriod(_p: State, fd: FormData): Promise<State> {
   if (!slot) return { error: "This period is not assigned to you." };
   const now = watToday();
   if (slot.day !== now.dow) return { error: "You can only register a period on the day it is timetabled." };
-  const periods = (await getSetting<{ n: number; label: string }[]>("periods")) ?? [];
-  const w = periodWindow(periods.find((p) => p.n === slot.period)?.label ?? "");
+  const w = (await getSchedule()).periods.find((p) => p.n === slot.period) ?? null;
   if (w && now.minutes < w.start - 10) return { error: "This period has not started yet." };
   const status = w && now.minutes > w.end + 5 ? "late" : "on_time";
   const r = await sql`INSERT INTO period_registers (school_id, class_id, subject_id, teacher_id, day, period, status, note)

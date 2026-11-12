@@ -7,6 +7,7 @@ import { allSettings, setSetting } from "@/lib/settings";
 import { IMAGE_EXT, saveUpload } from "@/lib/files";
 import { weightsValid } from "@/lib/logic/scoring";
 import { THEME_SEEDS } from "@/lib/themes";
+import { toMin } from "@/lib/schedule";
 import { ACTIONS, RESOURCES, ROLES, isRoot } from "@/lib/logic/permissions";
 
 type State = { error?: string; ok?: string };
@@ -114,8 +115,19 @@ export async function saveSettings(_p: State, fd: FormData): Promise<State> {
     for (const g of ["secondary", "primary", "non_teaching"]) pos[g] = line(fd.get(`pos_${g}`)).slice(0, 60).map((l) => l.slice(0, 120));
     await setSetting("positions", pos);
   } else if (group === "periods") {
-    const periods = line(fd.get("periods")).map((l, i) => ({ n: i + 1, label: l.slice(0, 40) })).slice(0, 14);
-    await setSetting("periods", periods);
+    const count = Math.min(Math.max(Math.round(Number(fd.get("count"))) || 12, 1), 20);
+    const hm = (k: string) => { const v = T(k, 5); return Number.isFinite(toMin(v)) ? v : ""; };
+    const start = hm("start"), close = hm("close");
+    const minutes = Math.round(Number(fd.get("periodMinutes")));
+    if (!start || !close || !(minutes >= 10 && minutes <= 120)) return { error: "Enter the start time, closing time and a period length between 10 and 120 minutes." };
+    const breaks = line(fd.get("breaks")).map((l) => l.split("|").map((x) => Number(x.replace(/\D/g, "")))).filter(([a, m]) => a >= 1 && a < count && m >= 5 && m <= 120).map(([after, mins]) => ({ after, minutes: mins }));
+    const days: Record<number, { close?: string; noLesson?: number[] }> = {};
+    for (let d = 0; d < 5; d++) {
+      const c = hm(`close_${d}`);
+      const nl = T(`nl_${d}`, 60).split(/[ ,]+/).map(Number).filter((n) => n >= 1 && n <= count);
+      if (c || nl.length) days[d] = { ...(c ? { close: c } : {}), ...(nl.length ? { noLesson: [...new Set(nl)].sort((a, b) => a - b) } : {}) };
+    }
+    await setSetting("schedule", { start, periodMinutes: minutes, count, breaks, close, days });
     await setSetting("report", { stamp: T("stamp", 40) || "School Stamp", signatories: ["Class Teacher", "Principal"], showAttendance: fd.get("showAttendance") === "on" });
     await setSetting("certificate", { heading: T("heading", 80), proprietorSign: T("proprietorSign", 80), principalSign: T("principalSign", 80) });
   } else return { error: "Unknown settings group." };
