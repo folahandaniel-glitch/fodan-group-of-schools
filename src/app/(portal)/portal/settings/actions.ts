@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { can, requireMe, requirePerm } from "@/lib/auth";
 import { audit, clean, safeUrl } from "@/lib/security";
 import { allSettings, setSetting } from "@/lib/settings";
+import { SITE_TEXT_DEFAULT } from "@/lib/site-text";
 import { IMAGE_EXT, saveUpload } from "@/lib/files";
 import { weightsValid } from "@/lib/logic/scoring";
 import { THEME_SEEDS } from "@/lib/themes";
@@ -15,7 +16,7 @@ const line = (v: FormDataEntryValue | null) => String(v ?? "").split("\n").map((
 
 async function gate(group: string) {
   const me = await requireMe();
-  const need = group === "home" || group === "content" ? "cms:edit" : "settings:edit";
+  const need = group === "home" || group === "content" || group === "site" ? "cms:edit" : "settings:edit";
   if (!can(me, need) && !can(me, "settings:manage") && !can(me, "cms:manage")) throw new Error("Not permitted");
   return me;
 }
@@ -74,6 +75,21 @@ export async function saveSettings(_p: State, fd: FormData): Promise<State> {
       heroTitle: T("heroTitle", 160), heroSub: T("heroSub", 500), about: T("about", 1500), aboutCollege: T("aboutCollege", 1500), vision: T("vision", 600), mission: T("mission", 800),
       values: line(fd.get("values")).slice(0, 12), examPrep: T("examPrep", 800), stats: cur.home.stats,
     });
+  } else if (group === "site") {
+    const d = SITE_TEXT_DEFAULT;
+    const pairs = (k: string, max = 12) => line(fd.get(k)).slice(0, max).map((l) => { const [label, href] = l.split("|").map((x) => x.trim()); return { label, href }; })
+      .filter((x) => x.label && x.href && /^(\/|#|https?:\/\/)/.test(x.href)).map((x) => ({ href: x.href, label: x.label.slice(0, 60) }));
+    const cards = line(fd.get("portalCards")).slice(0, 6).map((l) => { const [t, d2, href, cta] = l.split("|").map((x) => x.trim()); return { t: t ?? "", d: d2 ?? "", href: href ?? "", cta: cta ?? "" }; })
+      .filter((c) => c.t && c.href && /^(\/|https?:\/\/)/.test(c.href));
+    const grp = <F extends Record<string, string>>(prefix: string, f: F): F => Object.fromEntries(Object.keys(f).map((k) => [k, T(prefix + "." + k, 400)])) as F;
+    const next = {
+      nav: pairs("nav").map((x) => ({ href: x.href, label: x.label })), signInLabel: T("signInLabel", 40), registerLabel: T("registerLabel", 40), cbtLabel: T("cbtLabel", 40),
+      footerContactTitle: T("footerContactTitle", 60), footerPortalsTitle: T("footerPortalsTitle", 60), footerLinks: pairs("footerLinks"), backendLabel: T("backendLabel", 40),
+      hero: grp("hero", d.hero), portalCards: cards,
+      sections: Object.fromEntries(Object.entries(d.sections).map(([k, f]) => [k, grp("sections." + k, f)])),
+      pages: Object.fromEntries(Object.entries(d.pages).map(([k, f]) => [k, grp("pages." + k, f)])),
+    };
+    await setSetting("siteText", next);
   } else if (group === "academic") {
     const w = { assignment: Number(fd.get("w_assignment")), ca: Number(fd.get("w_ca")), exam: Number(fd.get("w_exam")) };
     if (!weightsValid(w)) return { error: "Weights must be whole numbers that add up to exactly 100." };

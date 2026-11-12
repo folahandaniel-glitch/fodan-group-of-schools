@@ -3,19 +3,13 @@ import { Logo } from "@/components/ui";
 import { allSettings } from "@/lib/settings";
 import { ThemePicker } from "@/components/theme-picker";
 import { resolveTheme } from "@/lib/theme-server";
-
-const NAV = [
-  { href: "/#about", label: "About" },
-  { href: "/#academics", label: "Academics" },
-  { href: "/#exams", label: "Exam Preparation" },
-  { href: "/staff", label: "Staff" },
-  { href: "/news", label: "News & Events" },
-  { href: "/contact", label: "Contact" },
-];
+import { siteText } from "@/lib/site-text";
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const s = await allSettings();
   const th = await resolveTheme();
+  const t = siteText(s);
+  const NAV = t.nav;
   const custom = ((s.links?.custom ?? []) as string[]).map((l) => l.split("|").map((x) => x.trim())).filter((p) => p.length === 2);
   const cbt = (s.social as Record<string, string>).cbt;
   const social = Object.entries(s.social as Record<string, string>).filter(([, v]) => v);
@@ -34,10 +28,10 @@ export default async function PublicLayout({ children }: { children: React.React
             {NAV.map((n) => <Link key={n.href} href={n.href} className="rounded-lg px-3 py-2 text-sm font-semibold text-ink-2 hover:bg-paper-2">{n.label}</Link>)}
           </nav>
           <div className="flex items-center gap-2">
-            {cbt && <a href={cbt} target="_blank" rel="noopener noreferrer" className="btn btn-gold btn-sm hidden sm:inline-flex">Fodan CBT</a>}
+            {cbt && <a href={cbt} target="_blank" rel="noopener noreferrer" className="btn btn-gold btn-sm hidden sm:inline-flex">{t.cbtLabel}</a>}
             {th.picker && <ThemePicker themes={th.choices} fallback={th.id} />}
-            <Link href="/login" className="btn btn-ghost btn-sm">Sign in</Link>
-            <Link href="/register" className="btn btn-primary btn-sm">Register</Link>
+            <Link href="/login" className="btn btn-ghost btn-sm">{t.signInLabel}</Link>
+            <Link href="/register" className="btn btn-primary btn-sm">{t.registerLabel}</Link>
           </div>
         </div>
         <nav aria-label="Main mobile" className="flex gap-1 overflow-x-auto border-t border-line px-3 py-1.5 lg:hidden">
@@ -56,20 +50,16 @@ export default async function PublicLayout({ children }: { children: React.React
             <p className="mt-2 text-sm text-gold-soft">{s.brand.tagline}</p>
           </div>
           <div className="text-sm text-white/80">
-            <p className="eyebrow !text-gold-2">Contact</p>
+            <p className="eyebrow !text-gold-2">{t.footerContactTitle}</p>
             <p className="mt-2">{s.contact.address}</p>
             <p>{s.contact.phone}</p>
             <p>{s.contact.email}</p>
             <p className="mt-2 text-white/60">{s.contact.officeHours}</p>
           </div>
           <div className="text-sm">
-            <p className="eyebrow !text-gold-2">Portals</p>
+            <p className="eyebrow !text-gold-2">{t.footerPortalsTitle}</p>
             <ul className="mt-2 space-y-1 text-white/80">
-              <li><Link href="/login" className="hover:text-white">Student portal</Link></li>
-              <li><Link href="/login" className="hover:text-white">Parent portal</Link></li>
-              <li><Link href="/login" className="hover:text-white">Teacher portal</Link></li>
-              <li><Link href="/register" className="hover:text-white">Student registration</Link></li>
-              <li><Link href="/register/staff" className="hover:text-white">Staff registration</Link></li>
+              {t.footerLinks.map((l) => <li key={l.href + l.label}><Link href={l.href} className="hover:text-white">{l.label}</Link></li>)}
             </ul>
             {(social.length > 0 || custom.length > 0) && (
               <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-white/70">
@@ -81,7 +71,7 @@ export default async function PublicLayout({ children }: { children: React.React
         </div>
         <div className="border-t border-white/10 px-4 py-4 text-center">
           <p className="text-xs text-white/70">{s.footer?.text}</p>
-          <Link href="/login?staff=1" className="mt-1 inline-block text-[10px] uppercase tracking-widest text-white/35 hover:text-white/70">Backend</Link>
+          <Link href="/login?staff=1" className="mt-1 inline-block text-[10px] uppercase tracking-widest text-white/35 hover:text-white/70">{t.backendLabel}</Link>
         </div>
       </footer>
     </div>

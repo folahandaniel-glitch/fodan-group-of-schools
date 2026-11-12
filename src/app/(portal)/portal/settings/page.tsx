@@ -14,12 +14,13 @@ import { deleteContent, resetPermissions, saveContent, savePermissions, saveSett
 export const metadata = { title: "Settings & content" };
 
 const TABS = [
-  ["brand", "Branding"], ["founder", "Founder"], ["contact", "Contact & social"], ["appearance", "Themes"], ["home", "Homepage"], ["content", "News & content"],
+  ["brand", "Branding"], ["founder", "Founder"], ["contact", "Contact & social"], ["appearance", "Themes"], ["home", "Homepage"], ["site", "Website text"], ["content", "News & content"],
   ["academic", "Academic & grading"], ["eligibility", "Exams & features"], ["auth", "Sign-in & footer"], ["periods", "Timetable & documents"], ["permissions", "Roles & permissions"],
 ] as const;
 
 import { normaliseSchedule } from "@/lib/schedule";
 import { ScheduleEditor } from "@/components/schedule-editor";
+import { SITE_TEXT_DEFAULT, siteText } from "@/lib/site-text";
 
 export default async function Settings({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await requireMe();
@@ -115,6 +116,40 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           </ActionForm></div>
         </Card>
       )}
+      {tab === "site" && (() => {
+        const t = siteText(s);
+        const pairs = (a: { label: string; href: string }[]) => a.map((x) => x.label + " | " + x.href).join("\n");
+        const pretty = (k: string) => k.replace(/([A-Z])/g, " $1").toLowerCase();
+        return (
+          <Card><h2 className="text-xl">Website text</h2>
+            <p className="mt-1 text-sm text-muted">The wording of the menu, buttons, section headings, portal cards, footer and the Contact, News and Staff pages. Leave a single-line box empty to use the original wording.</p>
+            <div className="mt-3"><ActionForm action={saveSettings} className="grid gap-4">
+              {hidden("site")}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <TextArea label="Main menu — one per line: Label | /link" name="nav" defaultValue={pairs(t.nav)} rows={7} />
+                <TextArea label="Footer portal links — one per line: Label | /link" name="footerLinks" defaultValue={pairs(t.footerLinks)} rows={7} />
+                <Field label="Sign in button" name="signInLabel" defaultValue={t.signInLabel} /><Field label="Register button" name="registerLabel" defaultValue={t.registerLabel} />
+                <Field label="Fodan CBT button" name="cbtLabel" defaultValue={t.cbtLabel} /><Field label="Backend link (footer)" name="backendLabel" defaultValue={t.backendLabel} />
+                <Field label="Footer contact heading" name="footerContactTitle" defaultValue={t.footerContactTitle} /><Field label="Footer portals heading" name="footerPortalsTitle" defaultValue={t.footerPortalsTitle} />
+              </div>
+              <fieldset className="grid gap-3 sm:grid-cols-3"><legend className="mb-1 text-sm font-bold">Hero picture and badge</legend>
+                {Object.keys(SITE_TEXT_DEFAULT.hero).map((k) => <Field key={k} label={pretty(k)} name={"hero." + k} defaultValue={(t.hero as Record<string, string>)[k]} />)}
+              </fieldset>
+              {Object.keys(SITE_TEXT_DEFAULT.sections).map((sec) => (
+                <fieldset key={sec} className="grid gap-3 sm:grid-cols-3"><legend className="mb-1 text-sm font-bold">Homepage section: {sec}</legend>
+                  {Object.keys(SITE_TEXT_DEFAULT.sections.about).map((k) => <Field key={k} label={k} name={"sections." + sec + "." + k} defaultValue={(t.sections as Record<string, Record<string, string>>)[sec][k]} />)}
+                </fieldset>
+              ))}
+              <TextArea label="Portal cards — one per line: Title | Description | /link | Button text" name="portalCards" defaultValue={t.portalCards.map((c) => [c.t, c.d, c.href, c.cta].join(" | ")).join("\n")} rows={5} />
+              {Object.keys(SITE_TEXT_DEFAULT.pages).map((pg) => (
+                <fieldset key={pg} className="grid gap-3 sm:grid-cols-2"><legend className="mb-1 text-sm font-bold">{pg} page</legend>
+                  {Object.keys(SITE_TEXT_DEFAULT.pages.contact).map((k) => <Field key={k} label={k} name={"pages." + pg + "." + k} defaultValue={(t.pages as Record<string, Record<string, string>>)[pg][k]} />)}
+                </fieldset>
+              ))}
+            </ActionForm></div>
+          </Card>
+        );
+      })()}
       {tab === "content" && <ContentManager />}
       {tab === "academic" && (
         <Card><h2 className="text-xl">Academic weighting, grading &amp; comments</h2>

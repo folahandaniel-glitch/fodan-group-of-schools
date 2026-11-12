@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { allSettings, getSchool } from "@/lib/settings";
+import { siteText } from "@/lib/site-text";
 import { publicContent } from "@/lib/content";
 import { sql } from "@/lib/db";
 import { MOCK_CATEGORIES } from "@/lib/logic/academics";
@@ -29,7 +30,7 @@ export default async function Home() {
     FROM staff_profiles p JOIN users u ON u.id = p.user_id AND u.role <> 'developer'
     WHERE p.school_id = ${school.id} AND p.public = true AND p.employment_status = 'active' AND u.status = 'active'
     ORDER BY p.sort, u.last_name LIMIT 4`;
-  const h = s.home, f = s.founder;
+  const h = s.home, f = s.founder, t = siteText(s);
   const schemaOrg = {
     "@context": "https://schema.org", "@type": "EducationalOrganization", name: s.brand.school,
     parentOrganization: { "@type": "Organization", name: s.brand.group },
@@ -57,11 +58,11 @@ export default async function Home() {
           </div>
           <div className="relative mx-auto w-full max-w-md">
             <div className="overflow-hidden rounded-t-[999px] rounded-b-3xl border border-line bg-card p-2 shadow-xl">
-              <Image src="/brand/hero.webp" alt="Fodan College students in school uniform on the school lawn" width={1024} height={1024}
+              <Image src="/brand/hero.webp" alt={t.hero.imageAlt} width={1024} height={1024}
                 priority sizes="(max-width: 768px) 90vw, 440px" className="aspect-[4/5] w-full rounded-t-[999px] rounded-b-2xl object-cover object-top" />
             </div>
             <div className="absolute -bottom-5 -left-4 rounded-2xl border border-line bg-white p-2 shadow-lg"><Logo size={72} /></div>
-            <div className="absolute -right-3 top-10 rounded-2xl border border-gold-2/50 bg-strong px-4 py-3 text-white shadow-xl"><p className="font-display text-2xl leading-none text-gold-2">10·30·60</p><p className="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-white/70">Smart assessment</p></div>
+            <div className="absolute -right-3 top-10 rounded-2xl border border-gold-2/50 bg-strong px-4 py-3 text-white shadow-xl"><p className="font-display text-2xl leading-none text-gold-2">{t.hero.badgeValue}</p><p className="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-white/70">{t.hero.badgeLabel}</p></div>
           </div>
         </div>
       </section>
@@ -80,7 +81,7 @@ export default async function Home() {
 
       {/* About */}
       <section id="about" className="mx-auto max-w-6xl scroll-mt-28 px-4 py-16">
-        <SectionHead eyebrow="About us" title="One group. One standard of excellence." />
+        <SectionHead eyebrow={t.sections.about.eyebrow} title={t.sections.about.title} sub={t.sections.about.sub || undefined} />
         <div className="grid gap-8 md:grid-cols-2">
           <div className="prose-school text-ink-2"><p>{h.about}</p><p>{h.aboutCollege}</p></div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -119,7 +120,7 @@ export default async function Home() {
 
       {/* Academics */}
       <section id="academics" className="mx-auto max-w-6xl scroll-mt-28 px-4 py-16">
-        <SectionHead eyebrow="Academic structure" title="From Basic 1 to SSS 3" sub="Primary and Secondary education, with Science, Commercial and Arts departments in the Senior Secondary section." />
+        <SectionHead eyebrow={t.sections.structure.eyebrow} title={t.sections.structure.title} sub={t.sections.structure.sub || undefined} />
         <div className="grid gap-5 md:grid-cols-3">
           {(content.programme ?? []).map((p, i) => (
             <article key={p.id} className="card card-pad card-lift gold-top relative">
@@ -137,7 +138,7 @@ export default async function Home() {
       {/* Exam prep */}
       <section id="exams" className="section-alt scroll-mt-28 border-y border-line">
         <div className="mx-auto max-w-6xl px-4 py-16">
-          <SectionHead eyebrow="Examination preparation" title="Practise with purpose" sub={h.examPrep} />
+          <SectionHead eyebrow={t.sections.exams.eyebrow} title={t.sections.exams.title} sub={t.sections.exams.sub || h.examPrep} />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {MOCK_CATEGORIES.map((m) => (
               <div key={m.key} className="card card-pad card-lift gold-top">
@@ -153,7 +154,7 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl px-4 py-16">
         <div className="grid gap-12 md:grid-cols-2">
           <div>
-            <SectionHead eyebrow="Facilities" title="Tools that support learning" />
+            <SectionHead eyebrow={t.sections.facilities.eyebrow} title={t.sections.facilities.title} sub={t.sections.facilities.sub || undefined} />
             <ul className="space-y-4">
               {(content.facility ?? []).map((x) => (
                 <li key={x.id} className="flex gap-3"><span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-gold-2" aria-hidden />
@@ -162,7 +163,7 @@ export default async function Home() {
             </ul>
           </div>
           <div>
-            <SectionHead eyebrow="School life" title="Activities and enrichment" />
+            <SectionHead eyebrow={t.sections.life.eyebrow} title={t.sections.life.title} sub={t.sections.life.sub || undefined} />
             <ul className="space-y-4">
               {(content.activity ?? []).map((x) => (
                 <li key={x.id} className="flex gap-3"><span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-royal" aria-hidden />
@@ -177,7 +178,7 @@ export default async function Home() {
       {((content.news?.length ?? 0) + (content.event?.length ?? 0) + (content.announcement?.length ?? 0)) > 0 && (
         <section className="border-t border-line bg-card">
           <div className="mx-auto max-w-6xl px-4 py-16">
-            <SectionHead eyebrow="News, announcements & events" title="What is happening" />
+            <SectionHead eyebrow={t.sections.news.eyebrow} title={t.sections.news.title} sub={t.sections.news.sub || undefined} />
             <div className="grid gap-4 md:grid-cols-3">
               {[...(content.announcement ?? []), ...(content.news ?? []), ...(content.event ?? [])].slice(0, 6).map((n) => (
                 <article key={n.id} className="card card-pad card-lift">
@@ -196,7 +197,7 @@ export default async function Home() {
       {staff.length > 0 && (
         <section className="border-t border-line">
           <div className="mx-auto max-w-6xl px-4 py-16">
-            <SectionHead eyebrow="Our team" title="Teachers who lead by example" />
+            <SectionHead eyebrow={t.sections.team.eyebrow} title={t.sections.team.title} sub={t.sections.team.sub || undefined} />
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               {staff.map((p) => (
                 <div key={p.id} className="card card-lift overflow-hidden">
@@ -218,13 +219,9 @@ export default async function Home() {
       {/* Portals */}
       <section className="border-y border-line bg-paper-2">
         <div className="mx-auto max-w-6xl px-4 py-16">
-          <SectionHead eyebrow="Portals" title="One portal for the whole school community" />
+          <SectionHead eyebrow={t.sections.portals.eyebrow} title={t.sections.portals.title} sub={t.sections.portals.sub || undefined} />
           <div className="grid gap-4 md:grid-cols-3">
-            {[
-              { t: "Students", d: "Assignments, CA tests, examinations, mock practice, results and the Study Centre.", href: "/register", cta: "Activate account" },
-              { t: "Parents & guardians", d: "Follow every child: attendance, results, report cards and announcements.", href: "/register/parent", cta: "Create parent account" },
-              { t: "Teachers & management", d: "Lesson notes, question banks, CBT, results, timetable and analytics.", href: "/login", cta: "Staff sign in" },
-            ].map((p) => (
+            {t.portalCards.map((p) => (
               <div key={p.t} className="card card-pad card-lift gold-top flex flex-col">
                 <h3 className="text-xl">{p.t}</h3>
                 <p className="mt-2 flex-1 text-sm text-ink-2">{p.d}</p>
@@ -237,7 +234,7 @@ export default async function Home() {
 
       {/* FAQ */}
       <section className="mx-auto max-w-3xl px-4 py-16">
-        <SectionHead eyebrow="Questions" title="Frequently asked" />
+        <SectionHead eyebrow={t.sections.faq.eyebrow} title={t.sections.faq.title} sub={t.sections.faq.sub || undefined} />
         <div className="divide-y divide-line rounded-2xl border border-line bg-card">
           {(content.faq ?? []).map((q) => (
             <details key={q.id} className="group px-5 py-4">
@@ -254,7 +251,7 @@ export default async function Home() {
       <section id="contact" className="border-t border-line bg-card">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[0.8fr_1.2fr]">
           <div>
-            <SectionHead eyebrow="Contact" title="We would like to hear from you" />
+            <SectionHead eyebrow={t.sections.contact.eyebrow} title={t.sections.contact.title} sub={t.sections.contact.sub || undefined} />
             <ul className="space-y-2 text-sm text-ink-2">
               <li><b>Phone:</b> {s.contact.phone}</li>
               <li><b>Email:</b> {s.contact.email}</li>

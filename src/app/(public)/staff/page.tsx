@@ -1,11 +1,13 @@
 import { sql } from "@/lib/db";
-import { getSchool } from "@/lib/settings";
+import { allSettings, getSchool } from "@/lib/settings";
+import { siteText } from "@/lib/site-text";
 
 export const metadata = { title: "Staff portfolio" };
 export const dynamic = "force-dynamic";
 
 export default async function StaffPage() {
   const school = await getSchool();
+  const pg = siteText(await allSettings()).pages.staff;
   const staff = await sql`
     SELECT u.id, u.first_name, u.last_name, u.photo_file, p.position, p.qualification, p.years_experience,
            p.specialization, p.bio, p.subjects_text, d.name AS dept
@@ -14,8 +16,8 @@ export default async function StaffPage() {
     ORDER BY p.sort, u.last_name`;
   return (
     <div className="mx-auto max-w-6xl px-4 py-14">
-      <p className="eyebrow">Staff portfolio</p>
-      <h1 className="mt-1 text-4xl">Our teachers and leaders</h1>
+      <p className="eyebrow">{pg.eyebrow}</p>
+      <h1 className="mt-1 text-4xl">{pg.title}</h1>
       <div className="rule-gold mt-3" />
       {staff.length === 0 && <p className="mt-8 text-muted">Staff profiles will appear here once they are published by the school.</p>}
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
