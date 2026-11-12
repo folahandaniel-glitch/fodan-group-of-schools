@@ -23,11 +23,11 @@ describe("Monday to Thursday", () => {
 
 describe("Friday", () => {
   const t = timeline(s, 4);
-  it("runs 08:00 to 13:00, with no lessons in periods 1 and 2", () => {
+  it("runs 08:00 to 13:00 with lessons in every period, including 1 and 2", () => {
     expect(t.periods[0].start).toBe(toMin("08:00"));
     expect(t.periods[t.periods.length - 1].end).toBe(toMin("13:00"));
-    expect(availability(s, 4, 1)).toEqual({ open: false, reason: "No lesson" });
-    expect(availability(s, 4, 2)).toEqual({ open: false, reason: "No lesson" });
+    expect(availability(s, 4, 1).open).toBe(true);
+    expect(availability(s, 4, 2).open).toBe(true);
     expect(availability(s, 4, 3).open).toBe(true);
   });
   it("30-minute periods before the long break, 25-minute periods after it, 5-minute short break", () => {

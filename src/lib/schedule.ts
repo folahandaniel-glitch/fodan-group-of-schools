@@ -14,7 +14,7 @@ const P = (start: string, end: string): Row => ({ kind: "period", label: "", sta
 const B = (label: string, start: string, end: string): Row => ({ kind: "break", label, start, end });
 
 /** Monday to Thursday: 30-minute periods, short break 10:00-10:05, long break 11:00-11:35, then periods 6-8 share 11:35-14:00 equally.
- *  Friday: 8:00 to 13:00. 30-minute periods, a long break, then 25-minute periods ending exactly at 13:00; no lessons in periods 1 and 2. Short break 5 minutes. */
+ *  Friday: 8:00 to 13:00. 30-minute periods, a long break, then 25-minute periods ending exactly at 13:00. Lessons in every period. Short break 5 minutes. */
 export const DEFAULT_SCHEDULE: Schedule = {
   groups: [
     {
@@ -23,7 +23,7 @@ export const DEFAULT_SCHEDULE: Schedule = {
         P("10:05", "11:00"), B("Long break", "11:00", "11:35"), P("11:35", "12:23"), P("12:23", "13:11"), P("13:11", "14:00")],
     },
     {
-      name: "Friday", days: [4], close: "13:00", noLesson: [1, 2],
+      name: "Friday", days: [4], close: "13:00", noLesson: [],
       rows: [P("08:00", "08:30"), P("08:30", "09:00"), P("09:00", "09:30"), P("09:30", "10:00"), B("Short break", "10:00", "10:05"),
         P("10:05", "10:35"), B("Long break", "10:35", "11:20"), P("11:20", "11:45"), P("11:45", "12:10"), P("12:10", "12:35"), P("12:35", "13:00")],
     },
