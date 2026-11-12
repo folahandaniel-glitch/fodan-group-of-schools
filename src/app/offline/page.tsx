@@ -1,11 +1,14 @@
+import { allSettings } from "@/lib/settings";
+import { siteText } from "@/lib/site-text";
 export const metadata = { title: "You are offline" };
-export default function Offline() {
+export default async function Offline() {
+  const pg = siteText(await allSettings().catch(() => ({}))).pages.offline;
   return (
     <main id="main" className="mx-auto grid min-h-dvh max-w-md place-items-center p-6 text-center">
       <div>
-        <h1 className="text-3xl">You are offline</h1>
-        <p className="mt-2 text-muted">Check your connection and try again. Your in-progress examination answers are saved on the server as you go.</p>
-        <a href="/" className="btn btn-primary mt-5">Try again</a>
+        <h1 className="text-3xl">{pg.title}</h1>
+        <p className="mt-2 text-muted">{pg.body}</p>
+        <a href="/" className="btn btn-primary mt-5">{pg.button}</a>
       </div>
     </main>
   );

@@ -85,7 +85,7 @@ export async function saveSettings(_p: State, fd: FormData): Promise<State> {
     const next = {
       nav: pairs("nav").map((x) => ({ href: x.href, label: x.label })), signInLabel: T("signInLabel", 40), registerLabel: T("registerLabel", 40), cbtLabel: T("cbtLabel", 40),
       footerContactTitle: T("footerContactTitle", 60), footerPortalsTitle: T("footerPortalsTitle", 60), footerLinks: pairs("footerLinks"), backendLabel: T("backendLabel", 40),
-      hero: grp("hero", d.hero), portalCards: cards,
+      hero: grp("hero", d.hero), portalCards: cards, contactCategories: line(fd.get("contactCategories")).slice(0, 12).map((x) => x.slice(0, 40)),
       sections: Object.fromEntries(Object.entries(d.sections).map(([k, f]) => [k, grp("sections." + k, f)])),
       pages: Object.fromEntries(Object.entries(d.pages).map(([k, f]) => [k, grp("pages." + k, f)])),
     };

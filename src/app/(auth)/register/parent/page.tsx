@@ -4,18 +4,21 @@ import { PasswordInput } from "@/components/password-input";
 import { Field, Select } from "@/components/ui";
 import { registerParent } from "../../actions";
 import { AuthArt } from "@/components/auth-art";
+import { allSettings } from "@/lib/settings";
+import { siteText } from "@/lib/site-text";
 
 export const metadata = { title: "Parent registration" };
 
-export default function RegisterParent() {
+export default async function RegisterParent() {
+  const pg = siteText(await allSettings()).pages.registerParent;
   return (
     <div>
       <AuthArt slot="register" className="mb-5" />
-      <p className="eyebrow">Parent / guardian registration</p>
-      <h1 className="mt-1 text-3xl">Create your parent account</h1>
-      <p className="mt-1 text-sm text-muted">You can add your children now or later from your dashboard.</p>
+      <p className="eyebrow">{pg.eyebrow}</p>
+      <h1 className="mt-1 text-3xl">{pg.title}</h1>
+      <p className="mt-1 text-sm text-muted">{pg.intro}</p>
       <div className="card card-pad mt-5">
-        <ActionForm action={registerParent} submit="Create parent account" className="grid gap-4 sm:grid-cols-2">
+        <ActionForm action={registerParent} submit={pg.submit} className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><Field label="Full name" name="fullName" required autoComplete="name" /></div>
           <div className="sm:col-span-2"><Field label="Functional email address (your username)" name="email" type="email" required autoComplete="email" /></div>
           <Field label="Phone number" name="phone" type="tel" required autoComplete="tel" />

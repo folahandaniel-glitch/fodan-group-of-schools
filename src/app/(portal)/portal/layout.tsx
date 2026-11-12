@@ -44,6 +44,7 @@ export default async function PortalLayout({ children }: { children: React.React
   add(learner || can(me, "resources:view"), "/portal/study", "Study centre", "Learn");
   add(learner || can(me, "results:view"), "/portal/results", "Results", "Learn");
   add(!learner && can(me, "students:view"), "/portal/students", "Students", "School");
+  add(!learner && (can(me, "access_codes:view") || can(me, "access_codes:manage")), "/portal/access-codes", "Access codes", "School");
   add(!learner && can(me, "staff:view"), "/portal/staff", "Staff", "School");
   add(!learner && can(me, "classes:view"), "/portal/classes", "Classes & subjects", "School");
   add(!learner && (can(me, "promotion:view") || can(me, "promotion:create")), "/portal/promotion", "Promotion", "School");
@@ -79,7 +80,7 @@ export default async function PortalLayout({ children }: { children: React.React
   add(can(me, "audit:view"), "/portal/audit", "Audit & security", "Administration");
   add(can(me, "settings:view") || can(me, "*"), "/portal/backend", "BackEnd console", "Administration");
   add(can(me, "users:view") || can(me, "*"), "/portal/users", "Users & access", "Administration");
-  add(can(me, "settings:view") || can(me, "cms:view") || can(me, "*"), "/portal/settings", "Settings & content", "Administration");
+  add(can(me, "settings:view") || can(me, "cms:view") || can(me, "settings:edit") || can(me, "cms:edit") || can(me, "*"), "/portal/settings", "Settings & content", "Administration");
 
   if (me.role === "parent") {
     add(true, "/portal/children", "Add a child", "Overview");

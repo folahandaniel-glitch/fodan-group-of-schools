@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Contact() {
   const s = await allSettings();
-  const pg = siteText(s).pages.contact;
+  const st = siteText(s), pg = st.pages.contact;
   return (
     <div className="mx-auto grid max-w-5xl gap-10 px-4 py-14 md:grid-cols-[0.8fr_1.2fr]">
       <div>
@@ -15,14 +15,14 @@ export default async function Contact() {
         <h1 className="mt-1 text-4xl">{pg.title}</h1>
         <div className="rule-gold mt-3" />
         <ul className="mt-6 space-y-2 text-ink-2">
-          <li><b>Phone:</b> {s.contact.phone}</li>
-          <li><b>Email:</b> {s.contact.email}</li>
-          <li><b>Address:</b> {s.contact.address}</li>
-          <li><b>Office hours:</b> {s.contact.officeHours}</li>
-          <li><b>Emergency:</b> {s.contact.emergency}</li>
+          <li><b>{pg.phoneLabel}:</b> {s.contact.phone}</li>
+          <li><b>{pg.emailLabel}:</b> {s.contact.email}</li>
+          <li><b>{pg.addressLabel}:</b> {s.contact.address}</li>
+          <li><b>{pg.hoursLabel}:</b> {s.contact.officeHours}</li>
+          <li><b>{pg.emergencyLabel}:</b> {s.contact.emergency}</li>
         </ul>
       </div>
-      <div className="card card-pad"><ContactForm /></div>
+      <div className="card card-pad"><ContactForm text={pg} categories={st.contactCategories} /></div>
     </div>
   );
 }

@@ -18,7 +18,7 @@ describe("editable website text", () => {
     expect(t.sections.structure.title).toBe("From Basic 1 to SSS 3");
     expect(t.hero.badgeValue).toBe("A+");
     expect(t.hero.badgeLabel).toBe("Smart assessment");
-    expect(t.pages.staff).toEqual({ eyebrow: "People", title: "Meet the team" });
+    expect(t.pages.staff).toMatchObject({ eyebrow: "People", title: "Meet the team", qualification: "Qualification" });
     expect(t.pages.news.title).toBe("What is happening at Fodan");
   });
   it("lists are replaced whole, but an empty list falls back so the menu can never vanish", () => {
@@ -30,5 +30,20 @@ describe("editable website text", () => {
     const t = siteText({ siteText: { hero: { imageAlt: 5 }, sections: { about: "x" }, pages: null } });
     expect(t.hero.imageAlt).toBe(SITE_TEXT_DEFAULT.hero.imageAlt);
     expect(t.sections.about).toEqual(SITE_TEXT_DEFAULT.sections.about);
+  });
+  it("new page groups (verify, sign-in, errors, contact form) default to the original wording and fall back when blanked", () => {
+    const t = siteText({ siteText: { pages: { verify: { validTitle: "Genuine", awardedTo: "  " }, login: { submit: "Enter" } }, contactCategories: [] } });
+    expect(t.pages.verify.validTitle).toBe("Genuine");
+    expect(t.pages.verify.awardedTo).toBe("Awarded to");
+    expect(t.pages.login.submit).toBe("Enter");
+    expect(t.pages.notFound.title).toBe("We could not find that page");
+    expect(t.pages.contact.sendButton).toBe("Send message");
+    expect(t.contactCategories).toEqual(SITE_TEXT_DEFAULT.contactCategories);
+    expect(siteText({ siteText: { contactCategories: ["Fees"] } }).contactCategories).toEqual(["Fees"]);
+  });
+  it("a section sub-heading may be emptied on purpose, other text may not", () => {
+    const t = siteText({ siteText: { sections: { structure: { sub: "", title: "" } } } });
+    expect(t.sections.structure.sub).toBe("");
+    expect(t.sections.structure.title).toBe("From Basic 1 to SSS 3");
   });
 });

@@ -21,10 +21,11 @@ const TABS = [
 import { normaliseSchedule } from "@/lib/schedule";
 import { ScheduleEditor } from "@/components/schedule-editor";
 import { SITE_TEXT_DEFAULT, siteText } from "@/lib/site-text";
+const PAGE_NAMES: Record<string, string> = { contact: "Contact page and form", news: "News page", staff: "Staff page", verify: "Certificate verification page", login: "Sign-in page", register: "Student registration page", registerParent: "Parent registration page", registerStaff: "Staff registration page", forgot: "Forgot-password page", authSide: "Sign-in / registration side panel", notFound: "Page not found (404)", forbidden: "Not permitted page", offline: "Offline page" };
 
 export default async function Settings({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await requireMe();
-  if (!can(me, "settings:view") && !can(me, "cms:view") && !can(me, "*")) redirect("/forbidden");
+  if (!can(me, "settings:view") && !can(me, "cms:view") && !can(me, "settings:edit") && !can(me, "cms:edit") && !can(me, "*")) redirect("/forbidden");
   const sp = await searchParams;
   const tab = TABS.find((t) => t[0] === str(sp.tab))?.[0] ?? "brand";
   const s = await allSettings();
@@ -141,9 +142,10 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                 </fieldset>
               ))}
               <TextArea label="Portal cards — one per line: Title | Description | /link | Button text" name="portalCards" defaultValue={t.portalCards.map((c) => [c.t, c.d, c.href, c.cta].join(" | ")).join("\n")} rows={5} />
+              <TextArea label="Contact form categories — one per line" name="contactCategories" defaultValue={t.contactCategories.join("\n")} rows={5} />
               {Object.keys(SITE_TEXT_DEFAULT.pages).map((pg) => (
-                <fieldset key={pg} className="grid gap-3 sm:grid-cols-2"><legend className="mb-1 text-sm font-bold">{pg} page</legend>
-                  {Object.keys(SITE_TEXT_DEFAULT.pages.contact).map((k) => <Field key={k} label={k} name={"pages." + pg + "." + k} defaultValue={(t.pages as Record<string, Record<string, string>>)[pg][k]} />)}
+                <fieldset key={pg} className="grid gap-3 sm:grid-cols-2"><legend className="mb-1 text-sm font-bold">{PAGE_NAMES[pg] ?? pg}</legend>
+                  {Object.keys((SITE_TEXT_DEFAULT.pages as Record<string, Record<string, string>>)[pg]).map((k) => <Field key={k} label={pretty(k)} name={"pages." + pg + "." + k} defaultValue={(t.pages as Record<string, Record<string, string>>)[pg][k]} />)}
                 </fieldset>
               ))}
             </ActionForm></div>

@@ -4,17 +4,20 @@ import { PasswordInput } from "@/components/password-input";
 import { Field, Notice } from "@/components/ui";
 import { login } from "../actions";
 import { AuthArt } from "@/components/auth-art";
+import { allSettings } from "@/lib/settings";
+import { siteText } from "@/lib/site-text";
 
 export const metadata = { title: "Sign in" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ registered?: string; reset?: string; staff?: string; link?: string }> }) {
   const sp = await searchParams;
+  const pg = siteText(await allSettings()).pages.login;
   return (
     <div>
       <AuthArt slot="login" className="mb-5 lg:hidden" />
-      <p className="eyebrow">{sp.staff ? "Staff & administration" : "Welcome back"}</p>
-      <h1 className="mt-1 text-3xl">Sign in to your portal</h1>
-      <p className="mt-1 text-sm text-muted">Use the email address you registered with.</p>
+      <p className="eyebrow">{sp.staff ? pg.eyebrowStaff : pg.eyebrow}</p>
+      <h1 className="mt-1 text-3xl">{pg.title}</h1>
+      <p className="mt-1 text-sm text-muted">{pg.intro}</p>
       <div className="mt-5 space-y-3">
         {sp.registered && sp.registered !== "staff" && <Notice kind="ok">Account created. You can now sign in.</Notice>}
         {sp.registered === "staff" && <Notice kind="ok">Registration received. School management will review it; you can sign in once it is approved.</Notice>}
@@ -24,7 +27,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         {sp.link === "active" && <Notice kind="ok">Your child has been linked to your account.</Notice>}
       </div>
       <div className="card card-pad mt-5">
-        <ActionForm action={login} submit="Sign in">
+        <ActionForm action={login} submit={pg.submit}>
           <Field label="Email address" name="email" type="email" required autoComplete="username" />
           <PasswordInput name="password" label="Password" />
           <p className="text-sm"><Link href="/forgot" className="font-semibold text-royal hover:underline">Forgot your password?</Link></p>

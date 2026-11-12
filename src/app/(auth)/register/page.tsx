@@ -4,20 +4,23 @@ import { PasswordInput } from "@/components/password-input";
 import { Field, Select } from "@/components/ui";
 import { registerStudent } from "../actions";
 import { AuthArt } from "@/components/auth-art";
+import { allSettings } from "@/lib/settings";
+import { siteText } from "@/lib/site-text";
 
 export const metadata = { title: "Student registration" };
 
-export default function RegisterStudent() {
+export default async function RegisterStudent() {
+  const pg = siteText(await allSettings()).pages.register;
   return (
     <div>
       <AuthArt slot="register" className="mb-5 lg:hidden" />
-      <p className="eyebrow">Student registration</p>
-      <h1 className="mt-1 text-3xl">Activate your student account</h1>
+      <p className="eyebrow">{pg.eyebrow}</p>
+      <h1 className="mt-1 text-3xl">{pg.title}</h1>
       <p className="mt-1 text-sm text-muted">
-        The school gives every student a personal access code. Your email address becomes your username.
+        {pg.intro}
       </p>
       <div className="card card-pad mt-5">
-        <ActionForm action={registerStudent} submit="Create my account" className="grid gap-4 sm:grid-cols-2">
+        <ActionForm action={registerStudent} submit={pg.submit} className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><Field label="School access code" name="code" required placeholder="FDN-XXXXX-XXXXX-XXXXX" hint="Issued by the school office. It stays valid while you are enrolled." /></div>
           <Field label="First name" name="firstName" required autoComplete="given-name" />
           <Field label="Last name" name="lastName" required autoComplete="family-name" />

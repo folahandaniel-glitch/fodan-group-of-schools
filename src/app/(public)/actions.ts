@@ -1,12 +1,12 @@
 "use server";
 import { redirect } from "next/navigation";
 import { sql } from "@/lib/db";
-import { getSchool, getSetting } from "@/lib/settings";
+import { allSettings, getSchool, getSetting } from "@/lib/settings";
+import { siteText } from "@/lib/site-text";
 import { audit, clean, clientIp, rateLimit } from "@/lib/security";
 import { validEmail } from "@/lib/logic/password";
 import { sendMail, sendWhatsApp } from "@/lib/mail";
 
-const CATEGORIES = ["General", "Admissions", "Academics", "Parents", "Results", "Technical", "Complaint", "Other"];
 const NOTIFY_EMAIL = "folahandaniel@gmail.com";
 
 export async function submitContact(_prev: unknown, fd: FormData): Promise<{ ok?: boolean; error?: string }> {
@@ -19,7 +19,8 @@ export async function submitContact(_prev: unknown, fd: FormData): Promise<{ ok?
   const subject = clean(fd.get("subject"), 160);
   const message = clean(fd.get("message"), 4000);
   const cat = clean(fd.get("category"), 40);
-  const category = CATEGORIES.includes(cat) ? cat : "General";
+  const categories = siteText(await allSettings()).contactCategories;
+  const category = categories.includes(cat) ? cat : categories[0];
   if (name.length < 2) return { error: "Please enter your name." };
   if (!validEmail(email)) return { error: "Please enter a valid email address." };
   if (subject.length < 3) return { error: "Please enter a subject." };

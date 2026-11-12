@@ -14,7 +14,7 @@ export default async function News() {
       <p className="eyebrow">{pg.eyebrow}</p>
       <h1 className="mt-1 text-4xl">{pg.title}</h1>
       <div className="rule-gold mt-3" />
-      {items.length === 0 && <p className="mt-8 text-muted">No public news has been published yet.</p>}
+      {items.length === 0 && <p className="mt-8 text-muted">{pg.empty}</p>}
       <div className="mt-8 space-y-4">
         {items.map((n) => (
           <article key={n.id} className="card card-pad">

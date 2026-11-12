@@ -260,7 +260,7 @@ export default async function Home() {
               <li><b>Emergency:</b> {s.contact.emergency}</li>
             </ul>
           </div>
-          <div className="card card-pad"><ContactForm /></div>
+          <div className="card card-pad"><ContactForm text={t.pages.contact} categories={t.contactCategories} /></div>
         </div>
       </section>
     </>

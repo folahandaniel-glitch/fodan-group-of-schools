@@ -19,7 +19,7 @@ export default async function StaffPage() {
       <p className="eyebrow">{pg.eyebrow}</p>
       <h1 className="mt-1 text-4xl">{pg.title}</h1>
       <div className="rule-gold mt-3" />
-      {staff.length === 0 && <p className="mt-8 text-muted">Staff profiles will appear here once they are published by the school.</p>}
+      {staff.length === 0 && <p className="mt-8 text-muted">{pg.empty}</p>}
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {staff.map((p) => (
           <article key={p.id} className="card overflow-hidden">
@@ -37,10 +37,10 @@ export default async function StaffPage() {
               </div>
             </div>
             <dl className="space-y-1 border-t border-line px-4 py-3 text-sm">
-              {p.qualification && <div><dt className="inline font-bold">Qualification: </dt><dd className="inline">{p.qualification}</dd></div>}
-              {p.years_experience > 0 && <div><dt className="inline font-bold">Experience: </dt><dd className="inline">{p.years_experience} years</dd></div>}
-              {p.specialization && <div><dt className="inline font-bold">Specialisation: </dt><dd className="inline">{p.specialization}</dd></div>}
-              {p.subjects_text && <div><dt className="inline font-bold">Subjects: </dt><dd className="inline">{p.subjects_text}</dd></div>}
+              {p.qualification && <div><dt className="inline font-bold">{pg.qualification}: </dt><dd className="inline">{p.qualification}</dd></div>}
+              {p.years_experience > 0 && <div><dt className="inline font-bold">{pg.experience}: </dt><dd className="inline">{p.years_experience} years</dd></div>}
+              {p.specialization && <div><dt className="inline font-bold">{pg.specialisation}: </dt><dd className="inline">{p.specialization}</dd></div>}
+              {p.subjects_text && <div><dt className="inline font-bold">{pg.subjects}: </dt><dd className="inline">{p.subjects_text}</dd></div>}
               {p.bio && <p className="pt-1 text-ink-2">{p.bio}</p>}
             </dl>
           </article>
