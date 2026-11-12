@@ -147,6 +147,7 @@ export async function saveSettings(_p: State, fd: FormData): Promise<State> {
 
   await audit({ schoolId: me.schoolId, actorId: me.id, action: "settings.update", entity: "settings", entityId: group });
   revalidatePath("/", "layout");
+  revalidatePath("/portal/timetable");
   return { ok: "Saved." };
 }
 
