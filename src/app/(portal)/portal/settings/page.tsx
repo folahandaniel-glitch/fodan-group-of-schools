@@ -18,7 +18,7 @@ const TABS = [
   ["academic", "Academic & grading"], ["eligibility", "Exams & features"], ["auth", "Sign-in & footer"], ["periods", "Timetable & documents"], ["permissions", "Roles & permissions"],
 ] as const;
 
-import { DAY_NAMES, buildPeriods, normaliseSchedule } from "@/lib/schedule";
+import { DAY_NAMES, normaliseSchedule, timeline, type Schedule } from "@/lib/schedule";
 
 export default async function Settings({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await requireMe();
@@ -175,21 +175,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
         <Card><h2 className="text-xl">Timetable periods &amp; printed documents</h2>
           <div className="mt-3"><ActionForm action={saveSettings} className="grid gap-3 sm:grid-cols-2">
             {hidden("periods")}
-            <fieldset className="sm:col-span-2 rounded-2xl border border-line p-4"><legend className="px-2 font-display text-lg">School day &amp; timetable periods</legend>
-              <div className="grid gap-3 sm:grid-cols-4">
-                <Field label="School starts" name="start" type="time" defaultValue={sched.start} required />
-                <Field label="Minutes per period" name="periodMinutes" type="number" min={10} max={120} defaultValue={sched.periodMinutes} required />
-                <Field label="Periods in a full day" name="count" type="number" min={1} max={20} defaultValue={sched.count} required />
-                <Field label="Closing time (Mon–Thu)" name="close" type="time" defaultValue={sched.close} required />
-              </div>
-              <div className="mt-3"><TextArea label="Breaks: one per line as  after period | minutes  (e.g. 4 | 30)" name="breaks" rows={3} defaultValue={sched.breaks.map((b) => `${b.after} | ${b.minutes}`).join("\n")} /></div>
-              <p className="label mt-3">Different closing time or periods with no lessons on a weekday</p>
-              <div className="mt-1 grid gap-2">{DAY_NAMES.map((d, i) => (
-                <div key={d} className="grid items-end gap-2 sm:grid-cols-[7rem_1fr_1fr]"><span className="pb-2 text-sm font-bold">{d}</span>
-                  <Field label="Closes at (blank = normal)" name={`close_${i}`} type="time" defaultValue={sched.days[i]?.close ?? ""} />
-                  <Field label="No lessons in periods (e.g. 1, 2)" name={`nl_${i}`} defaultValue={(sched.days[i]?.noLesson ?? []).join(", ")} /></div>))}</div>
-              <p className="hint mt-3">Resulting periods: {buildPeriods(sched).map((p) => `${p.n}: ${p.label}`).join(" · ")}</p>
-            </fieldset>
+            <div className="sm:col-span-2"><ScheduleEditor sched={sched} /></div>
             <Field label="Report card stamp text" name="stamp" defaultValue={s.report.stamp} />
             <label className="flex items-center gap-2 pt-7 text-sm font-semibold"><input type="checkbox" name="showAttendance" defaultChecked={s.report.showAttendance} /> Show attendance on report cards</label>
             <Field label="Certificate heading" name="heading" defaultValue={s.certificate.heading} />
@@ -277,5 +263,39 @@ async function PermissionsManager({ role }: { role: string }) {
         {row && <form action={resetPermissions} className="mt-3"><input type="hidden" name="role" value={r} /><button className="btn btn-ghost btn-sm">Reset to defaults</button></form>}
       </div>
     </Card>
+  );
+}
+
+/** Every period and break of the school day, per group of weekdays, with exact times. Clear a row's times to delete it; fill a blank row to add one. */
+function ScheduleEditor({ sched }: { sched: Schedule }) {
+  const groups = [...sched.groups, { name: "", days: [] as number[], close: "", noLesson: [] as number[], rows: [] as Schedule["groups"][number]["rows"] }];
+  return (
+    <div className="space-y-4">
+      <div><h3 className="font-display text-lg">School day &amp; timetable periods</h3>
+        <p className="text-sm text-muted">Set each weekday group's periods and breaks with exact start and end times. Periods are numbered in order. The empty group at the bottom adds a new set of days.</p></div>
+      {groups.map((g, gi) => (
+        <fieldset key={gi} className="rounded-2xl border border-line p-4">
+          <legend className="px-2 font-bold">{g.name || "New group of days"}</legend>
+          <div className="grid gap-3 sm:grid-cols-[1.4fr_1fr_1fr]">
+            <Field label="Group name" name={`g${gi}_name`} defaultValue={g.name} />
+            <Field label="School closes at" name={`g${gi}_close`} type="time" defaultValue={g.close} />
+            <Field label="No lessons in periods (e.g. 1, 2)" name={`g${gi}_nl`} defaultValue={g.noLesson.join(", ")} />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-3">{DAY_NAMES.map((d, i) => <label key={d} className="flex items-center gap-1.5 text-sm font-semibold"><input type="checkbox" name={`g${gi}_d${i}`} defaultChecked={g.days.includes(i)} /> {d}</label>)}</div>
+          <div className="mt-3 overflow-x-auto"><table className="tbl text-sm"><thead><tr><th>#</th><th>Type</th><th>Label (breaks)</th><th>Starts</th><th>Ends</th></tr></thead>
+            <tbody>{[...g.rows, ...Array.from({ length: 4 }, () => null)].map((r, ri) => {
+              const num = r && r.kind === "period" ? g.rows.slice(0, ri + 1).filter((x) => x.kind === "period").length : "";
+              return (
+                <tr key={ri}><td className="w-10 font-bold">{num}</td>
+                  <td><select name={`g${gi}_r${ri}_kind`} defaultValue={r?.kind ?? "period"} className="select !min-h-9 !py-1" aria-label="Type"><option value="period">Period</option><option value="break">Break</option></select></td>
+                  <td><input name={`g${gi}_r${ri}_label`} defaultValue={r?.label ?? ""} className="input !min-h-9 !py-1" placeholder={r?.kind === "break" ? "Short break" : ""} aria-label="Label" /></td>
+                  <td><input name={`g${gi}_r${ri}_start`} type="time" defaultValue={r?.start ?? ""} className="input !min-h-9 !py-1" aria-label="Starts" /></td>
+                  <td><input name={`g${gi}_r${ri}_end`} type="time" defaultValue={r?.end ?? ""} className="input !min-h-9 !py-1" aria-label="Ends" /></td></tr>);
+            })}</tbody></table></div>
+          {g.rows.length > 0 && <p className="hint mt-2">Periods: {timeline(sched, g.days[0] ?? 0).periods.map((p) => `${p.n} (${p.end - p.start} min)`).join(" · ")}</p>}
+        </fieldset>
+      ))}
+      <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="resetSchedule" /> Restore the standard school day (Monday–Thursday and Friday as originally set)</label>
+    </div>
   );
 }

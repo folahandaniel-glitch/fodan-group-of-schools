@@ -1,8 +1,7 @@
 import { getSetting } from "./settings";
-import { buildPeriods, normaliseSchedule, type Period, type Schedule } from "./schedule";
+import { normaliseSchedule, type Schedule } from "./schedule";
 
-/** The school's timetable schedule with its periods worked out. Falls back to the default day if nothing was set. */
-export async function getSchedule(): Promise<{ schedule: Schedule; periods: Period[] }> {
-  const schedule = normaliseSchedule(await getSetting("schedule"));
-  return { schedule, periods: buildPeriods(schedule) };
+/** The school's timetable schedule. Falls back to the standard school day if nothing valid was saved. */
+export async function getSchedule(): Promise<Schedule> {
+  return normaliseSchedule(await getSetting("schedule"));
 }
