@@ -981,6 +981,12 @@ CREATE TABLE IF NOT EXISTS sms_outbox (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS sms_outbox_ix ON sms_outbox (school_id, created_at DESC);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS code_batch text;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS code_valid_from date;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS code_expires_on date;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS code_issued_at timestamptz;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS code_issued_by uuid;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS code_note text;
 CREATE TABLE IF NOT EXISTS reward_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
@@ -1005,5 +1011,6 @@ CREATE TABLE IF NOT EXISTS game_rounds (
   created_at timestamptz NOT NULL DEFAULT now(),
   finished_at timestamptz
 );
+ALTER TABLE game_rounds ADD COLUMN IF NOT EXISTS answers jsonb NOT NULL DEFAULT '[]';
 CREATE INDEX IF NOT EXISTS game_rounds_user_ix ON game_rounds (user_id, created_at DESC);
 `;

@@ -12,3 +12,11 @@ export async function newAccessCode(): Promise<{ plain: string; hash: string; en
   }
   throw new Error("Could not generate a unique code");
 }
+
+const day = (d: unknown) => (d ? new Date(d as string).toISOString().slice(0, 10) : "");
+/** True when the code is inside its validity window (Lagos date). No dates set means no limit. */
+export function codeInWindow(st: { code_valid_from?: unknown; code_expires_on?: unknown }): boolean {
+  const today = new Date(Date.now() + 3600_000).toISOString().slice(0, 10);
+  const from = day(st.code_valid_from), to = day(st.code_expires_on);
+  return (!from || from <= today) && (!to || to >= today);
+}

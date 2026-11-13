@@ -25,6 +25,14 @@ async function mayEdit(me: Me, id: string) {
   return a;
 }
 
+/** The form sends Lagos wall-clock time (e.g. 2026-11-13T10:00); the database needs a real instant. */
+const lagos = (v: unknown): string | null => {
+  const t = clean(v, 30); if (!t) return null;
+  const hasZone = /(Z|[+-][0-9]{2}:?[0-9]{2})$/i.test(t);
+  const d = new Date(hasZone ? t : (t.length === 10 ? `${t}T00:00` : t) + ":00+01:00");
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+};
+
 export async function createAssessment(_p: State, fd: FormData): Promise<State> {
   const me = await requirePerm("assessments:create");
   const kind = clean(fd.get("kind"), 12);
@@ -35,10 +43,13 @@ export async function createAssessment(_p: State, fd: FormData): Promise<State> 
   if (kind !== "mock" && !classId) return { error: "Choose the class." };
   if (!(await mayRun(me, classId))) return { error: "You can only create assessments for classes you teach." };
   const term = await currentTerm();
+  const startAt = lagos(fd.get("startAt")), dueAt = lagos(fd.get("dueAt")), dur = Math.min(Math.max(Number(fd.get("duration")) || 30, 1), 300);
+  if (dueAt && new Date(dueAt).getTime() < Date.now()) return { error: "The closing time is already in the past." };
+  if (dueAt && new Date(dueAt).getTime() - (startAt ? new Date(startAt).getTime() : Date.now()) < dur * 60_000) return { error: `The window between opening and closing must be at least the test duration (${dur} minutes), or students will be cut off.` };
   const [a] = await sql`INSERT INTO assessments (school_id, kind, title, subject_id, class_id, term_id, topic, instructions, start_at, due_at, duration_min, attempt_limit,
       pass_mark, draw_count, randomize, release_mode, mock_category, mock_type, created_by)
     VALUES (${me.schoolId}, ${kind}, ${title}, ${uuid(fd.get("subjectId"))}, ${classId}, ${uuid(fd.get("termId")) ?? term?.id ?? null}, ${clean(fd.get("topic"), 160) || null},
-      ${clean(fd.get("instructions"), 2000) || null}, ${clean(fd.get("startAt"), 30) || null}, ${clean(fd.get("dueAt"), 30) || null},
+      ${clean(fd.get("instructions"), 2000) || null}, ${startAt}, ${dueAt},
       ${Math.min(Math.max(Number(fd.get("duration")) || 30, 1), 300)}, ${Math.min(Math.max(Number(fd.get("attempts")) || (kind === "mock" ? 5 : 1), 1), 50)},
       ${Math.min(Math.max(Number(fd.get("passMark")) || 40, 0), 100)}, ${Number(fd.get("drawCount")) > 0 ? Number(fd.get("drawCount")) : null}, ${fd.get("randomize") !== "off"},
       ${kind === "mock" ? "immediate" : "manual"}, ${clean(fd.get("mockCategory"), 30) || null}, ${clean(fd.get("mockType"), 40) || null}, ${me.id}) RETURNING id`;

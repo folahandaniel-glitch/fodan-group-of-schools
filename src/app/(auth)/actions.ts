@@ -9,6 +9,7 @@ import { normaliseAccessCode } from "@/lib/logic/access-code";
 import { getSchool, getSetting } from "@/lib/settings";
 import { createUser, issueResetToken, linkChild, UserError } from "@/lib/accounts";
 import { sendMail } from "@/lib/mail";
+import { codeInWindow } from "@/lib/student-codes";
 import { loadPositions } from "@/lib/positions";
 
 type State = { error?: string; ok?: string };
@@ -100,7 +101,7 @@ export async function registerStudent(_p: State, fd: FormData): Promise<State> {
   const BAD = "Invalid access code, or the details do not match the school record.";
   if (!code) return { error: BAD };
   const [st] = await sql`SELECT * FROM students WHERE code_hash = ${lookupHash(code)}`;
-  if (!st || st.code_status !== "active" || st.user_id || ["withdrawn", "graduated", "archived"].includes(st.status) ||
+  if (!st || st.code_status !== "active" || !codeInWindow(st) || st.user_id || ["withdrawn", "graduated", "archived"].includes(st.status) ||
       st.last_name.trim().toLowerCase() !== last.toLowerCase() || st.first_name.trim().toLowerCase() !== first.toLowerCase()) {
     await audit({ category: "security", action: "student.register.failed", meta: { ip } });
     return { error: BAD };

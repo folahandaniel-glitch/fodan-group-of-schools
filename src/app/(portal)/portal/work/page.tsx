@@ -39,7 +39,7 @@ export default async function Work({ searchParams }: { searchParams: Promise<{ e
                 <div>
                   <p className="font-display text-lg">{r.title}</p>
                   <p className="text-sm text-muted">{r.subject} · {LABEL[r.kind]} · {r.duration_min} min · attempts {r.used}/{r.attempt_limit}
-                    {r.due_at ? ` · due ${new Date(r.due_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : ""}</p>
+                    {r.due_at ? ` · due ${new Date(r.due_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" })}` : ""}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   {r.best !== null && (r.released ? <Badge tone="ok">Best {r.best}%</Badge> : <Badge>Submitted</Badge>)}

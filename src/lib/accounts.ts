@@ -3,6 +3,7 @@ import { hashPassword, lookupHash, sha256, token } from "./crypto";
 import { normaliseAccessCode } from "./logic/access-code";
 import { checkPassword, normEmail, validEmail } from "./logic/password";
 import { audit, rateLimit } from "./security";
+import { codeInWindow } from "./student-codes";
 import { ymd } from "./data";
 
 export class UserError extends Error {}
@@ -36,9 +37,9 @@ export async function linkChild(parent: { id: string; email: string; phone: stri
   if (!(await rateLimit(`link:${parent.id}`, 6, 3600))) return { ok: false, error: "Too many attempts. Please try again in an hour." };
   const code = normaliseAccessCode(input.code);
   if (!code) return { ok: false, error: GENERIC };
-  const [st] = await sql`SELECT id, school_id, first_name, last_name, admission_no, dob, status, code_status, guardian_email, guardian_phone
+  const [st] = await sql`SELECT id, school_id, first_name, last_name, admission_no, dob, status, code_status, code_valid_from, code_expires_on, guardian_email, guardian_phone
                          FROM students WHERE code_hash = ${lookupHash(code)}`;
-  if (!st || st.code_status !== "active" || ["withdrawn", "graduated", "archived"].includes(st.status)) {
+  if (!st || st.code_status !== "active" || !codeInWindow(st) || ["withdrawn", "graduated", "archived"].includes(st.status)) {
     await audit({ actorId: parent.id, category: "security", action: "parent.link.failed", meta: { reason: "code" } });
     return { ok: false, error: GENERIC };
   }

@@ -40,9 +40,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ report: string 
         ${myClasses ? sql`AND s.class_id = ANY(${myClasses})` : sql``} ORDER BY c.name, s.last_name, s.first_name` }];
   } else if (report === "access-codes") {
     if (!root && !can(me, "access_codes:manage")) return deny();
-    const rows = await sql`SELECT s.admission_no, s.last_name, s.first_name, c.name AS class, c.arm, s.code_enc, s.code_status FROM students s LEFT JOIN classes c ON c.id = s.class_id
+    const rows = await sql`SELECT s.admission_no, s.last_name, s.first_name, c.name AS class, c.arm, s.code_enc, s.code_status, s.code_batch, to_char(s.code_valid_from, 'YYYY-MM-DD') AS vf, to_char(s.code_expires_on, 'YYYY-MM-DD') AS vt FROM students s LEFT JOIN classes c ON c.id = s.class_id
       WHERE s.school_id = ${S} AND s.code_enc IS NOT NULL ${UUID.test(cls) ? sql`AND s.class_id = ${cls}` : sql``} ${myClasses ? sql`AND s.class_id = ANY(${myClasses})` : sql``} ORDER BY c.name, s.last_name`;
-    sheets = [{ name: "Access codes", rows: rows.map((r) => ({ admission_no: r.admission_no, last_name: r.last_name, first_name: r.first_name, class: `${r.class ?? ""}${r.arm ?? ""}`, access_code: (() => { try { return decrypt(r.code_enc as string); } catch { return ""; } })(), status: r.code_status })) }];
+    sheets = [{ name: "Access codes", rows: rows.map((r) => ({ admission_no: r.admission_no, last_name: r.last_name, first_name: r.first_name, class: `${r.class ?? ""}${r.arm ?? ""}`, access_code: (() => { try { return decrypt(r.code_enc as string); } catch { return ""; } })(), status: r.code_status, batch: r.code_batch ?? "", valid_from: r.vf ?? "", valid_until: r.vt ?? "" })) }];
   } else if (report === "student-attendance") {
     if (!root && !can(me, "attendance:export") && !can(me, "attendance:view")) return deny();
     sheets = [{ name: "Student attendance", rows: await sql`SELECT a.day, c.name AS class, c.arm, s.admission_no, s.last_name, s.first_name, a.status

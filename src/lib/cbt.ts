@@ -35,6 +35,8 @@ export async function startAttempt(assessmentId: string, student: { id: string; 
   if (a.start_at && new Date(a.start_at) > now) return { ok: false, error: "This assessment has not opened yet." };
   if (a.due_at && new Date(a.due_at) < now) return { ok: false, error: "The deadline for this assessment has passed." };
 
+  if (a.due_at && new Date(a.due_at).getTime() - now.getTime() < 60_000) return { ok: false, error: "Less than a minute is left before this assessment closes." };
+
   const [open] = await sql`SELECT id, deadline_at FROM attempts WHERE assessment_id = ${assessmentId} AND student_id = ${student.id} AND status = 'in_progress'`;
   if (open) {
     if (new Date(open.deadline_at) > now) return { ok: true, attemptId: open.id, resumed: true };
