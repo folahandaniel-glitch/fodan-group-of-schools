@@ -6,7 +6,7 @@ import { sql } from "@/lib/db";
 import { requirePerm, type Me } from "@/lib/auth";
 import { audit, clean } from "@/lib/security";
 import { createUser, UserError } from "@/lib/accounts";
-import { outranks, ROLES, STAFF_ROLES, isRoot } from "@/lib/logic/permissions";
+import { outranks, RESOURCES, ROLES, STAFF_ROLES, isRoot } from "@/lib/logic/permissions";
 import { normEmail } from "@/lib/logic/password";
 import { IMAGE_EXT, saveUpload } from "@/lib/files";
 
@@ -117,5 +117,20 @@ export async function removeExtraRole(fd: FormData): Promise<void> {
   if (!u || u.role === "developer") return;
   await sql`DELETE FROM user_roles WHERE user_id = ${id} AND role = ${role}`;
   await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "role.remove", entity: "user", entityId: id, meta: { role } });
+  revalidatePath(`/portal/staff/${id}`);
+}
+
+/** Special access: gives one person any segment or menu (view or full control) without changing their role. Root users only. */
+export async function saveGrants(fd: FormData): Promise<void> {
+  const me = await requirePerm("roles:manage");
+  if (!isRoot(me.role)) return;
+  const id = clean(fd.get("id"), 40);
+  const [u] = await sql`SELECT role FROM users WHERE id = ${id} AND school_id = ${me.schoolId}`;
+  if (!u || u.role === "developer" || id === me.id) return;
+  const valid = new Set<string>(RESOURCES.flatMap((r) => [`${r}:view`, `${r}:manage`]));
+  const perms = fd.getAll("grant").map(String).filter((p) => valid.has(p));
+  await sql`DELETE FROM user_grants WHERE user_id = ${id}`;
+  for (const p of perms) await sql`INSERT INTO user_grants (user_id, perm, granted_by) VALUES (${id}, ${p}, ${me.id}) ON CONFLICT DO NOTHING`;
+  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "grants.save", entity: "user", entityId: id, meta: { count: perms.length } });
   revalidatePath(`/portal/staff/${id}`);
 }

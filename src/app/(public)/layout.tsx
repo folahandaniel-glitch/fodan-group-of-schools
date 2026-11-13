@@ -13,8 +13,25 @@ export default async function PublicLayout({ children }: { children: React.React
   const custom = ((s.links?.custom ?? []) as string[]).map((l) => l.split("|").map((x) => x.trim())).filter((p) => p.length === 2);
   const cbt = (s.social as Record<string, string>).cbt;
   const social = Object.entries(s.social as Record<string, string>).filter(([, v]) => v);
+  const st = (s.studio ?? {}) as { hiddenSections?: string[]; bar?: { on?: boolean; text?: string; link?: string; tone?: string }; maintenance?: { on?: boolean; message?: string } };
+  const hideCss = (st.hiddenSections ?? []).filter((x) => /^[a-z]+$/.test(x)).map((x) => `[data-sec="${x}"]{display:none!important}`).join("");
+  const TONE: Record<string, string> = { gold: "bg-gold-2 text-[#14161c]", navy: "bg-strong text-white", green: "bg-ok text-white", red: "bg-bad text-white" };
+  if (st.maintenance?.on) {
+    return (
+      <div className="grid min-h-dvh place-items-center px-4 text-center">
+        <div className="card card-pad max-w-lg"><Logo size={72} /><h1 className="mt-4 text-3xl">{s.brand.school}</h1><p className="mt-3 text-muted">{st.maintenance.message}</p>
+          <Link href="/login" className="btn btn-ghost btn-sm mt-5">Staff and student sign-in</Link></div>
+      </div>
+    );
+  }
   return (
     <div className="flex min-h-dvh flex-col">
+      {hideCss && <style dangerouslySetInnerHTML={{ __html: hideCss }} />}
+      {st.bar?.on && st.bar.text && (
+        <div className={`px-4 py-2 text-center text-sm font-bold ${TONE[st.bar.tone ?? "gold"] ?? TONE.gold}`}>
+          {st.bar.link ? <a href={st.bar.link} className="underline underline-offset-2">{st.bar.text}</a> : st.bar.text}
+        </div>
+      )}
       <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5">
           <Link href="/" className="flex items-center gap-3" aria-label="Fodan College International home">

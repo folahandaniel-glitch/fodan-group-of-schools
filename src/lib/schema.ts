@@ -877,4 +877,108 @@ CREATE TABLE IF NOT EXISTS roster_shifts (
   set_by uuid,
   PRIMARY KEY (user_id, day)
 );
+
+CREATE TABLE IF NOT EXISTS user_grants (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  perm text NOT NULL,
+  granted_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, perm)
+);
+CREATE TABLE IF NOT EXISTS fee_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  amount numeric NOT NULL CHECK (amount >= 0),
+  level int,
+  active boolean NOT NULL DEFAULT true,
+  UNIQUE (school_id, name, level)
+);
+CREATE TABLE IF NOT EXISTS fee_invoices (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  term_id uuid REFERENCES terms(id) ON DELETE SET NULL,
+  number text NOT NULL,
+  total numeric NOT NULL,
+  paid numeric NOT NULL DEFAULT 0,
+  lines jsonb NOT NULL DEFAULT '[]',
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (school_id, number)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS fee_invoices_student_term_uq ON fee_invoices (student_id, term_id) WHERE term_id IS NOT NULL;
+CREATE TABLE IF NOT EXISTS fee_payments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  invoice_id uuid NOT NULL REFERENCES fee_invoices(id) ON DELETE CASCADE,
+  receipt_no text NOT NULL,
+  amount numeric NOT NULL CHECK (amount > 0),
+  method text NOT NULL DEFAULT 'cash',
+  reference text,
+  paid_on date NOT NULL DEFAULT current_date,
+  received_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (school_id, receipt_no)
+);
+CREATE TABLE IF NOT EXISTS lib_books (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  author text NOT NULL DEFAULT '',
+  isbn text,
+  category text NOT NULL DEFAULT 'General',
+  shelf text,
+  copies int NOT NULL DEFAULT 1 CHECK (copies >= 0),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS lib_loans (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  book_id uuid NOT NULL REFERENCES lib_books(id) ON DELETE CASCADE,
+  student_id uuid REFERENCES students(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  issued_on date NOT NULL DEFAULT current_date,
+  due_on date NOT NULL,
+  returned_on date,
+  issued_by uuid
+);
+CREATE INDEX IF NOT EXISTS lib_loans_open_ix ON lib_loans (school_id, returned_on, due_on);
+CREATE TABLE IF NOT EXISTS hostel_blocks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  gender text NOT NULL DEFAULT 'Mixed',
+  UNIQUE (school_id, name)
+);
+CREATE TABLE IF NOT EXISTS hostel_rooms (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  block_id uuid NOT NULL REFERENCES hostel_blocks(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  beds int NOT NULL CHECK (beds >= 1),
+  UNIQUE (block_id, name)
+);
+CREATE TABLE IF NOT EXISTS hostel_allocations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  room_id uuid NOT NULL REFERENCES hostel_rooms(id) ON DELETE CASCADE,
+  from_on date NOT NULL DEFAULT current_date,
+  to_on date,
+  by_user uuid
+);
+CREATE UNIQUE INDEX IF NOT EXISTS hostel_alloc_active_uq ON hostel_allocations (student_id) WHERE to_on IS NULL;
+CREATE TABLE IF NOT EXISTS sms_outbox (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  audience text NOT NULL,
+  to_phone text NOT NULL,
+  body text NOT NULL,
+  status text NOT NULL DEFAULT 'queued',
+  provider_ref text,
+  error text,
+  sent_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS sms_outbox_ix ON sms_outbox (school_id, created_at DESC);
 `;

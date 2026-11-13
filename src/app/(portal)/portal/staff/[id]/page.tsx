@@ -1,3 +1,4 @@
+import { RESOURCES } from "@/lib/logic/permissions";
 import { hideDev } from "@/lib/visibility";
 import { notFound } from "next/navigation";
 import { requirePerm, can } from "@/lib/auth";
@@ -9,7 +10,7 @@ import { Badge, Card, Field, Notice, PageHeader, Select, TextArea, statusTone } 
 import { ActionForm } from "@/components/action-form";
 import { ResetLink } from "@/components/reset-link";
 import { ROLE_LABEL, STAFF_ROLES, isRoot } from "@/lib/logic/permissions";
-import { addExtraRole, removeExtraRole, setStaffRole, setStaffStatus, updateStaff } from "../actions";
+import { addExtraRole, removeExtraRole, saveGrants, setStaffRole, setStaffStatus, updateStaff } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function StaffDetail({ params, searchParams }: { params: Pr
   if (!u) notFound();
   const depts = await listDepartments(me.schoolId);
   const rule = await getSetting<Seniority>("seniority");
+  const grants = new Set((await sql`SELECT perm FROM user_grants WHERE user_id = ${id}`).map((g) => g.perm as string));
   const extraRoles = await sql`SELECT role FROM user_roles WHERE user_id = ${id}`;
   const classTeacherOf = await sql`SELECT c.name, c.arm, d.name AS dept FROM classes c LEFT JOIN departments d ON d.id = c.department_id WHERE c.class_teacher_id = ${id} AND NOT c.archived`;
   const subjectLoad = await sql`SELECT c.name, c.arm, d.name AS dept, s.name AS subject FROM class_subjects cs JOIN classes c ON c.id = cs.class_id JOIN subjects s ON s.id = cs.subject_id
@@ -108,6 +110,21 @@ export default async function StaffDetail({ params, searchParams }: { params: Pr
               <form action={addExtraRole} className="mt-3 flex gap-2"><input type="hidden" name="id" value={id} />
                 <select name="role" className="select" aria-label="Add a role">{[...STAFF_ROLES, "super_admin"].filter((r) => r !== u.role && !extraRoles.some((x) => x.role === r)).map((r) => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}</select>
                 <button className="btn btn-primary">Add role</button></form>
+            </Card>
+          )}
+          {isRoot(me.role) && !isRoot(u.role) && u.id !== me.id && (
+            <Card>
+              <h2 className="text-xl">Special access</h2>
+              <p className="mt-1 text-sm text-muted">Give this person any segment or menu on top of their role: <b>View</b> to open it, <b>Manage</b> to change things (for example Branches to add campuses and set coordinates). Or add the Super Admin role above for everything.</p>
+              <form action={saveGrants} className="mt-3">
+                <input type="hidden" name="id" value={id} />
+                <div className="max-h-72 overflow-y-auto rounded-xl border border-line"><table className="tbl text-sm"><thead><tr><th>Segment</th><th>View</th><th>Manage</th></tr></thead>
+                  <tbody>{RESOURCES.map((r) => (
+                    <tr key={r}><td className="capitalize">{r.replace("_", " ")}</td>
+                      <td><input type="checkbox" name="grant" value={`${r}:view`} defaultChecked={grants.has(`${r}:view`)} aria-label={`View ${r}`} /></td>
+                      <td><input type="checkbox" name="grant" value={`${r}:manage`} defaultChecked={grants.has(`${r}:manage`)} aria-label={`Manage ${r}`} /></td></tr>))}</tbody></table></div>
+                <button className="btn btn-primary mt-3">Save special access</button>
+              </form>
             </Card>
           )}
           {can(me, "staff:archive") && u.id !== me.id && !isRoot(u.role) && (

@@ -65,6 +65,7 @@ export const getMe = cache(async (): Promise<Me | null> => {
   }
   const overrides = await sql`SELECT role, permissions FROM role_permissions WHERE school_id = ${u.school_id} AND role = ANY(${roles})`;
   const perms = new Set<string>();
+  for (const g of await sql`SELECT perm FROM user_grants WHERE user_id = ${u.id}`) perms.add(g.perm as string);
   for (const r of roles) {
     const o = overrides.find((x) => x.role === r);
     for (const p of (o ? (o.permissions as string[]) : defaultsFor(r))) perms.add(p);

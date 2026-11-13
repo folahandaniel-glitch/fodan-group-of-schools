@@ -32,7 +32,7 @@ export const RESOURCES = [
   "dashboard", "students", "parents", "staff", "classes", "subjects", "timetable", "calendar", "attendance",
   "promotion", "access_codes", "lessons", "questions", "assessments", "results", "reports", "certificates",
   "resources", "announcements", "comments", "analytics", "audit", "cms", "settings", "roles", "users",
-  "branches", "clock", "fines", "finance", "payroll", "ledger", "performance", "curriculum", "holiday", "crm", "hrm", "expenses",
+  "branches", "clock", "fines", "finance", "payroll", "ledger", "performance", "curriculum", "holiday", "crm", "hrm", "expenses", "fees", "library", "hostel", "sms", "studio",
 ] as const;
 export const ACTIONS = ["view", "create", "edit", "archive", "approve", "publish", "export", "print", "assign", "transfer", "review", "manage"] as const;
 
@@ -127,6 +127,17 @@ export function defaultsFor(role: string): string[] {
   if (["vp_admin", "hr_manager", "hr_admin"].includes(role)) extra.add("crm:manage");
   if (["accountant", "bursar", "finance_admin"].includes(role)) ["expenses:manage", "ledger:view", "payroll:view"].forEach((p) => extra.add(p));
   if (["proprietor", "director", "principal", "headteacher", "auditor", "premium_admin"].includes(role)) extra.add("expenses:view");
+  // Fees: finance staff manage; leaders view. Parents and students only ever see their own (enforced in the page).
+  if (["accountant", "bursar", "finance_admin"].includes(role)) ["fees:manage"].forEach((p) => extra.add(p));
+  if (["proprietor", "director", "principal", "headteacher", "auditor", "premium_admin", "vp_admin"].includes(role)) extra.add("fees:view");
+  // Library: librarian manages; everyone can browse.
+  if (role === "librarian") extra.add("library:manage");
+  extra.add("library:view");
+  // Hostel and SMS: school leaders and student affairs.
+  if (["principal", "headteacher", "vp_admin", "student_affairs_admin", "premium_admin"].includes(role)) ["hostel:manage", "sms:manage"].forEach((p) => extra.add(p));
+  if (role === "reception") ["sms:manage", "hostel:view"].forEach((p) => extra.add(p));
+  if (staff) extra.add("hostel:view");
+  if (["content_admin", "premium_admin"].includes(role)) extra.add("studio:manage");
   const AREA: Record<string, string[]> = {
     academic_admin: [...ACADEMIC_VIEW, ...full("classes", "subjects", "timetable", "calendar", "lessons", "assessments", "results", "reports", "promotion", "certificates", "resources", "students", "staff"), "questions:approve", "questions:review", "analytics:view", "announcements:create", "announcements:publish"],
     finance_admin: [...view("dashboard", "students", "parents", "staff", "announcements", "calendar"), ...full("finance", "payroll", "ledger", "fines"), "audit:view", "audit:export", "reports:export", "reports:print", "branches:view", "analytics:view"],

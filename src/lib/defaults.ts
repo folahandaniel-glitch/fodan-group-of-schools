@@ -1,4 +1,5 @@
 import { DEFAULT_SCHEDULE } from "./schedule";
+import { DEFAULT_PLATFORM } from "./platform";
 import { DEFAULT_COMMENTS, DEFAULT_GRADES, DEFAULT_WEIGHTS } from "./logic/scoring";
 import { DEFAULT_EXAM_ELIGIBILITY } from "./logic/academics";
 
@@ -57,6 +58,14 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   eligibility: DEFAULT_EXAM_ELIGIBILITY,
   seniority: { minYears: 5, minPositionRank: 0, requireDegree: false },
   results: { release: "manual", showPosition: true },
+  platform: DEFAULT_PLATFORM,
+  // Website Studio: public-site controls beyond the text itself.
+  studio: {
+    hiddenSections: [] as string[],
+    seo: { title: "", description: "", keywords: "", ogFile: "" },
+    bar: { on: false, text: "", link: "", tone: "gold" },
+    maintenance: { on: false, message: "We are making improvements and will be back shortly." },
+  },
   features: { registration: true, parentLinking: true, mocks: true, studyCentre: true, ai: false },
   // School day: start, period length, breaks and each weekday's closing time. Edited in Settings > Timetable.
   schedule: DEFAULT_SCHEDULE,

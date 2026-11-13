@@ -11,6 +11,9 @@ import { AnnouncementBanner } from "@/components/announcement-banner";
 import { logout } from "@/app/(auth)/actions";
 import { ThemePicker } from "@/components/theme-picker";
 import { ClockPopup } from "@/components/clock-popup";
+import { headers } from "next/headers";
+import { getPlatform } from "@/lib/platform-server";
+import { pathOn } from "@/lib/platform";
 import { resolveTheme } from "@/lib/theme-server";
 
 export const dynamic = "force-dynamic";
@@ -82,6 +85,21 @@ export default async function PortalLayout({ children }: { children: React.React
   add(can(me, "users:view") || can(me, "*"), "/portal/users", "Users & access", "Administration");
   add(can(me, "settings:view") || can(me, "cms:view") || can(me, "settings:edit") || can(me, "cms:edit") || can(me, "*"), "/portal/settings", "Settings & content", "Administration");
 
+  const isDev = me.role === "developer";
+  add(learner ? me.role === "parent" || me.role === "student" : can(me, "fees:view") || can(me, "fees:manage"), "/portal/fees", "School fees", "Finance");
+  add(can(me, "library:view") || can(me, "library:manage"), "/portal/library", "Library", "Learn");
+  add(can(me, "hostel:view") || can(me, "hostel:manage"), "/portal/hostel", "Hostel", "School");
+  add(!learner && can(me, "sms:manage"), "/portal/sms", "SMS", "Communicate");
+  add(can(me, "studio:manage") || can(me, "cms:view") || can(me, "*"), "/portal/studio", "Website Studio", "Administration");
+  add(isDev, "/portal/developer", "Developer console", "Administration");
+  const plat = await getPlatform();
+  const reqPath = (await headers()).get("x-pathname") ?? "";
+  for (let i = items.length - 1; i >= 0; i--) {
+    const href = items[i].href;
+    if (/^https?:/.test(href) || pathOn(plat, href)) continue;
+    if (isDev) items[i].label += " (off)"; else items.splice(i, 1);
+  }
+  const blocked = !isDev && reqPath !== "" && !pathOn(plat, reqPath);
   if (me.role === "parent") {
     add(true, "/portal/children", "Add a child", "Overview");
     add(true, "/account", "Account & password", "Account");
@@ -124,7 +142,14 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </header>
         {banner.length > 0 && <AnnouncementBanner items={banner.map((b) => ({ id: b.id as string, title: b.title as string }))} />}
-        <main id="main" className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">{children}</main>
+        <main id="main" className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+          {isDev && reqPath !== "" && !pathOn(plat, reqPath) && <p className="mb-4 rounded-xl border border-gold-2 bg-gold-soft px-4 py-2 text-sm font-semibold">This page is switched off for everyone else. Only you can see it. <Link href="/portal/developer" className="underline">Developer console</Link></p>}
+          {blocked ? (
+            <div className="card card-pad mx-auto mt-10 max-w-xl text-center"><p className="font-display text-2xl">This feature is not switched on</p>
+              <p className="mt-2 text-sm text-muted">The school has not activated this part of the portal yet. Please contact the school office.</p>
+              <Link href="/portal" className="btn btn-primary mt-4">Back to the dashboard</Link></div>
+          ) : children}
+        </main>
       </div>
     </div>
   );

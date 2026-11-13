@@ -68,7 +68,7 @@ export default async function Home() {
       </section>
 
       {/* Key facts */}
-      <section aria-label="At a glance" className="border-b border-line bg-card">
+      <section data-sec="glance" aria-label="At a glance" className="border-b border-line bg-card">
         <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-px bg-line md:grid-cols-4">
           {(h.stats as { label: string; value: string }[]).map((x) => (
             <div key={x.label} className="bg-card px-4 py-5 transition hover:bg-paper">
@@ -80,7 +80,7 @@ export default async function Home() {
       </section>
 
       {/* About */}
-      <section id="about" className="mx-auto max-w-6xl scroll-mt-28 px-4 py-16">
+      <section id="about" data-sec="about" className="mx-auto max-w-6xl scroll-mt-28 px-4 py-16">
         <SectionHead eyebrow={t.sections.about.eyebrow} title={t.sections.about.title} sub={t.sections.about.sub || undefined} />
         <div className="grid gap-8 md:grid-cols-2">
           <div className="prose-school text-ink-2"><p>{h.about}</p><p>{h.aboutCollege}</p></div>
@@ -96,7 +96,7 @@ export default async function Home() {
       </section>
 
       {/* Founder */}
-      <section className="border-y border-line bg-strong text-white">
+      <section data-sec="values" className="border-y border-line bg-strong text-white">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-14 md:grid-cols-[260px_1fr]">
           <div className="mx-auto h-60 w-60 overflow-hidden rounded-full border-4 border-gold-2 bg-paper-2">
             {f.photoFile ? (
@@ -119,7 +119,7 @@ export default async function Home() {
       </section>
 
       {/* Academics */}
-      <section id="academics" className="mx-auto max-w-6xl scroll-mt-28 px-4 py-16">
+      <section id="academics" data-sec="academics" className="mx-auto max-w-6xl scroll-mt-28 px-4 py-16">
         <SectionHead eyebrow={t.sections.structure.eyebrow} title={t.sections.structure.title} sub={t.sections.structure.sub || undefined} />
         <div className="grid gap-5 md:grid-cols-3">
           {(content.programme ?? []).map((p, i) => (
@@ -136,7 +136,7 @@ export default async function Home() {
       </section>
 
       {/* Exam prep */}
-      <section id="exams" className="section-alt scroll-mt-28 border-y border-line">
+      <section id="exams" data-sec="exams" className="section-alt scroll-mt-28 border-y border-line">
         <div className="mx-auto max-w-6xl px-4 py-16">
           <SectionHead eyebrow={t.sections.exams.eyebrow} title={t.sections.exams.title} sub={t.sections.exams.sub || h.examPrep} />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -151,7 +151,7 @@ export default async function Home() {
       </section>
 
       {/* Facilities + activities */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section data-sec="facilities" className="mx-auto max-w-6xl px-4 py-16">
         <div className="grid gap-12 md:grid-cols-2">
           <div>
             <SectionHead eyebrow={t.sections.facilities.eyebrow} title={t.sections.facilities.title} sub={t.sections.facilities.sub || undefined} />
@@ -176,7 +176,7 @@ export default async function Home() {
 
       {/* News & events */}
       {((content.news?.length ?? 0) + (content.event?.length ?? 0) + (content.announcement?.length ?? 0)) > 0 && (
-        <section className="border-t border-line bg-card">
+        <section data-sec="news" className="border-t border-line bg-card">
           <div className="mx-auto max-w-6xl px-4 py-16">
             <SectionHead eyebrow={t.sections.news.eyebrow} title={t.sections.news.title} sub={t.sections.news.sub || undefined} />
             <div className="grid gap-4 md:grid-cols-3">
@@ -195,7 +195,7 @@ export default async function Home() {
 
       {/* Staff */}
       {staff.length > 0 && (
-        <section className="border-t border-line">
+        <section data-sec="team" className="border-t border-line">
           <div className="mx-auto max-w-6xl px-4 py-16">
             <SectionHead eyebrow={t.sections.team.eyebrow} title={t.sections.team.title} sub={t.sections.team.sub || undefined} />
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -217,7 +217,7 @@ export default async function Home() {
       )}
 
       {/* Portals */}
-      <section className="border-y border-line bg-paper-2">
+      <section data-sec="portals" className="border-y border-line bg-paper-2">
         <div className="mx-auto max-w-6xl px-4 py-16">
           <SectionHead eyebrow={t.sections.portals.eyebrow} title={t.sections.portals.title} sub={t.sections.portals.sub || undefined} />
           <div className="grid gap-4 md:grid-cols-3">
@@ -233,7 +233,7 @@ export default async function Home() {
       </section>
 
       {/* FAQ */}
-      <section className="mx-auto max-w-3xl px-4 py-16">
+      <section data-sec="faq" className="mx-auto max-w-3xl px-4 py-16">
         <SectionHead eyebrow={t.sections.faq.eyebrow} title={t.sections.faq.title} sub={t.sections.faq.sub || undefined} />
         <div className="divide-y divide-line rounded-2xl border border-line bg-card">
           {(content.faq ?? []).map((q) => (
