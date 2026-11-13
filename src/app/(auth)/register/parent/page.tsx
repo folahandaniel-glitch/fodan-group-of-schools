@@ -19,6 +19,7 @@ export default async function RegisterParent() {
       <p className="mt-1 text-sm text-muted">{pg.intro}</p>
       <div className="card card-pad mt-5">
         <ActionForm action={registerParent} submit={pg.submit} className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2"><Field label="Parent access code" name="regCode" required placeholder="FDN-XXXXX-XXXXX-XXXXX" hint="Given to you by the school office. It can be used only once." /></div>
           <div className="sm:col-span-2"><Field label="Full name" name="fullName" required autoComplete="name" /></div>
           <div className="sm:col-span-2"><Field label="Functional email address (your username)" name="email" type="email" required autoComplete="email" /></div>
           <Field label="Phone number" name="phone" type="tel" required autoComplete="tel" />

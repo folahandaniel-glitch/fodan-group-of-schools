@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { requirePerm } from "@/lib/auth";
 import { audit, clean } from "@/lib/security";
 import { newAccessCode } from "@/lib/student-codes";
+import { makeRegCodes } from "@/lib/reg-codes";
 import { teacherClassIds, wideScope } from "@/lib/scope";
 
 type State = { error?: string; ok?: string };
@@ -13,51 +14,55 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const dateOr = (v: unknown) => { const t = clean(v, 10); return ISO.test(t) && !Number.isNaN(new Date(t).getTime()) ? t : null; };
 const today = () => new Date(Date.now() + 3600_000).toISOString().slice(0, 10);
 
-/**
- * Generates access codes for a group of students, with a validity window and an optional batch number.
- * who: missing (no code yet) | expired (code past its end date) | class (one class) | all (whole school).
- * For class/all, students who already have a code keep it unless "replace" is ticked.
- */
-export async function generateCodes(_p: State, fd: FormData): Promise<State> {
+/** Simple generator: how many codes, for students or parents, with an optional last day and batch label. Each code works once. */
+export async function makeCodes(_p: State, fd: FormData): Promise<State> {
   const me = await requirePerm("access_codes:manage");
-  const who = clean(fd.get("who"), 10), cls = clean(fd.get("class"), 40), replace = fd.get("replace") === "on";
-  const from = dateOr(fd.get("validFrom")), to = dateOr(fd.get("expiresOn")), batch = clean(fd.get("batch"), 40) || null, note = clean(fd.get("note"), 160) || null;
-  if (!["missing", "expired", "class", "all"].includes(who)) return { error: "Choose who the codes are for." };
-  if (who === "class" && !UUID.test(cls)) return { error: "Choose a class." };
-  if (fd.get("validFrom") && !from) return { error: "The start date is not valid." };
-  if (fd.get("expiresOn") && !to) return { error: "The end date is not valid." };
-  if (to && to < today()) return { error: "The end date is already in the past." };
-  if (from && to && to < from) return { error: "The end date must be on or after the start date." };
-  if ((replace && (who === "class" || who === "all")) && fd.get("confirm") !== "on") return { error: "Tick the confirmation box. Replacing makes the old codes stop working." };
-  const scope = wideScope(me) ? null : await teacherClassIds(me.id);
-  const rows = await sql`SELECT id FROM students WHERE school_id = ${me.schoolId} AND status IN ('active','enrolled') AND user_id IS NULL
-    ${who === "missing" ? sql`AND code_enc IS NULL` : who === "expired" ? sql`AND code_expires_on < ${today()}` : who === "class" ? sql`AND class_id = ${cls}${replace ? sql`` : sql` AND code_enc IS NULL`}` : replace ? sql`` : sql`AND code_enc IS NULL`}
-    ${scope ? sql`AND class_id = ANY(${scope})` : sql``} ORDER BY last_name LIMIT 1500`;
-  if (rows.length === 0) return { ok: "No students needed a code for that choice. (Students who have already activated their account are skipped.)" };
-  for (const r of rows) {
-    const c = await newAccessCode();
-    await sql`UPDATE students SET code_hash = ${c.hash}, code_enc = ${c.enc}, code_status = 'active', code_batch = ${batch}, code_valid_from = ${from}, code_expires_on = ${to},
-      code_issued_at = now(), code_issued_by = ${me.id}, code_note = ${note} WHERE id = ${r.id}`;
-  }
-  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "access_code.generate_batch", entity: "student", meta: { who, count: rows.length, batch, from, to, replace } });
+  const kind = clean(fd.get("kind"), 8) === "parent" ? "parent" : "student";
+  const count = Math.round(Number(fd.get("count")));
+  const from = dateOr(fd.get("validFrom")), to = dateOr(fd.get("expiresOn")), batch = clean(fd.get("batch"), 40) || null;
+  if (!Number.isFinite(count) || count < 1 || count > 300) return { error: "Enter how many codes (1 to 300)." };
+  if (fd.get("expiresOn") && !to) return { error: "The last valid day is not a valid date." };
+  if (to && to < today()) return { error: "The last valid day is already in the past." };
+  if (from && to && to < from) return { error: "The last day must be on or after the start day." };
+  const made = await makeRegCodes({ schoolId: me.schoolId, kind, count, batch, from, to, by: me.id });
+  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "access_code.generate", entity: "access_code", meta: { kind, made, batch, from, to } });
   revalidatePath("/portal/access-codes");
-  return { ok: `${rows.length} code${rows.length === 1 ? "" : "s"} generated${batch ? ` in batch ${batch}` : ""}. Use "Print code slips" to hand them out.` };
+  return { ok: `${made} ${kind} code${made === 1 ? "" : "s"} generated. Each works once. Print them below.` };
 }
 
-/** Changes the validity dates (and optionally the batch label) of codes already issued, for a batch or a class. */
-export async function updateValidity(_p: State, fd: FormData): Promise<State> {
+export async function codeOp(fd: FormData): Promise<void> {
   const me = await requirePerm("access_codes:manage");
-  const batch = clean(fd.get("batch"), 40), cls = clean(fd.get("class"), 40);
-  const from = dateOr(fd.get("validFrom")), to = dateOr(fd.get("expiresOn"));
-  if (!batch && !UUID.test(cls)) return { error: "Enter a batch number or choose a class." };
-  if (!from && !to) return { error: "Enter a new start or end date." };
-  if (from && to && to < from) return { error: "The end date must be on or after the start date." };
-  const scope = wideScope(me) ? null : await teacherClassIds(me.id);
-  const rows = await sql`UPDATE students SET code_valid_from = COALESCE(${from}::date, code_valid_from), code_expires_on = COALESCE(${to}::date, code_expires_on)
-    WHERE school_id = ${me.schoolId} AND code_enc IS NOT NULL ${batch ? sql`AND code_batch = ${batch}` : sql`AND class_id = ${cls}`} ${scope ? sql`AND class_id = ANY(${scope})` : sql``} RETURNING id`;
-  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "access_code.validity", entity: "student", meta: { batch, class: cls || null, count: rows.length, from, to } });
+  const id = clean(fd.get("id"), 40), op = clean(fd.get("op"), 10);
+  if (!UUID.test(id)) return;
+  if (op === "revoke") await sql`UPDATE access_codes SET status = 'revoked' WHERE id = ${id} AND school_id = ${me.schoolId} AND used_at IS NULL`;
+  else if (op === "restore") await sql`UPDATE access_codes SET status = 'active' WHERE id = ${id} AND school_id = ${me.schoolId}`;
+  else if (op === "delete") await sql`DELETE FROM access_codes WHERE id = ${id} AND school_id = ${me.schoolId} AND used_at IS NULL`;
+  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: `access_code.${op}`, entity: "access_code", entityId: id });
   revalidatePath("/portal/access-codes");
-  return rows.length ? { ok: `Updated ${rows.length} code${rows.length === 1 ? "" : "s"}.` } : { error: "No codes matched that batch or class." };
+}
+
+/** Approves or rejects students and parents who registered with a code. They cannot sign in until approved. */
+export async function decideRegistration(fd: FormData): Promise<void> {
+  const me = await requirePerm("access_codes:manage");
+  const op = clean(fd.get("op"), 16);
+  const ids = op.endsWith("all") ? (await sql`SELECT id FROM users WHERE school_id = ${me.schoolId} AND status = 'pending' AND role IN ('student','parent')`).map((r) => r.id as string) : [clean(fd.get("id"), 40)];
+  for (const id of ids) {
+    if (!UUID.test(id)) continue;
+    const [u] = await sql`SELECT id, role FROM users WHERE id = ${id} AND school_id = ${me.schoolId} AND status = 'pending' AND role IN ('student','parent')`;
+    if (!u) continue;
+    if (op.startsWith("approve")) {
+      await sql`UPDATE users SET status = 'active' WHERE id = ${id}`;
+      if (u.role === "student") await sql`UPDATE students SET status = 'active' WHERE user_id = ${id} AND status = 'enrolled'`;
+      await sql`INSERT INTO notifications (user_id, title, body, link) VALUES (${id}, 'Your account is active', 'Welcome! You can now use the portal.', '/portal')`;
+    } else if (op === "reject") {
+      await sql`UPDATE access_codes SET used_by = NULL WHERE used_by = ${id}`;
+      await sql`DELETE FROM students WHERE user_id = ${id}`;
+      await sql`DELETE FROM parent_profiles WHERE user_id = ${id}`;
+      await sql`DELETE FROM users WHERE id = ${id}`;
+    }
+    await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: `registration.${op.replace("-all", "")}`, entity: "user", entityId: id });
+  }
+  revalidatePath("/portal/access-codes");
 }
 
 export async function codeRow(fd: FormData): Promise<void> {

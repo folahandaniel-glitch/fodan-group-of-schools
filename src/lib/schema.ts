@@ -987,6 +987,22 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS code_expires_on date;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS code_issued_at timestamptz;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS code_issued_by uuid;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS code_note text;
+CREATE TABLE IF NOT EXISTS access_codes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  kind text NOT NULL,
+  code_hash text NOT NULL UNIQUE,
+  code_enc text NOT NULL,
+  batch text,
+  valid_from date,
+  expires_on date,
+  status text NOT NULL DEFAULT 'active',
+  used_at timestamptz,
+  used_by uuid,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS access_codes_ix ON access_codes (school_id, kind, created_at DESC);
 CREATE TABLE IF NOT EXISTS reward_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,

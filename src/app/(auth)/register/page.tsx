@@ -6,11 +6,14 @@ import { registerStudent } from "../actions";
 import { AuthArt } from "@/components/auth-art";
 import { allSettings } from "@/lib/settings";
 import { siteText } from "@/lib/site-text";
+import { getSchool } from "@/lib/settings";
+import { listClasses } from "@/lib/data";
 
 export const metadata = { title: "Student registration" };
 
 export default async function RegisterStudent() {
   const pg = siteText(await allSettings()).pages.register;
+  const classes = await listClasses((await getSchool()).id);
   return (
     <div>
       <AuthArt slot="register" className="mb-5 lg:hidden" />
@@ -21,7 +24,8 @@ export default async function RegisterStudent() {
       </p>
       <div className="card card-pad mt-5">
         <ActionForm action={registerStudent} submit={pg.submit} className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2"><Field label="School access code" name="code" required placeholder="FDN-XXXXX-XXXXX-XXXXX" hint="Issued by the school office. It stays valid while you are enrolled." /></div>
+          <div className="sm:col-span-2"><Field label="School access code" name="code" required placeholder="FDN-XXXXX-XXXXX-XXXXX" hint="Given to you by the school office. It can be used only once." /></div>
+          <div className="sm:col-span-2"><Select label="Your class" name="classId" required allowEmpty options={classes.map((c) => ({ value: c.id, label: c.label }))} hint="Pick the class you are joining." /></div>
           <Field label="First name" name="firstName" required autoComplete="given-name" />
           <Field label="Last name" name="lastName" required autoComplete="family-name" />
           <Field label="Middle name" name="middleName" />

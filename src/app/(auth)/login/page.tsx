@@ -19,7 +19,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <h1 className="mt-1 text-3xl">{pg.title}</h1>
       <p className="mt-1 text-sm text-muted">{pg.intro}</p>
       <div className="mt-5 space-y-3">
-        {sp.registered && sp.registered !== "staff" && <Notice kind="ok">Account created. You can now sign in.</Notice>}
+        {sp.registered && sp.registered !== "staff" && sp.registered !== "pending" && <Notice kind="ok">Account created. You can now sign in.</Notice>}
+        {sp.registered === "pending" && <Notice kind="ok">Registration successful. Your account is waiting for the school to activate it. You will be able to sign in once it is approved.</Notice>}
         {sp.registered === "staff" && <Notice kind="ok">Registration received. School management will review it; you can sign in once it is approved.</Notice>}
         {sp.reset && <Notice kind="ok">Password changed. Sign in with your new password.</Notice>}
         {sp.link === "failed" && <Notice kind="bad">Your account was created, but the child could not be verified. Sign in and use “My children” to try again with the exact admission number and date of birth.</Notice>}

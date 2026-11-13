@@ -10,6 +10,8 @@ import { getSchool, getSetting } from "@/lib/settings";
 import { createUser, issueResetToken, linkChild, UserError } from "@/lib/accounts";
 import { sendMail } from "@/lib/mail";
 import { codeInWindow } from "@/lib/student-codes";
+import { claimRegCode, finishRegCode, findRegCode, regCodeUsable, releaseRegCode } from "@/lib/reg-codes";
+import { randomInt } from "node:crypto";
 import { loadPositions } from "@/lib/positions";
 
 type State = { error?: string; ok?: string };
@@ -100,6 +102,35 @@ export async function registerStudent(_p: State, fd: FormData): Promise<State> {
   if ("error" in pp) return pp;
   const BAD = "Invalid access code, or the details do not match the school record.";
   if (!code) return { error: BAD };
+  const rc = await findRegCode(code, "student");
+  if (rc) {
+    const USED = "This access code is not valid, has already been used, or has expired. Please ask the school for a new one.";
+    if (!regCodeUsable(rc)) return { error: USED };
+    if (!first || !last) return { error: "Enter your first and last name." };
+    const classId = clean(fd.get("classId"), 40);
+    const [cl] = /^[0-9a-f-]{36}$/i.test(classId) ? await sql`SELECT id, department_id FROM classes WHERE id = ${classId} AND school_id = ${rc.school_id} AND NOT archived` : [];
+    if (!cl) return { error: "Choose your class." };
+    if (!(await claimRegCode(rc.id))) return { error: USED };
+    try {
+      const uid = await createUser({ schoolId: rc.school_id, email, password: pp.pw, role: "student", firstName: first, lastName: last, phone: clean(fd.get("phone"), 30) });
+      await sql`UPDATE users SET status = 'pending' WHERE id = ${uid}`;
+      let adm = "";
+      for (let t = 0; t < 8 && !adm; t++) { const a = `REG-${new Date().getFullYear() % 100}-${randomInt(10000, 99999)}`; const [d] = await sql`SELECT 1 FROM students WHERE school_id = ${rc.school_id} AND admission_no = ${a}`; if (!d) adm = a; }
+      await sql`INSERT INTO students (school_id, user_id, admission_no, first_name, middle_name, last_name, dob, gender, class_id, department_id, address, state, country, guardian_name, guardian_phone, emergency_contact, previous_school, admission_year, status, code_activated_at)
+        VALUES (${rc.school_id}, ${uid}, ${adm}, ${first}, ${clean(fd.get("middleName"), 80) || null}, ${last}, ${clean(fd.get("dob"), 10) || null}, ${clean(fd.get("gender"), 12) || null}, ${cl.id}, ${cl.department_id}, ${clean(fd.get("address"), 300) || null},
+          ${clean(fd.get("state"), 80) || null}, ${clean(fd.get("country"), 80) || null}, ${clean(fd.get("guardianName"), 120) || null}, ${clean(fd.get("guardianPhone"), 30) || null}, ${clean(fd.get("emergency"), 120) || null}, ${clean(fd.get("previousSchool"), 160) || null},
+          ${new Date().getFullYear()}, 'enrolled', now())`;
+      await finishRegCode(rc.id, uid);
+      await sql`INSERT INTO notifications (user_id, title, body, link) SELECT id, ${`New student registration: ${first} ${last}`}, 'Waiting for approval', '/portal/access-codes#pending' FROM users
+        WHERE school_id = ${rc.school_id} AND status = 'active' AND role IN ('developer','super_admin','premium_admin','proprietor','director','vp_admin','principal','headteacher','student_affairs_admin')`;
+      await audit({ schoolId: rc.school_id, actorId: uid, action: "access_code.activated", entity: "user", entityId: uid, meta: { kind: "student" } });
+    } catch (e) {
+      await releaseRegCode(rc.id);
+      if (e instanceof UserError) return { error: e.message };
+      throw e;
+    }
+    redirect("/login?registered=pending");
+  }
   const [st] = await sql`SELECT * FROM students WHERE code_hash = ${lookupHash(code)}`;
   if (!st || st.code_status !== "active" || !codeInWindow(st) || st.user_id || ["withdrawn", "graduated", "archived"].includes(st.status) ||
       st.last_name.trim().toLowerCase() !== last.toLowerCase() || st.first_name.trim().toLowerCase() !== first.toLowerCase()) {
@@ -120,12 +151,13 @@ export async function registerStudent(_p: State, fd: FormData): Promise<State> {
         emergency_contact = COALESCE(NULLIF(${clean(fd.get("emergency"), 120)}, ''), emergency_contact),
         previous_school = COALESCE(NULLIF(${clean(fd.get("previousSchool"), 160)}, ''), previous_school)
         WHERE id = ${st.id}`;
+    await sql`UPDATE users SET status = 'pending' WHERE id = ${uid}`;
     await audit({ schoolId: st.school_id, actorId: uid, action: "access_code.activated", entity: "student", entityId: st.id });
   } catch (e) {
     if (e instanceof UserError) return { error: e.message };
     throw e;
   }
-  redirect("/login?registered=1");
+  redirect("/login?registered=pending");
 }
 
 export async function registerParent(_p: State, fd: FormData): Promise<State> {
@@ -141,21 +173,29 @@ export async function registerParent(_p: State, fd: FormData): Promise<State> {
   const pp = pwPair(fd);
   if ("error" in pp) return pp;
   const school = await getSchool();
+  const reg = normaliseAccessCode(String(fd.get("regCode") ?? ""));
+  const rc = await findRegCode(reg, "parent");
+  if (!rc || !regCodeUsable(rc)) return { error: "Enter a valid parent access code from the school. Each code can be used only once." };
+  if (!(await claimRegCode(rc.id))) return { error: "That access code has already been used." };
   let uid: string;
   try {
     uid = await createUser({ schoolId: school.id, email, password: pp.pw, role: "parent", firstName: first, lastName: rest.join(" "), phone });
   } catch (e) {
+    await releaseRegCode(rc.id);
     if (e instanceof UserError) return { error: e.message };
     throw e;
   }
+  await sql`UPDATE users SET status = 'pending' WHERE id = ${uid}`;
+  await finishRegCode(rc.id, uid);
+  await sql`INSERT INTO notifications (user_id, title, body, link) SELECT id, ${`New parent registration: ${name}`}, 'Waiting for approval', '/portal/access-codes#pending' FROM users WHERE school_id = ${school.id} AND status = 'active' AND role IN ('developer','super_admin','premium_admin','proprietor','director','vp_admin','principal','headteacher','student_affairs_admin')`;
   await sql`INSERT INTO parent_profiles (user_id, address, relationship, emergency_contact)
             VALUES (${uid}, ${clean(fd.get("address"), 300)}, ${clean(fd.get("relationship"), 40)}, ${clean(fd.get("emergency"), 120)})`;
   const code = clean(fd.get("code"), 40);
   if (code) {
     const r = await linkChild({ id: uid, email, phone }, { code, admissionNo: clean(fd.get("admissionNo"), 40), dob: clean(fd.get("dob"), 10), relationship: clean(fd.get("relationship"), 40) });
-    redirect(`/login?registered=1&link=${r.ok ? r.status : "failed"}`);
+    redirect(`/login?registered=pending&link=${r.ok ? r.status : "failed"}`);
   }
-  redirect("/login?registered=1");
+  redirect("/login?registered=pending");
 }
 
 export async function registerStaff(_p: State, fd: FormData): Promise<State> {
