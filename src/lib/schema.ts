@@ -981,4 +981,29 @@ CREATE TABLE IF NOT EXISTS sms_outbox (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS sms_outbox_ix ON sms_outbox (school_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS reward_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  source text NOT NULL,
+  ref text NOT NULL,
+  points int NOT NULL,
+  detail text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, source, ref)
+);
+CREATE INDEX IF NOT EXISTS reward_events_user_ix ON reward_events (user_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS game_rounds (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  game text NOT NULL,
+  level text NOT NULL,
+  seed bigint NOT NULL,
+  status text NOT NULL DEFAULT 'open',
+  correct int, total int, points int,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  finished_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS game_rounds_user_ix ON game_rounds (user_id, created_at DESC);
 `;

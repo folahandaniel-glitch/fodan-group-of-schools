@@ -25,6 +25,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   { key: "finance", label: "Finance", blurb: "School fees and receipts, payroll and payslips, ledger, expense register, approvals.", status: "built", defaultOn: true,
     prefixes: ["/portal/fees", "/portal/payroll", "/portal/payslips", "/portal/ledger", "/portal/expenses"] },
   { key: "library", label: "Library", blurb: "Book catalogue, borrowing, returns and overdue books.", status: "new", defaultOn: false, prefixes: ["/portal/library"] },
+  { key: "rewards", label: "Games & Rewards", blurb: "Educational games (Easy, Medium, Hard), loyalty levels and reward badges for study, classwork and games.", status: "new", defaultOn: true, prefixes: ["/portal/games", "/portal/rewards"] },
   { key: "hostel", label: "Hostel", blurb: "Hostel blocks, rooms and beds, and which student sleeps where.", status: "new", defaultOn: false, prefixes: ["/portal/hostel"] },
 ];
 
@@ -72,5 +73,5 @@ export const MENU_CATALOGUE: { href: string; label: string }[] = [
   { href: "/portal/work", label: "Assignments & tests" }, { href: "/portal/mocks", label: "Mock centre" }, { href: "/portal/questions", label: "Question bank" },
   { href: "/portal/sms", label: "SMS" },
   { href: "/portal/fees", label: "School fees" }, { href: "/portal/payroll", label: "Payroll" }, { href: "/portal/payslips", label: "Payslips" }, { href: "/portal/ledger", label: "Ledger" }, { href: "/portal/expenses", label: "Expense register" },
-  { href: "/portal/library", label: "Library" }, { href: "/portal/hostel", label: "Hostel" },
+  { href: "/portal/library", label: "Library" }, { href: "/portal/games", label: "Games" }, { href: "/portal/rewards", label: "Rewards" }, { href: "/portal/hostel", label: "Hostel" },
 ];

@@ -6,7 +6,7 @@ export type NavItem = { href: string; label: string; group: string };
 
 const ICONS: [RegExp, string][] = [
   [/^\/portal$/, "🏠"], [/work|mocks/, "📝"], [/study/, "📚"], [/holiday/, "🏖️"], [/results|mark-sheet|report/, "📊"], [/children/, "👨‍👩‍👧"],
-  [/fees/, "💳"], [/library/, "📕"], [/hostel/, "🛏️"], [/sms/, "💬"], [/studio/, "🎨"], [/developer/, "🛠️"], [/access-codes/, "🔑"], [/students/, "🎓"], [/staff/, "👥"], [/classes/, "🏫"], [/promotion/, "⬆️"], [/clock/, "⏱️"], [/branches/, "📍"], [/hrm/, "🧑‍💼"], [/crm/, "🤝"],
+  [/rewards/, "🏆"], [/games/, "🎮"], [/fees/, "💳"], [/library/, "📕"], [/hostel/, "🛏️"], [/sms/, "💬"], [/studio/, "🎨"], [/developer/, "🛠️"], [/access-codes/, "🔑"], [/students/, "🎓"], [/staff/, "👥"], [/classes/, "🏫"], [/promotion/, "⬆️"], [/clock/, "⏱️"], [/branches/, "📍"], [/hrm/, "🧑‍💼"], [/crm/, "🤝"],
   [/performance/, "📈"], [/payslips|payroll/, "💰"], [/ledger/, "📒"], [/expenses/, "🧾"], [/exports/, "⬇️"], [/timetable/, "🗓️"], [/attendance/, "✅"],
   [/calendar/, "📅"], [/lessons/, "📖"], [/questions/, "❓"], [/assessments/, "🧪"], [/resources/, "🗂️"], [/certificates/, "🏅"], [/analytics/, "📉"],
   [/announcements/, "📣"], [/comments/, "✉️"], [/bible/, "✝️"], [/hymns/, "🎵"], [/audit/, "🛡️"], [/backend/, "⚙️"], [/users/, "🔑"], [/settings/, "🎛️"],

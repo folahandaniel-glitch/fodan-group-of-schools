@@ -4,6 +4,8 @@ import { sql } from "@/lib/db";
 import { can, requireMe, requirePerm } from "@/lib/auth";
 import { audit, clean, platformOf, safeUrl } from "@/lib/security";
 import { importScheme } from "@/lib/curriculum";
+import { award } from "@/lib/loyalty";
+import { POINTS } from "@/lib/logic/loyalty";
 
 type State = { error?: string; ok?: string };
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -104,6 +106,6 @@ export async function toggleStudied(fd: FormData): Promise<void> {
   const t = await topicOf(me.schoolId, clean(fd.get("topic"), 40));
   if (!t) return;
   const [had] = await sql`DELETE FROM topic_progress WHERE user_id = ${me.id} AND topic_id = ${t.id} RETURNING 1`;
-  if (!had) await sql`INSERT INTO topic_progress (user_id, topic_id) VALUES (${me.id}, ${t.id}) ON CONFLICT DO NOTHING`;
+  if (!had) { await sql`INSERT INTO topic_progress (user_id, topic_id) VALUES (${me.id}, ${t.id}) ON CONFLICT DO NOTHING`; await award(me.schoolId, me.id, "study", t.id, POINTS.topicStudied, "Finished a study topic"); }
   refresh(t.id);
 }

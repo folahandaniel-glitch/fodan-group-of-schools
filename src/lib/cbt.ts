@@ -3,6 +3,7 @@ import { sql } from "./db";
 import { audit } from "./security";
 import { recomputeResult } from "./results";
 import { getSetting } from "./settings";
+import { award, workPoints } from "./loyalty";
 import { DEFAULT_EXAM_ELIGIBILITY } from "./logic/academics";
 
 type Plan = { q: string; o: string[] }[];
@@ -114,13 +115,14 @@ export async function submitAttempt(attemptId: string, how: "student" | "auto" =
                           JOIN assessment_questions aq ON aq.question_id = q.id AND aq.assessment_id = ${t.assessment_id}
                           WHERE q.id = ANY(${plan.map((p) => p.q)})`;
   const answers = t.answers as Record<string, string>;
-  let score = 0, max = 0;
+  let score = 0, max = 0, right = 0;
   for (const m of marks) {
     max += Number(m.marks);
-    if (answers[m.id] && answers[m.id] === m.correct) score += Number(m.marks);
+    if (answers[m.id] && answers[m.id] === m.correct) { score += Number(m.marks); right++; }
   }
   await sql`UPDATE attempts SET status = 'submitted', submitted_at = now(), score = ${score}, max_score = ${max} WHERE id = ${attemptId} AND status = 'in_progress'`;
   const [stu] = await sql`SELECT user_id FROM students WHERE id = ${t.student_id}`;
+  if (stu?.user_id && right > 0) await award(t.school_id, stu.user_id, "work", String(t.assessment_id), workPoints(right), `${right} correct in ${t.kind}`);
   await audit({ schoolId: t.school_id, actorId: stu?.user_id, action: "exam.submit", entity: "attempt", entityId: attemptId, meta: { how, score, max } });
   if (t.term_id && t.subject_id && ["assignment", "ca", "exam"].includes(t.kind)) await recomputeResult(t.student_id, t.term_id, t.subject_id);
 }
