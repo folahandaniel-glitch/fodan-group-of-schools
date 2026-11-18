@@ -3,6 +3,7 @@ import { sql } from "./db";
 import type { Me } from "./auth";
 import { childIds, studentOf } from "./scope";
 import { CLASS_LEVELS } from "./logic/academics";
+import { primaryRows } from "@/data/nerdc-primary";
 
 export const TERM_NAMES = ["First term", "Second term", "Third term"];
 export const levelName = (n: number) => CLASS_LEVELS.find((c) => c.level === n)?.name ?? `Level ${n}`;
@@ -10,9 +11,9 @@ export const LEVEL_OPTIONS = CLASS_LEVELS.map((c) => ({ value: String(c.level), 
 
 export const weekNo = (w: string) => parseInt(w, 10) || 0;
 
-/** Loads the NERDC 2025 scheme of work (JSS and SSS) into this school's curriculum. Safe to run again: existing topics are kept. */
+/** Loads the NERDC scheme of work (Primary 1 to SSS 3) into this school's curriculum. Safe to run again: existing topics are kept. */
 export async function importScheme(schoolId: string): Promise<{ added: number; total: number }> {
-  const rows = scheme as unknown as [number, string, number, string, string, string, number][];
+  const rows = [...primaryRows(), ...(scheme as unknown as [number, string, number, string, string, string, number][])];
   const [{ before }] = await sql`SELECT count(*)::int AS before FROM curriculum_topics WHERE school_id = ${schoolId}`;
   for (let i = 0; i < rows.length; i += 400) {
     const part = rows.slice(i, i + 400).map(([level, subject, term, week, topic, content, teaching]) => ({ level, subject, term, week, topic, content, teaching: teaching === 1 }));
@@ -23,6 +24,15 @@ export async function importScheme(schoolId: string): Promise<{ added: number; t
   }
   const [{ after }] = await sql`SELECT count(*)::int AS after FROM curriculum_topics WHERE school_id = ${schoolId}`;
   return { added: after - before, total: after };
+}
+
+/** Adds Primary 1 to 6 once, for schools that loaded the JSS and SSS scheme earlier. Cheap when already loaded. */
+export async function ensurePrimaryScheme(schoolId: string): Promise<void> {
+  const [{ n }] = await sql`SELECT count(*)::int AS n FROM curriculum_topics WHERE school_id = ${schoolId} AND level <= 6`;
+  if (n > 0) return;
+  const part = primaryRows().map(([level, subject, term, week, topic, content, teaching]) => ({ level, subject, term, week, topic, content, teaching: teaching === 1 }));
+  await sql`INSERT INTO curriculum_topics (school_id, level, subject, term, week, topic, content, teaching)
+    SELECT ${schoolId}::uuid, level, subject, term, week, topic, content, teaching FROM jsonb_to_recordset(${sql.json(part as never)}) AS x(level int, subject text, term int, week text, topic text, content text, teaching boolean) ON CONFLICT DO NOTHING`;
 }
 
 /** Class levels this person may study: a student's own, their children's, or all levels for staff. */

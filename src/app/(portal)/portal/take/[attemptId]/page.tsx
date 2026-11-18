@@ -18,5 +18,5 @@ export default async function Take({ params }: { params: Promise<{ attemptId: st
   if (!t) notFound();
   // Practice mocks show scores immediately; school assessments wait for release.
   const showScore = t.kind === "mock" || t.release_mode === "immediate" || t.released;
-  return <CbtRunner attemptId={attemptId} backHref={t.kind === "mock" ? "/portal/mocks" : "/portal/work"} showScore={showScore} />;
+  return <CbtRunner attemptId={attemptId} backHref={t.kind === "mock" ? "/portal/mocks" : ["classwork", "practice"].includes(t.kind) ? "/portal/study" : "/portal/work"} showScore={showScore} />;
 }

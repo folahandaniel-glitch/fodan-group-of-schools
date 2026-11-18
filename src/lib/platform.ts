@@ -21,6 +21,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     prefixes: ["/portal/study", "/portal/lessons", "/portal/resources", "/portal/holiday", "/portal/bible", "/portal/hymns"] },
   { key: "cbt", label: "CBT", blurb: "Computer-based tests, mock exams, assignments and the question bank.", status: "built", defaultOn: true,
     prefixes: ["/portal/work", "/portal/mocks", "/portal/questions", "/portal/take"] },
+  { key: "exams", label: "Exam timetable & integrity", blurb: "Clash-free CA and terminal exam timetables (generate, draw or upload), exam integrity reports, retakes and make-up mock exams.", status: "new", defaultOn: true, prefixes: ["/portal/exams"] },
   { key: "sms", label: "SMS", blurb: "Text messages to parents, students and staff. Messages queue until an SMS provider key is added.", status: "needs_keys", defaultOn: false, prefixes: ["/portal/sms"] },
   { key: "finance", label: "Finance", blurb: "School fees and receipts, payroll and payslips, ledger, expense register, approvals.", status: "built", defaultOn: true,
     prefixes: ["/portal/fees", "/portal/payroll", "/portal/payslips", "/portal/ledger", "/portal/expenses"] },
@@ -32,9 +33,18 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 /** Menu items that can never be switched off, so the Developer cannot lock everyone (including themself) out. */
 export const CORE_PREFIXES = ["/portal/developer", "/portal/settings", "/portal/backend", "/portal/users", "/portal/studio", "/account", "/portal/audit", "/portal/exports"];
 
-export type PlatformState = { modules: Record<string, boolean>; menus: Record<string, boolean>; maintenance: boolean };
+/** Individual behaviours inside modules that the Developer can switch without hiding any page. */
+export const FEATURES: { key: string; label: string; blurb: string }[] = [
+  { key: "examFullscreen", label: "Full-screen lock in exams", blurb: "Students must stay in full screen. Leaving twice submits the exam automatically." },
+  { key: "examAntiCopy", label: "Block copy, paste, right-click and shortcuts in exams", blurb: "Stops copying, printing, dev-tool shortcuts and text selection during exams." },
+  { key: "examCalculator", label: "Calculator and font tools in exams", blurb: "JAMB-style on-screen calculator and text size buttons." },
+  { key: "examTimetableTimes", label: "Use the exam timetable for CA and terminal exam times", blurb: "When off, the duration and window set on the assessment are used instead." },
+  { key: "periodWork", label: "Day 1 to Day 3 lesson periods with auto classwork and assignment", blurb: "Each study topic gets three daily periods, each with a 10-minute, 5-question classwork and assignment." },
+];
 
-export const DEFAULT_PLATFORM: PlatformState = { modules: Object.fromEntries(PLATFORM_MODULES.map((m) => [m.key, m.defaultOn])), menus: {}, maintenance: false };
+export type PlatformState = { modules: Record<string, boolean>; menus: Record<string, boolean>; maintenance: boolean; features: Record<string, boolean> };
+
+export const DEFAULT_PLATFORM: PlatformState = { modules: Object.fromEntries(PLATFORM_MODULES.map((m) => [m.key, m.defaultOn])), menus: {}, maintenance: false, features: Object.fromEntries(FEATURES.map((f) => [f.key, true])) };
 
 export function normalisePlatform(raw: unknown): PlatformState {
   const r = (raw && typeof raw === "object" ? raw : {}) as Partial<PlatformState>;
@@ -42,8 +52,12 @@ export function normalisePlatform(raw: unknown): PlatformState {
   for (const m of PLATFORM_MODULES) if (r.modules && typeof r.modules[m.key] === "boolean") modules[m.key] = r.modules[m.key];
   const menus: Record<string, boolean> = {};
   if (r.menus && typeof r.menus === "object") for (const [k, v] of Object.entries(r.menus)) if (typeof v === "boolean" && k.startsWith("/")) menus[k] = v;
-  return { modules, menus, maintenance: !!r.maintenance };
+  const features = { ...DEFAULT_PLATFORM.features };
+  for (const f of FEATURES) if (r.features && typeof r.features[f.key] === "boolean") features[f.key] = r.features[f.key];
+  return { modules, menus, maintenance: !!r.maintenance, features };
 }
+
+export const featureOn = (state: PlatformState, key: string) => state.features[key] !== false;
 
 export const moduleOf = (path: string): PlatformModule | null =>
   PLATFORM_MODULES.find((m) => m.prefixes.some((p) => path === p || path.startsWith(p + "/") || path.startsWith(p + "?"))) ?? null;
@@ -71,6 +85,7 @@ export const MENU_CATALOGUE: { href: string; label: string }[] = [
   { href: "/portal/announcements", label: "Announcements" }, { href: "/portal/comments", label: "Website messages" },
   { href: "/portal/study", label: "Study centre" }, { href: "/portal/lessons", label: "Lesson notes" }, { href: "/portal/resources", label: "Resources" }, { href: "/portal/holiday", label: "Holiday hub" }, { href: "/portal/bible", label: "Holy Bible" }, { href: "/portal/hymns", label: "Hymn books" },
   { href: "/portal/work", label: "Assignments & tests" }, { href: "/portal/mocks", label: "Mock centre" }, { href: "/portal/questions", label: "Question bank" },
+  { href: "/portal/exams", label: "Exam timetable" }, { href: "/portal/exams/integrity", label: "Exam integrity & make-ups" },
   { href: "/portal/sms", label: "SMS" },
   { href: "/portal/fees", label: "School fees" }, { href: "/portal/payroll", label: "Payroll" }, { href: "/portal/payslips", label: "Payslips" }, { href: "/portal/ledger", label: "Ledger" }, { href: "/portal/expenses", label: "Expense register" },
   { href: "/portal/library", label: "Library" }, { href: "/portal/games", label: "Games" }, { href: "/portal/rewards", label: "Rewards" }, { href: "/portal/hostel", label: "Hostel" },

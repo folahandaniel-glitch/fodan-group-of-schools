@@ -32,7 +32,7 @@ export const RESOURCES = [
   "dashboard", "students", "parents", "staff", "classes", "subjects", "timetable", "calendar", "attendance",
   "promotion", "access_codes", "lessons", "questions", "assessments", "results", "reports", "certificates",
   "resources", "announcements", "comments", "analytics", "audit", "cms", "settings", "roles", "users",
-  "branches", "clock", "fines", "finance", "payroll", "ledger", "performance", "curriculum", "holiday", "crm", "hrm", "expenses", "fees", "library", "hostel", "sms", "studio",
+  "branches", "clock", "fines", "finance", "payroll", "ledger", "performance", "curriculum", "holiday", "crm", "hrm", "expenses", "fees", "library", "hostel", "sms", "studio", "exams",
 ] as const;
 export const ACTIONS = ["view", "create", "edit", "archive", "approve", "publish", "export", "print", "assign", "transfer", "review", "manage"] as const;
 
@@ -138,6 +138,9 @@ export function defaultsFor(role: string): string[] {
   if (role === "reception") ["sms:manage", "hostel:view"].forEach((p) => extra.add(p));
   if (staff) extra.add("hostel:view");
   if (["content_admin", "premium_admin"].includes(role)) extra.add("studio:manage");
+  // Exams: leaders and the academic office run timetables and make-ups; all staff can see them.
+  if (["proprietor", "director", "principal", "headteacher", "vp_admin", "vp_academics", "academic_admin", "premium_admin"].includes(role)) extra.add("exams:manage");
+  if (staff) extra.add("exams:view");
   const AREA: Record<string, string[]> = {
     academic_admin: [...ACADEMIC_VIEW, ...full("classes", "subjects", "timetable", "calendar", "lessons", "assessments", "results", "reports", "promotion", "certificates", "resources", "students", "staff"), "questions:approve", "questions:review", "analytics:view", "announcements:create", "announcements:publish"],
     finance_admin: [...view("dashboard", "students", "parents", "staff", "announcements", "calendar"), ...full("finance", "payroll", "ledger", "fines"), "audit:view", "audit:export", "reports:export", "reports:print", "branches:view", "analytics:view"],

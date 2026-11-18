@@ -4,9 +4,11 @@ import { requireMe } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { getPlatform } from "@/lib/platform-server";
 import { MENU_CATALOGUE, PLATFORM_MODULES, moduleOf } from "@/lib/platform";
-import { Badge, Card, PageHeader } from "@/components/ui";
+import { Badge, Card, Field, PageHeader } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
-import { savePlatform } from "./actions";
+import { saveExamRules, savePlatform } from "./actions";
+import { getRules } from "@/lib/exam-rules";
+import { FEATURES } from "@/lib/platform";
 
 export const metadata = { title: "Developer console" };
 export const dynamic = "force-dynamic";
@@ -19,6 +21,7 @@ export default async function DeveloperConsole() {
   const me = await requireMe();
   if (me.role !== "developer") redirect("/forbidden");
   const plat = await getPlatform();
+  const rules = await getRules();
   const grants = await sql`SELECT u.id, u.first_name, u.last_name, u.role, count(g.perm)::int AS n FROM user_grants g JOIN users u ON u.id = g.user_id WHERE u.school_id = ${me.schoolId} GROUP BY u.id ORDER BY u.last_name LIMIT 100`;
   const supers = await sql`SELECT u.id, u.first_name, u.last_name FROM user_roles r JOIN users u ON u.id = r.user_id WHERE u.school_id = ${me.schoolId} AND r.role = 'super_admin' ORDER BY u.last_name`;
   const menuIndex = new Map(MENU_CATALOGUE.map((m, i) => [m.href, i]));
@@ -40,6 +43,14 @@ export default async function DeveloperConsole() {
         </Card>
 
         <Card>
+          <h2 className="text-xl">Features inside modules</h2>
+          <p className="mt-1 text-sm text-muted">Switch individual behaviours without hiding any page.</p>
+          <ul className="mt-3 divide-y divide-line">{FEATURES.map((f) => (
+            <li key={f.key} className="flex items-start gap-3 py-3"><input type="checkbox" name={`feat_${f.key}`} defaultChecked={plat.features[f.key] !== false} className="mt-1 h-5 w-5" aria-label={f.label} />
+              <div><p className="font-bold">{f.label}</p><p className="text-sm text-muted">{f.blurb}</p></div></li>))}</ul>
+        </Card>
+
+        <Card>
           <h2 className="text-xl">Menu items and commands</h2>
           <p className="mt-1 text-sm text-muted">Untick a single menu item to hide it and block its pages for everyone else, even if its module is on. The Developer console, Settings, BackEnd, Users, Website Studio, Audit and Downloads can never be switched off.</p>
           <div className="mt-3 grid gap-5 md:grid-cols-2">
@@ -53,6 +64,17 @@ export default async function DeveloperConsole() {
           </div>
         </Card>
       </ActionForm>
+
+      <Card className="mt-5"><h2 className="text-xl">Exam rules</h2>
+        <p className="mt-1 text-sm text-muted">CA tests and terminal exams take their time from the exam timetable. Everything else uses the standard times below.</p>
+        <ActionForm action={saveExamRules} submit="Save exam rules" className="mt-3 grid gap-3 sm:grid-cols-3">
+          <Field label="Full-screen exits allowed before auto-submit" name="maxAttempts" type="number" min={1} max={5} defaultValue={String(rules.maxAttempts)} hint="2 means: first exit is a warning, second submits." />
+          <Field label="Classwork minutes" name="m_classwork" type="number" defaultValue={String(rules.standard.classwork)} />
+          <Field label="Assignment minutes" name="m_assignment" type="number" defaultValue={String(rules.standard.assignment)} />
+          <Field label="Mock exam minutes" name="m_mock" type="number" defaultValue={String(rules.standard.mock)} />
+          <Field label="Other exams minutes" name="m_other" type="number" defaultValue={String(rules.standard.other)} />
+          <Field label="Late entry allowed (minutes after start)" name="lateEntryMin" type="number" defaultValue={String(rules.lateEntryMin)} />
+        </ActionForm></Card>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Card>

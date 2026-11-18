@@ -4,8 +4,8 @@ import { normalisePhone } from "@/lib/sms";
 import { defaultsFor, permits } from "@/lib/logic/permissions";
 
 describe("Developer switchboard", () => {
-  it("lists the thirteen modules, with unbuilt or keyless ones off by default", () => {
-    expect(PLATFORM_MODULES.map((m) => m.key)).toEqual(["registration", "attendance", "crm", "hrm", "academics", "notifications", "lms", "cbt", "sms", "finance", "library", "rewards", "hostel"]);
+  it("lists the fourteen modules, with unbuilt or keyless ones off by default", () => {
+    expect(PLATFORM_MODULES.map((m) => m.key)).toEqual(["registration", "attendance", "crm", "hrm", "academics", "notifications", "lms", "cbt", "exams", "sms", "finance", "library", "rewards", "hostel"]);
     expect(DEFAULT_PLATFORM.modules.sms).toBe(false);
     expect(DEFAULT_PLATFORM.modules.library).toBe(false);
     expect(DEFAULT_PLATFORM.modules.hostel).toBe(false);
@@ -118,5 +118,69 @@ describe("HR, diagrams and lesson generator", () => {
     for (const k of ["objectives", "materials", "presentation", "evaluation", "summary", "assignment"]) expect(g.body[k].length).toBeGreaterThan(20);
     expect(g.diagrams[0].kind).toBe("cycle");
     expect(generateLesson({ subject: "Mathematics", className: "JSS 1", topic: "Statistics" }).diagrams.some((d) => d.kind === "bar")).toBe(true);
+  });
+});
+
+import { examDays, findClash, generateExamTimetable, overlaps } from "@/lib/logic/exam-tt";
+import { minutesFor, normaliseRules, DEFAULT_RULES } from "@/lib/exam-rules";
+describe("exam timetable and rules", () => {
+  const subj = (names: string[]) => names.map((n, i) => ({ id: n + i, name: n }));
+  it("lists school days only", () => {
+    expect(examDays("2026-11-20", "2026-11-25", ["2026-11-23"])).toEqual(["2026-11-20", "2026-11-24", "2026-11-25"]);
+  });
+  it("generates a timetable with no clashes, parallel arms and core subjects first", () => {
+    const names = ["Mathematics", "English Studies", "Biology", "Chemistry", "Physics", "Government", "Economics", "Geography"];
+    const classes = [{ id: "a", level: 10, subjects: subj(names).map((s) => ({ ...s, id: s.name })) }, { id: "b", level: 10, subjects: subj(names).map((s) => ({ ...s, id: s.name })) }, { id: "c", level: 11, subjects: subj(names.slice(0, 5)).map((s) => ({ ...s, id: s.name })) }];
+    const days = examDays("2026-11-16", "2026-11-20");
+    const { slots, problems } = generateExamTimetable({ days, sessions: ["08:30", "11:00"], minutes: 60, classes });
+    expect(problems).toEqual([]);
+    expect(slots.filter((s) => s.classId === "a")).toHaveLength(8);
+    for (const c of ["a", "b", "c"]) { const mine = slots.filter((s) => s.classId === c); mine.forEach((s, i) => expect(findClash(mine, s, i)).toBeNull()); }
+    expect(slots.find((s) => s.classId === "a" && s.subjectId === "Mathematics")!.day).toBe(days[0]);
+    const a = slots.find((s) => s.classId === "a" && s.subjectId === "Biology")!, b = slots.find((s) => s.classId === "b" && s.subjectId === "Biology")!;
+    expect([a.day, a.start]).toEqual([b.day, b.start]);
+  });
+  it("reports when there are too few sessions", () => {
+    const { problems } = generateExamTimetable({ days: ["2026-11-16"], sessions: ["08:30"], minutes: 60, classes: [{ id: "a", level: 1, subjects: subj(["Maths", "English"]) }] });
+    expect(problems[0]).toMatch(/Add days/);
+  });
+  it("detects overlaps", () => {
+    expect(overlaps({ day: "d", start: "08:30", minutes: 60 }, { day: "d", start: "09:00", minutes: 30 })).toBe(true);
+    expect(overlaps({ day: "d", start: "08:30", minutes: 30 }, { day: "d", start: "09:00", minutes: 30 })).toBe(false);
+  });
+  it("uses timetable time for CA and exams and standard time for the rest", () => {
+    expect(minutesFor("ca", DEFAULT_RULES, 45, 30)).toBe(45);
+    expect(minutesFor("exam", DEFAULT_RULES, null, 75)).toBe(75);
+    expect(minutesFor("classwork", DEFAULT_RULES, null, 99)).toBe(10);
+    expect(minutesFor("mock", DEFAULT_RULES, null, 20)).toBe(120);
+    expect(normaliseRules({ maxAttempts: 99 }).maxAttempts).toBe(2);
+  });
+});
+
+import { primaryRows } from "@/data/nerdc-primary";
+import { periodQuestions } from "@/lib/logic/qgen";
+import { buildPeriods } from "@/lib/logic/periods";
+describe("curriculum, periods and auto work", () => {
+  it("has Primary 1 to 6 for nine subjects, 15 topics each", () => {
+    const rows = primaryRows();
+    expect(rows).toHaveLength(6 * 9 * 15);
+    expect(new Set(rows.map((r) => r[0]))).toEqual(new Set([1, 2, 3, 4, 5, 6]));
+    expect(new Set(rows.map((r) => r[1])).size).toBe(9);
+  });
+  it("makes five valid medium questions for any subject and level, the same each time", () => {
+    for (const subject of ["Mathematics", "English Studies", "Basic Science And Technology", "Social And Citizenship Studies", "Christian Religious Studies", "Digital Technologies", "Physical And Health Education", "Cultural And Creative Arts", "Pre-Vocational Studies", "Biology", "Economics", "Further Mathematics"]) {
+      for (const level of [1, 4, 8, 11]) {
+        const a = periodQuestions({ subject, level, topic: "Fractions and percentages", day: 2, kind: "classwork", topicId: "t1" });
+        expect(a, `${subject} ${level}`).toHaveLength(5);
+        for (const q of a) { expect(q.options).toHaveLength(4); expect(new Set(q.options).size).toBe(4); expect(q.answer).toBeGreaterThanOrEqual(0); expect(q.options[q.answer]).toBeTruthy(); }
+        expect(JSON.stringify(a)).toBe(JSON.stringify(periodQuestions({ subject, level, topic: "Fractions and percentages", day: 2, kind: "classwork", topicId: "t1" })));
+      }
+    }
+  });
+  it("builds three daily periods, each with a diagram", () => {
+    const p = buildPeriods({ subject: "Basic Science And Technology", levelName: "Basic 4", topic: "Food chains" });
+    expect(p.map((x) => x.day)).toEqual([1, 2, 3]);
+    for (const x of p) { expect(x.diagrams.length).toBeGreaterThan(0); expect(x.sections.length).toBeGreaterThan(2); }
+    expect(p[0].diagrams[0].title).toMatch(/food chain/i);
   });
 });

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { can, requireMe } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { str } from "@/lib/data";
-import { TERM_NAMES, levelName, visibleLevels, weekNo } from "@/lib/curriculum";
+import { TERM_NAMES, levelName, visibleLevels, weekNo, ensurePrimaryScheme } from "@/lib/curriculum";
 import { classLabel } from "@/lib/settings";
 import { childIds, studentOf } from "@/lib/scope";
 import { Badge, Card, Empty, PageHeader } from "@/components/ui";
@@ -18,6 +18,7 @@ export default async function Study({ searchParams }: { searchParams: Promise<Re
   const sp = await searchParams;
   const view = str(sp.view) === "library" ? "library" : "scheme";
   const manage = can(me, "curriculum:manage");
+  await ensurePrimaryScheme(me.schoolId);
   const levels = await visibleLevels(me);
   const level = levels.find((l) => String(l.level) === str(sp.level) || l.studentId === str(sp.kid))?.level ?? levels[0]?.level ?? 7;
   const term = [1, 2, 3].includes(Number(str(sp.term))) ? Number(str(sp.term)) : 1;

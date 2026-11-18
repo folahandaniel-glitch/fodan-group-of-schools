@@ -91,6 +91,8 @@ export default async function PortalLayout({ children }: { children: React.React
   add(learner ? me.role === "parent" || me.role === "student" : can(me, "fees:view") || can(me, "fees:manage"), "/portal/fees", "School fees", "Finance");
   add(can(me, "library:view") || can(me, "library:manage"), "/portal/library", "Library", "Learn");
   add(can(me, "hostel:view") || can(me, "hostel:manage"), "/portal/hostel", "Hostel", "School");
+  add(learner || can(me, "exams:view") || can(me, "exams:manage"), "/portal/exams", "Exam timetable", "Academics");
+  add(can(me, "exams:manage"), "/portal/exams/integrity", "Exam integrity", "Academics");
   add(!learner && can(me, "sms:manage"), "/portal/sms", "SMS", "Communicate");
   add(can(me, "studio:manage") || can(me, "cms:view") || can(me, "*"), "/portal/studio", "Website Studio", "Administration");
   add(isDev, "/portal/developer", "Developer console", "Administration");
@@ -106,7 +108,7 @@ export default async function PortalLayout({ children }: { children: React.React
     // One tidy home for every page: the categories follow the modules the Developer switches on and off.
     const CAT: Record<string, string> = {
       "/portal/study": "Learning", "/portal/work": "Learning", "/portal/mocks": "Learning", "/portal/rewards": "Learning", "/portal/games": "Learning", "/portal/holiday": "Learning", "/portal/library": "Learning",
-      "/portal/results": "Academics", "/portal/timetable": "Academics", "/portal/calendar": "Academics", "/portal/classes": "Academics", "/portal/promotion": "Academics", "/portal/attendance": "Academics", "/portal/mark-sheet": "Academics", "/portal/certificates": "Academics", "/portal/analytics": "Academics",
+      "/portal/results": "Academics", "/portal/exams": "Academics", "/portal/exams/integrity": "Academics", "/portal/timetable": "Academics", "/portal/calendar": "Academics", "/portal/classes": "Academics", "/portal/promotion": "Academics", "/portal/attendance": "Academics", "/portal/mark-sheet": "Academics", "/portal/certificates": "Academics", "/portal/analytics": "Academics",
       "/portal/lessons": "Teaching", "/portal/questions": "Teaching", "/portal/assessments": "Teaching", "/portal/resources": "Teaching",
       "/portal/students": "Students & Admissions", "/portal/access-codes": "Students & Admissions", "/portal/hostel": "Students & Admissions", "/portal/crm": "Students & Admissions",
       "/portal/hrm": "People & HR", "/portal/staff": "People & HR", "/portal/performance": "People & HR", "/portal/clock": "People & HR", "/portal/roster": "People & HR", "/portal/branches": "People & HR", "/portal/payslips": "People & HR",
@@ -123,7 +125,7 @@ export default async function PortalLayout({ children }: { children: React.React
     add(true, "/portal/children", "Add a child", "Overview");
     add(true, "/account", "Account & password", "Account");
     const G: Record<string, string> = { "/portal": "Overview", "/portal/children": "Overview", "/portal/study": "Learn", "/portal/holiday": "Learn", "/portal/bible": "Learn", "/portal/hymns": "Learn",
-      "/portal/results": "Family", "/portal/timetable": "Family", "/portal/attendance": "Family", "/portal/calendar": "Family", "/portal/announcements": "Family", "/portal/certificates": "Family", "/portal/m/forum": "Family", "/portal/m/tickets": "Family" };
+      "/portal/results": "Family", "/portal/exams": "Family", "/portal/timetable": "Family", "/portal/attendance": "Family", "/portal/calendar": "Family", "/portal/announcements": "Family", "/portal/certificates": "Family", "/portal/m/forum": "Family", "/portal/m/tickets": "Family" };
     for (const i of items) i.group = /^https?:/.test(i.href) ? "Learn" : (G[i.href] ?? i.group);
     const order = ["Overview", "Learn", "Family", "Account", "Community", "Workspace"];
     items.sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group));

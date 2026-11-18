@@ -4,6 +4,12 @@ import { sql } from "@/lib/db";
 import { can, requireMe, requirePerm } from "@/lib/auth";
 import { audit, clean, platformOf, safeUrl } from "@/lib/security";
 import { importScheme } from "@/lib/curriculum";
+import { redirect } from "next/navigation";
+import { ensurePeriodWork, type Work } from "@/lib/period-work";
+import { startAttempt } from "@/lib/cbt";
+import { studentOf } from "@/lib/scope";
+import { getPlatform } from "@/lib/platform-server";
+import { featureOn } from "@/lib/platform";
 import { award } from "@/lib/loyalty";
 import { POINTS } from "@/lib/logic/loyalty";
 
@@ -108,4 +114,20 @@ export async function toggleStudied(fd: FormData): Promise<void> {
   const [had] = await sql`DELETE FROM topic_progress WHERE user_id = ${me.id} AND topic_id = ${t.id} RETURNING 1`;
   if (!had) { await sql`INSERT INTO topic_progress (user_id, topic_id) VALUES (${me.id}, ${t.id}) ON CONFLICT DO NOTHING`; await award(me.schoolId, me.id, "study", t.id, POINTS.topicStudied, "Finished a study topic"); }
   refresh(t.id);
+}
+
+/** Starts the 10-minute auto-marked classwork or assignment for one lesson period. */
+export async function startPeriodWork(fd: FormData): Promise<void> {
+  const me = await requireMe();
+  const topic = clean(fd.get("topic"), 40), day = Number(fd.get("day")), work = clean(fd.get("work"), 12) as Work;
+  const back = `/portal/study/topic/${topic}`;
+  if (me.role !== "student" || !UUID.test(topic) || !["classwork", "assignment"].includes(work) || ![1, 2, 3].includes(day)) redirect(back);
+  if (!featureOn(await getPlatform(), "periodWork")) redirect(`${back}?error=${encodeURIComponent("Daily classwork is switched off.")}`);
+  const st = await studentOf(me.id);
+  if (!st?.class_id) redirect(back);
+  const id = await ensurePeriodWork({ school_id: st.school_id, class_id: st.class_id }, topic, day, work);
+  if (!id) redirect(back);
+  const r = await startAttempt(id, { id: st.id, class_id: st.class_id, school_id: st.school_id, user_id: me.id });
+  if (!r.ok) redirect(`${back}?error=${encodeURIComponent(r.error)}`);
+  redirect(`/portal/take/${r.attemptId}`);
 }

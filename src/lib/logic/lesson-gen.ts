@@ -17,7 +17,7 @@ export function familyOf(subject: string): Family {
   return "general";
 }
 
-const KEYWORD_DIAGRAMS: { re: RegExp; d: Diagram }[] = [
+export const KEYWORD_DIAGRAMS: { re: RegExp; d: Diagram }[] = [
   { re: /water cycle/, d: { kind: "cycle", title: "The water cycle", caption: "Water moves between the Earth and the atmosphere.", data: "Evaporation\nCondensation\nPrecipitation\nCollection" } },
   { re: /photosynth/, d: { kind: "flow", title: "Photosynthesis", caption: "Plants make their own food using light.", data: "Sunlight\nChlorophyll in leaf\nWater + carbon dioxide\nGlucose + oxygen" } },
   { re: /food chain|food web/, d: { kind: "flow", title: "A food chain", caption: "Arrows show the direction of energy.", data: "Sun\nGrass\nGrasshopper\nFrog\nSnake\nEagle" } },

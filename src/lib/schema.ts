@@ -1067,6 +1067,54 @@ CREATE TABLE IF NOT EXISTS hr_candidates (
 ALTER TABLE crm_accounts ADD COLUMN IF NOT EXISTS rating text NOT NULL DEFAULT 'warm';
 ALTER TABLE access_codes ADD COLUMN IF NOT EXISTS valid_days int;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS access_until timestamptz;
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS violations int NOT NULL DEFAULT 0;
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS flagged boolean NOT NULL DEFAULT false;
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS end_reason text;
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS client_id text;
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS last_seen timestamptz;
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS violation_log jsonb NOT NULL DEFAULT '[]';
+ALTER TABLE assessments ADD COLUMN IF NOT EXISTS topic_id uuid;
+ALTER TABLE assessments ADD COLUMN IF NOT EXISTS day int;
+CREATE UNIQUE INDEX IF NOT EXISTS assessments_period_uq ON assessments (topic_id, day, kind, class_id) WHERE topic_id IS NOT NULL;
+CREATE TABLE IF NOT EXISTS exam_grants (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  assessment_id uuid NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+  student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  kind text NOT NULL DEFAULT 'retake',
+  reason text,
+  window_until timestamptz,
+  used boolean NOT NULL DEFAULT false,
+  granted_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS exam_grants_ix ON exam_grants (student_id, used);
+CREATE TABLE IF NOT EXISTS exam_timetables (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  term_id uuid REFERENCES terms(id),
+  kind text NOT NULL DEFAULT 'exam',
+  name text NOT NULL,
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  status text NOT NULL DEFAULT 'draft',
+  file_id uuid,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS exam_slots (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  timetable_id uuid NOT NULL REFERENCES exam_timetables(id) ON DELETE CASCADE,
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  class_id uuid NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  subject_id uuid NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  day date NOT NULL,
+  start_time text NOT NULL,
+  duration_min int NOT NULL DEFAULT 60,
+  venue text,
+  assessment_id uuid REFERENCES assessments(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS exam_slots_ix ON exam_slots (timetable_id, class_id, day);
 CREATE TABLE IF NOT EXISTS reward_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,

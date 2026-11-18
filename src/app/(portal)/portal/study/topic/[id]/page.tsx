@@ -5,14 +5,20 @@ import { sql } from "@/lib/db";
 import { TERM_NAMES, levelName, visibleLevels } from "@/lib/curriculum";
 import { Badge, Card, Field, PageHeader, TextArea } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
-import { addResource, reviewLesson, reviewResource, saveLesson, toggleStudied } from "../../actions";
+import { addResource, reviewLesson, reviewResource, saveLesson, startPeriodWork, toggleStudied } from "../../actions";
+import { DiagramView } from "@/components/diagram";
+import { buildPeriods } from "@/lib/logic/periods";
+import { studentOf } from "@/lib/scope";
+import { getPlatform } from "@/lib/platform-server";
+import { featureOn } from "@/lib/platform";
 
 export const dynamic = "force-dynamic";
 type Row = Record<string, any>;
 
-export default async function Topic({ params }: { params: Promise<{ id: string }> }) {
+export default async function Topic({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ day?: string; error?: string }> }) {
   const me = await requireMe();
   const { id } = await params;
+  const sp = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const [t] = await sql`SELECT * FROM curriculum_topics WHERE id = ${id} AND school_id = ${me.schoolId}`;
   if (!t) notFound();
@@ -24,6 +30,14 @@ export default async function Topic({ params }: { params: Promise<{ id: string }
   const [lesson] = await sql`SELECT body, status FROM topic_lessons WHERE topic_id = ${id}`;
   const resources: Row[] = await sql`SELECT id, title, kind, url, platform, published FROM resources WHERE topic_id = ${id} AND school_id = ${me.schoolId} ${author ? sql`` : sql`AND published`} ORDER BY created_at`;
   const [done] = me.role === "student" ? await sql`SELECT 1 FROM topic_progress WHERE user_id = ${me.id} AND topic_id = ${id}` : [];
+  const periodsOn = featureOn(await getPlatform(), "periodWork");
+  const day = ([1, 2, 3].includes(Number(sp.day)) ? Number(sp.day) : 1) as 1 | 2 | 3;
+  const periods = buildPeriods({ subject: t.subject, levelName: levelName(t.level), topic: t.topic, content: t.content });
+  const per = periods[day - 1];
+  const st = me.role === "student" ? await studentOf(me.id) : null;
+  const scores: Row[] = st ? await sql`SELECT a.day, a.kind, max(CASE WHEN x.max_score > 0 THEN round((x.score / x.max_score * 100)::numeric, 0) END) AS best, count(x.id)::int AS tries
+    FROM assessments a LEFT JOIN attempts x ON x.assessment_id = a.id AND x.student_id = ${st.id} AND x.status = 'submitted' WHERE a.topic_id = ${id} AND a.class_id = ${st.class_id} GROUP BY a.day, a.kind` : [];
+  const bestOf = (d: number, k: string) => scores.find((r) => r.day === d && r.kind === k);
   const showLesson = lesson && (lesson.status === "approved" || author);
 
   return (
@@ -33,6 +47,22 @@ export default async function Topic({ params }: { params: Promise<{ id: string }
       <div className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-5">
           {t.content && <Card><h2 className="text-xl">What the scheme covers</h2><p className="mt-2 whitespace-pre-wrap">{t.content}</p></Card>}
+          {periodsOn && (
+            <Card>
+              <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl">This week: three daily periods</h2>
+                <nav className="flex gap-2" aria-label="Daily periods">{periods.map((p) => <Link key={p.day} href={`?day=${p.day}`} className={`badge text-sm ${p.day === day ? "badge-info" : ""}`}>Day {p.day}</Link>)}</nav></div>
+              {sp.error && <p role="alert" className="mt-2 text-sm font-semibold text-bad">{sp.error}</p>}
+              <h3 className="mt-3 text-lg">{per.title}</h3><p className="text-sm text-muted">{per.focus}</p>
+              {per.diagrams.map((d, i) => <DiagramView key={i} d={d} />)}
+              <dl className="mt-2 grid gap-3 text-sm">{per.sections.map((x) => <div key={x.h}><dt className="text-xs font-bold uppercase tracking-wider text-muted">{x.h}</dt><dd className="mt-0.5 whitespace-pre-line text-ink-2">{x.body}</dd></div>)}</dl>
+              {me.role === "student" && (
+                <div className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2">{([["classwork", "Classwork", "classwork"], ["assignment", "Assignment", "practice"]] as const).map(([w, label, kind]) => { const b = bestOf(day, kind); return (
+                  <form key={w} action={startPeriodWork} className="rounded-xl border border-line p-3"><input type="hidden" name="topic" value={id} /><input type="hidden" name="day" value={day} /><input type="hidden" name="work" value={w} />
+                    <p className="font-bold">{label} <span className="text-xs font-normal text-muted">10 minutes · 5 questions · marked for you</span></p>
+                    {b?.best !== undefined && b?.best !== null && <p className="text-sm">Best score: <b>{b.best}%</b> ({b.tries} attempt{b.tries === 1 ? "" : "s"})</p>}
+                    <button className="btn btn-primary btn-sm mt-2">{b?.tries ? "Try again" : `Start ${label.toLowerCase()}`}</button></form>); })}</div>)}
+            </Card>
+          )}
           <Card>
             <h2 className="text-xl">Lesson {lesson?.status === "pending" && <Badge tone="warn">awaiting approval</Badge>}</h2>
             {showLesson ? <div className="mt-3 whitespace-pre-wrap text-[1.02rem] leading-8">{lesson.body}</div> : <p className="mt-2 text-sm text-muted">The lesson for this topic has not been written yet. Use the resources while you wait.</p>}
