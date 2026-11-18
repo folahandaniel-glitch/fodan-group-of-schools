@@ -6,6 +6,7 @@ import { getSetting } from "@/lib/settings";
 import { ACTIONS, ACTION_LABEL, CASE_STATUS } from "@/lib/hrm";
 import { Badge, Card, Empty, Field, PageHeader, TextArea } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
+import { HrNav } from "./hr-nav";
 import { archiveCourse, assignTraining, completeTraining, decideCase, deleteHoliday, deleteRule, raiseCase, respondCase, saveCourse, saveHoliday, saveRule } from "./actions";
 
 export const metadata = { title: "HRM" };
@@ -192,8 +193,9 @@ export default async function Hrm({ searchParams }: { searchParams: Promise<Reco
 
   return (
     <>
-      <PageHeader title="HRM" sub="Staff rules, fines, HR cases, training and public holidays in one place." />
-      <nav className="mb-5 flex flex-wrap gap-2" aria-label="HRM sections">{tabs.map(([k, l]) => <Link key={k} href={`/portal/hrm?tab=${k}`} className={`badge text-sm ${tab === k ? "badge-info" : ""}`}>{l}</Link>)}</nav>
+      <PageHeader title="HRM" sub="Staff rules, fines, HR cases and training here; leave, appraisals, recruitment and the staff directory in the tabs above." />
+      <HrNav current="/portal/hrm" />
+      <nav className="mb-5 flex flex-wrap gap-2" aria-label="Rules and cases sections">{tabs.map(([k, l]) => <Link key={k} href={`/portal/hrm?tab=${k}`} className={`badge text-sm ${tab === k ? "badge-info" : ""}`}>{l}</Link>)}</nav>
       {body}
     </>
   );

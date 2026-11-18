@@ -11,14 +11,20 @@ type State = { error?: string; ok?: string };
 const uuid = (v: unknown) => { const s = clean(v, 40); return /^[0-9a-f-]{36}$/i.test(s) ? s : null; };
 
 import { LESSON_FIELDS } from "@/lib/logic/lesson";
+import { cleanDiagram, type Diagram } from "@/lib/logic/diagram";
+import { generateLesson } from "@/lib/logic/lesson-gen";
+import { listClasses, listSubjects } from "@/lib/data";
 
 export async function saveLesson(_p: State, fd: FormData): Promise<State> {
   const me = await requirePerm("lessons:create");
   const id = uuid(fd.get("id"));
   const topic = clean(fd.get("topic"), 200);
   if (!topic) return { error: "Enter the topic." };
-  const body: Record<string, string> = {};
+  const body: Record<string, any> = {};
   for (const k of LESSON_FIELDS) body[k] = clean(fd.get(k), 6000);
+  const diagrams: Diagram[] = [];
+  for (let i = 0; i < 6; i++) { const d = cleanDiagram({ kind: fd.get(`dk${i}`) as never, title: String(fd.get(`dt${i}`) ?? ""), caption: String(fd.get(`dc${i}`) ?? ""), data: String(fd.get(`dd${i}`) ?? "") }); if (d) diagrams.push(d); }
+  body.diagrams = diagrams;
   const term = await currentTerm();
   const vals = {
     classId: uuid(fd.get("classId")), subjectId: uuid(fd.get("subjectId")), termId: uuid(fd.get("termId")) ?? term?.id ?? null,
@@ -70,4 +76,25 @@ export async function lessonTransition(fd: FormData): Promise<void> {
   }
   revalidatePath(`/portal/lessons/${id}`);
   revalidatePath("/portal/lessons");
+}
+
+/** Builds a complete draft in the standard template (with suggested diagrams) from a class, subject and topic, then opens it for editing. */
+export async function generateLessonNote(_p: State, fd: FormData): Promise<State> {
+  const me = await requirePerm("lessons:create");
+  const topic = clean(fd.get("topic"), 200);
+  if (!topic) return { error: "Enter the topic to generate a note for." };
+  const classId = uuid(fd.get("classId")), subjectId = uuid(fd.get("subjectId"));
+  const cls = (await listClasses(me.schoolId)).find((c) => c.id === classId), sub = (await listSubjects(me.schoolId)).find((x) => x.id === subjectId);
+  if (!cls || !sub) return { error: "Choose the class and the subject." };
+  let source = "";
+  const [t] = await sql`SELECT t.id, t.content, l.body FROM curriculum_topics t LEFT JOIN topic_lessons l ON l.topic_id = t.id
+    WHERE t.school_id = ${me.schoolId} AND lower(t.subject) = lower(${sub.name}) AND lower(t.topic) = lower(${topic}) AND t.level = ${cls.level} LIMIT 1`;
+  if (t) source = String(t.body ?? t.content ?? "");
+  const term = await currentTerm();
+  const draft = generateLesson({ subject: sub.name, className: cls.label, topic, subtopic: clean(fd.get("subtopic"), 160), duration: Number(fd.get("duration")) || 40, source });
+  const body = { ...draft.body, diagrams: draft.diagrams };
+  const [r] = await sql`INSERT INTO lesson_notes (school_id, teacher_id, class_id, subject_id, term_id, week, lesson_date, topic, subtopic, body)
+    VALUES (${me.schoolId}, ${me.id}, ${cls.id}, ${sub.id}, ${term?.id ?? null}, ${Number(fd.get("week")) || null}, ${clean(fd.get("lessonDate"), 10) || null}, ${topic}, ${draft.body.subtopic}, ${sql.json(body)}) RETURNING id`;
+  await audit({ schoolId: me.schoolId, actorId: me.id, action: "lesson.generate", entity: "lesson_note", entityId: r.id });
+  redirect(`/portal/lessons/${r.id}`);
 }

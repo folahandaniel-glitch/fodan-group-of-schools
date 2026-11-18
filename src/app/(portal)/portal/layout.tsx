@@ -102,6 +102,23 @@ export default async function PortalLayout({ children }: { children: React.React
     if (isDev) items[i].label += " (off)"; else items.splice(i, 1);
   }
   const blocked = !isDev && reqPath !== "" && !pathOn(plat, reqPath);
+  if (me.role !== "parent") {
+    // One tidy home for every page: the categories follow the modules the Developer switches on and off.
+    const CAT: Record<string, string> = {
+      "/portal/study": "Learning", "/portal/work": "Learning", "/portal/mocks": "Learning", "/portal/rewards": "Learning", "/portal/games": "Learning", "/portal/holiday": "Learning", "/portal/library": "Learning",
+      "/portal/results": "Academics", "/portal/timetable": "Academics", "/portal/calendar": "Academics", "/portal/classes": "Academics", "/portal/promotion": "Academics", "/portal/attendance": "Academics", "/portal/mark-sheet": "Academics", "/portal/certificates": "Academics", "/portal/analytics": "Academics",
+      "/portal/lessons": "Teaching", "/portal/questions": "Teaching", "/portal/assessments": "Teaching", "/portal/resources": "Teaching",
+      "/portal/students": "Students & Admissions", "/portal/access-codes": "Students & Admissions", "/portal/hostel": "Students & Admissions", "/portal/crm": "Students & Admissions",
+      "/portal/hrm": "People & HR", "/portal/staff": "People & HR", "/portal/performance": "People & HR", "/portal/clock": "People & HR", "/portal/roster": "People & HR", "/portal/branches": "People & HR", "/portal/payslips": "People & HR",
+      "/portal/fees": "Finance", "/portal/payroll": "Finance", "/portal/ledger": "Finance", "/portal/expenses": "Finance",
+      "/portal/announcements": "Communication", "/portal/comments": "Communication", "/portal/sms": "Communication", "/portal/notifications": "Communication",
+      "/portal/bible": "Faith", "/portal/hymns": "Faith", "/portal/exports": "Records",
+    };
+    for (const i of items) if (CAT[i.href]) i.group = CAT[i.href];
+    const ORDER = ["Overview", "Learning", "Academics", "Teaching", "Students & Admissions", "People & HR", "Finance", "Communication", "Community", "Workspace", "Faith", "Records", "Administration"];
+    const rank = (g: string) => { const k = ORDER.indexOf(g); return k < 0 ? 99 : k; };
+    items.sort((a, b) => rank(a.group) - rank(b.group));
+  }
   if (me.role === "parent") {
     add(true, "/portal/children", "Add a child", "Overview");
     add(true, "/account", "Account & password", "Account");

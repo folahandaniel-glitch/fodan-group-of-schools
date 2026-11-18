@@ -19,9 +19,13 @@ export async function makeCodes(_p: State, fd: FormData): Promise<State> {
   const me = await requirePerm("access_codes:manage");
   const kind = clean(fd.get("kind"), 8) === "parent" ? "parent" : "student";
   const count = Math.round(Number(fd.get("count")));
-  const from = dateOr(fd.get("validFrom")), to = dateOr(fd.get("expiresOn")), batch = clean(fd.get("batch"), 40) || null;
+  const from = dateOr(fd.get("validFrom")), batch = clean(fd.get("batch"), 40) || null;
+  const days = Math.round(Number(fd.get("days")) || 0);
+  if (days < 0 || days > 3650) return { error: "Validity days must be between 1 and 3650." };
+  let to = dateOr(fd.get("expiresOn"));
+  if (!to && days > 0) { const d = new Date(`${from ?? today()}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + days); to = d.toISOString().slice(0, 10); }
   if (!Number.isFinite(count) || count < 1 || count > 300) return { error: "Enter how many codes (1 to 300)." };
-  if (fd.get("expiresOn") && !to) return { error: "The last valid day is not a valid date." };
+  if (fd.get("expiresOn") && !dateOr(fd.get("expiresOn"))) return { error: "The last valid day is not a valid date." };
   if (to && to < today()) return { error: "The last valid day is already in the past." };
   if (from && to && to < from) return { error: "The last day must be on or after the start day." };
   const made = await makeRegCodes({ schoolId: me.schoolId, kind, count, batch, from, to, by: me.id });

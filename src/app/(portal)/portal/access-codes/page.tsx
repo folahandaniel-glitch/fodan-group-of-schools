@@ -70,10 +70,11 @@ export default async function AccessCodes({ searchParams }: { searchParams: Prom
 
       {manage && (
         <Card className="mb-5" id="generate"><h2 className="text-xl">Generate codes</h2>
-          <ActionForm action={makeCodes} submit="Generate codes" className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <ActionForm action={makeCodes} submit="Generate codes" className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="field"><label htmlFor="kind">For</label><select id="kind" name="kind" className="select"><option value="student">Students</option><option value="parent">Parents</option></select></div>
             <Field label="How many" name="count" type="number" defaultValue="10" min={1} max={300} required />
-            <Field label="Valid until (optional)" name="expiresOn" type="date" />
+            <Field label="Valid for (days)" name="days" type="number" min={1} max={3650} placeholder="e.g. 30" hint="Counted from the start day, or today." />
+            <Field label="…or valid until" name="expiresOn" type="date" />
             <Field label="Batch no. (optional)" name="batch" placeholder="e.g. 2026-A" />
             <Field label="Valid from (optional)" name="validFrom" type="date" />
           </ActionForm></Card>

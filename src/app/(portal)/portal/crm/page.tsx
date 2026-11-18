@@ -2,7 +2,7 @@ import Link from "next/link";
 import { can, requirePerm } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { str } from "@/lib/data";
-import { KIND_LABEL, STAGES, STAGE_LABEL, STATUS_LABEL } from "@/lib/crm";
+import { KIND_LABEL, RATING_LABEL, STAGES, STAGE_LABEL, STATUS_LABEL, weighted } from "@/lib/crm";
 import { Badge, Card, Empty, Field, PageHeader, Stat, TextArea } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { advanceOpportunity, completeFollowUp, createAccount } from "./actions";
@@ -23,7 +23,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Reco
   const opps: Row[] = await sql`SELECT o.id, o.title, o.stage, o.value, o.account_id, a.name AS account FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id
     WHERE o.school_id = ${S} AND (o.stage NOT IN ('won','lost') OR o.closed_at > now() - interval '30 days') ORDER BY o.value DESC LIMIT 300`;
   const accounts: Row[] = await sql`
-    SELECT a.id, a.name, a.kind, a.status, a.phone, u.first_name || ' ' || u.last_name AS owner,
+    SELECT a.id, a.name, a.kind, a.status, a.phone, a.rating, a.source, u.first_name || ' ' || u.last_name AS owner,
       (SELECT coalesce(sum(o.value), 0) FROM crm_opportunities o WHERE o.account_id = a.id AND o.stage NOT IN ('won','lost')) AS open_value,
       (SELECT min(x.follow_up_on) FROM crm_activities x WHERE x.account_id = a.id AND x.follow_up_on IS NOT NULL AND NOT x.follow_up_done) AS next_fu
     FROM crm_accounts a LEFT JOIN users u ON u.id = a.owner_id WHERE a.school_id = ${S}
@@ -33,6 +33,9 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Reco
   const due: Row[] = await sql`SELECT x.id, x.summary, x.follow_up_on, a.id AS account_id, a.name AS account FROM crm_activities x JOIN crm_accounts a ON a.id = x.account_id
     WHERE x.school_id = ${S} AND x.follow_up_on IS NOT NULL AND NOT x.follow_up_done AND x.follow_up_on <= current_date ORDER BY x.follow_up_on LIMIT 20`;
 
+  const [sched] = await sql`SELECT count(*) FILTER (WHERE x.follow_up_on < current_date)::int AS overdue FROM crm_activities x WHERE x.school_id = ${S} AND x.follow_up_on IS NOT NULL AND NOT x.follow_up_done`;
+  const bySource = Object.entries(accounts.reduce((m: Record<string, number>, a) => { const k = (a.source || "Not recorded").toString().trim() || "Not recorded"; m[k] = (m[k] ?? 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const byStatus = Object.keys(STATUS_LABEL).map((k) => [k, accounts.filter((a) => a.status === k).length] as [string, number]);
   const cols = STAGES.map((s) => { const items = opps.filter((o) => o.stage === s); return { s, items, total: items.reduce((a, o) => a + Number(o.value), 0) }; });
   const won = cols.find((c) => c.s === "won")!.total, lost = cols.find((c) => c.s === "lost")!.total;
   const open = cols.filter((c) => !["won", "lost"].includes(c.s)).reduce((a, c) => a + c.total, 0);
@@ -40,9 +43,16 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Reco
   return (
     <>
       <PageHeader title="CRM" sub="Admissions enquiries, sponsors, vendors and partners: who they are, what was discussed and what happens next." />
-      <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Open pipeline" value={naira(open)} /><Stat label="Win rate (30 days)" value={won + lost > 0 ? `${Math.round((won / (won + lost)) * 100)}%` : "—"} tone="royal" />
-        <Stat label="Follow-ups due" value={due.length} /><Stat label="Accounts" value={accounts.length} tone="royal" />
+        <Stat label="Weighted forecast" value={naira(weighted(opps.filter((o) => !["won", "lost"].includes(o.stage))))} hint="open deals by stage probability" /><Stat label="Follow-ups due" value={due.length} hint={sched?.overdue ? `${sched.overdue} overdue` : undefined} /><Stat label="Accounts" value={accounts.length} tone="royal" />
+      </section>
+
+      <section className="mb-6 grid gap-4 md:grid-cols-2">
+        <Card><h2 className="text-lg">Where leads come from</h2>
+          {bySource.length === 0 ? <p className="mt-2 text-sm text-muted">No accounts yet.</p> : <ul className="mt-3 space-y-2 text-sm">{bySource.map(([k, n]) => <li key={k}><div className="flex justify-between"><span>{k}</span><b>{n}</b></div><div className="mt-1 h-2 overflow-hidden rounded-full bg-paper-2"><div className="h-full bg-strong" style={{ width: `${(n / Math.max(accounts.length, 1)) * 100}%` }} /></div></li>)}</ul>}</Card>
+        <Card><h2 className="text-lg">Lead to client funnel</h2>
+          <ul className="mt-3 space-y-2 text-sm">{byStatus.map(([k, n]) => <li key={k}><div className="flex justify-between"><span>{STATUS_LABEL[k]}</span><b>{n}</b></div><div className="mt-1 h-2 overflow-hidden rounded-full bg-paper-2"><div className="h-full bg-gold-2" style={{ width: `${(n / Math.max(accounts.length, 1)) * 100}%` }} /></div></li>)}</ul></Card>
       </section>
 
       {due.length > 0 && (
@@ -79,10 +89,10 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Reco
             <button className="btn btn-ghost btn-sm">Filter</button>
           </form></div>
         {accounts.length === 0 ? <div className="mt-3"><Empty title="No accounts yet">Add your first enquiry, sponsor or partner below.</Empty></div> : (
-          <div className="mt-3 overflow-x-auto"><table className="tbl min-w-[40rem]"><thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Owner</th><th className="text-right">Open value</th><th>Next follow-up</th></tr></thead>
+          <div className="mt-3 overflow-x-auto"><table className="tbl min-w-[46rem]"><thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Rating</th><th>Owner</th><th className="text-right">Open value</th><th>Next follow-up</th></tr></thead>
             <tbody>{accounts.map((a) => (
               <tr key={a.id}><td className="font-bold"><Link className="text-royal" href={`/portal/crm/${a.id}`}>{a.name}</Link></td><td>{KIND_LABEL[a.kind]}</td>
-                <td><Badge tone={a.status === "client" ? "ok" : a.status === "inactive" ? "bad" : "info"}>{STATUS_LABEL[a.status]}</Badge></td><td>{a.owner ?? "—"}</td>
+                <td><Badge tone={a.status === "client" ? "ok" : a.status === "inactive" ? "bad" : "info"}>{STATUS_LABEL[a.status]}</Badge></td><td><Badge tone={a.rating === "hot" ? "bad" : a.rating === "cold" ? undefined : "warn"}>{RATING_LABEL[a.rating] ?? "Warm"}</Badge></td><td>{a.owner ?? "—"}</td>
                 <td className="text-right">{naira(a.open_value)}</td><td>{a.next_fu ? new Date(a.next_fu).toLocaleDateString("en-GB") : "—"}</td></tr>))}</tbody></table></div>)}
       </Card>
 
@@ -92,6 +102,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Reco
             <Field label="Name" name="name" required />
             <div className="field"><label htmlFor="kind2">Type</label><select id="kind2" name="kind" className="select">{Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
             <div className="field"><label htmlFor="status2">Status</label><select id="status2" name="status" className="select"><option value="lead">Lead</option><option value="prospect">Prospect</option><option value="client">Client</option></select></div>
+            <div className="field"><label htmlFor="rating2">Lead rating</label><select id="rating2" name="rating" className="select" defaultValue="warm"><option value="hot">Hot (ready to enrol)</option><option value="warm">Warm</option><option value="cold">Cold</option></select></div>
             <Field label="Phone" name="phone" type="tel" /><Field label="Email" name="email" type="email" /><Field label="How did they find us?" name="source" />
             <Field label="Contact person" name="contact" /><Field label="Contact phone" name="cphone" type="tel" /><Field label="Address" name="address" />
             <div className="sm:col-span-3"><TextArea label="Notes" name="notes" rows={2} /></div>

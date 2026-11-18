@@ -30,8 +30,8 @@ export async function createAccount(_p: State, fd: FormData): Promise<State> {
   const status = STATUSES.includes(clean(fd.get("status"), 12)) ? clean(fd.get("status"), 12) : "lead";
   const [dup] = await sql`SELECT id FROM crm_accounts WHERE school_id = ${me.schoolId} AND lower(name) = lower(${name})`;
   if (dup) return { error: "An account with this name already exists. Open it instead of creating a duplicate." };
-  const [a] = await sql`INSERT INTO crm_accounts (school_id, name, kind, status, phone, email, address, source, notes, owner_id, created_by)
-    VALUES (${me.schoolId}, ${name}, ${kind}, ${status}, ${clean(fd.get("phone"), 40) || null}, ${email || null}, ${clean(fd.get("address"), 300) || null},
+  const [a] = await sql`INSERT INTO crm_accounts (school_id, name, kind, status, rating, phone, email, address, source, notes, owner_id, created_by)
+    VALUES (${me.schoolId}, ${name}, ${kind}, ${status}, ${["hot", "warm", "cold"].includes(clean(fd.get("rating"), 6)) ? clean(fd.get("rating"), 6) : "warm"}, ${clean(fd.get("phone"), 40) || null}, ${email || null}, ${clean(fd.get("address"), 300) || null},
             ${clean(fd.get("source"), 120) || null}, ${clean(fd.get("notes"), 2000) || null}, ${me.id}, ${me.id}) RETURNING id`;
   const contact = clean(fd.get("contact"), 120);
   if (contact) await sql`INSERT INTO crm_contacts (school_id, account_id, name, phone, is_primary) VALUES (${me.schoolId}, ${a.id}, ${contact}, ${clean(fd.get("cphone"), 40) || null}, true)`;

@@ -1003,6 +1003,68 @@ CREATE TABLE IF NOT EXISTS access_codes (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS access_codes_ix ON access_codes (school_id, kind, created_at DESC);
+CREATE TABLE IF NOT EXISTS hr_leave_types (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  days int NOT NULL DEFAULT 0,
+  paid boolean NOT NULL DEFAULT true,
+  active boolean NOT NULL DEFAULT true,
+  UNIQUE (school_id, name)
+);
+CREATE TABLE IF NOT EXISTS hr_leave (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type_id uuid NOT NULL REFERENCES hr_leave_types(id),
+  from_on date NOT NULL,
+  to_on date NOT NULL,
+  days int NOT NULL,
+  reason text,
+  status text NOT NULL DEFAULT 'pending',
+  decided_by uuid,
+  decided_at timestamptz,
+  comment text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS hr_leave_ix ON hr_leave (school_id, status, from_on);
+CREATE TABLE IF NOT EXISTS hr_appraisals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  period text NOT NULL,
+  scores jsonb NOT NULL DEFAULT '{}',
+  overall numeric NOT NULL DEFAULT 0,
+  strengths text, improvements text, goals text, staff_comment text,
+  status text NOT NULL DEFAULT 'submitted',
+  appraiser_id uuid,
+  acknowledged_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS hr_vacancies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  department text,
+  kind text NOT NULL DEFAULT 'full_time',
+  openings int NOT NULL DEFAULT 1,
+  description text,
+  closes_on date,
+  status text NOT NULL DEFAULT 'open',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS hr_candidates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  vacancy_id uuid NOT NULL REFERENCES hr_vacancies(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  email text, phone text,
+  stage text NOT NULL DEFAULT 'applied',
+  rating int,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE crm_accounts ADD COLUMN IF NOT EXISTS rating text NOT NULL DEFAULT 'warm';
 CREATE TABLE IF NOT EXISTS reward_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,

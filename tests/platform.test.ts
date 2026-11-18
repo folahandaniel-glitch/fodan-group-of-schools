@@ -87,3 +87,36 @@ describe("loyalty and games", () => {
     }
   });
 });
+
+import { workingDays, overallScore, nextStage, service } from "@/lib/logic/hr";
+import { parseNumberLine, parsePoints, cleanDiagram } from "@/lib/logic/diagram";
+import { generateLesson, familyOf } from "@/lib/logic/lesson-gen";
+describe("HR, diagrams and lesson generator", () => {
+  it("counts leave working days, skipping weekends and holidays", () => {
+    expect(workingDays("2026-11-16", "2026-11-20")).toBe(5);
+    expect(workingDays("2026-11-16", "2026-11-22")).toBe(5);
+    expect(workingDays("2026-11-16", "2026-11-20", ["2026-11-18"])).toBe(4);
+    expect(workingDays("2026-11-20", "2026-11-16")).toBe(0);
+  });
+  it("scores appraisals and moves candidates", () => {
+    expect(overallScore({ quality: 5, knowledge: 4, punctuality: 3 })).toBe(4);
+    expect(overallScore({})).toBe(0);
+    expect(nextStage("applied")).toBe("screening");
+    expect(nextStage("offer")).toBe("hired");
+    expect(nextStage("hired")).toBeNull();
+    expect(service("2020-01-15", new Date("2026-11-18"))).toBe("6 yrs 10 mo");
+  });
+  it("parses diagram data safely", () => {
+    expect(parsePoints("Mon: 5\nTue: x\nWed: 8")).toEqual([{ label: "Mon", value: 5 }, { label: "Wed", value: 8 }]);
+    expect(parseNumberLine("from: 0\nto: 10\nstep: 2\nmark: 3, 99")).toEqual({ from: 0, to: 10, step: 2, marks: [3] });
+    expect(cleanDiagram({ kind: "bar", data: "   " })).toBeNull();
+    expect(cleanDiagram({ kind: "nope" as never, data: "x" })).toBeNull();
+  });
+  it("generates a full note with a fitting diagram", () => {
+    const g = generateLesson({ subject: "Basic Science", className: "JSS 1", topic: "The water cycle" });
+    expect(familyOf("Basic Science")).toBe("science");
+    for (const k of ["objectives", "materials", "presentation", "evaluation", "summary", "assignment"]) expect(g.body[k].length).toBeGreaterThan(20);
+    expect(g.diagrams[0].kind).toBe("cycle");
+    expect(generateLesson({ subject: "Mathematics", className: "JSS 1", topic: "Statistics" }).diagrams.some((d) => d.kind === "bar")).toBe(true);
+  });
+});
