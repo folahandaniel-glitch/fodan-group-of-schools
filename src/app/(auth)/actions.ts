@@ -38,6 +38,7 @@ export async function login(_p: State, fd: FormData): Promise<State> {
     return { error: "Invalid email or password." };
   }
   if (u.status === "pending") return { error: "Your registration is awaiting approval by school management. You will be able to sign in once it is approved." };
+  if (u.access_until && new Date(u.access_until) <= new Date()) return { error: "Your access period has ended. Please contact the school office for a new access code." };
   if (u.status !== "active") {
     await audit({ schoolId: u.school_id, actorId: u.id, category: "security", action: "login.blocked", meta: { status: u.status } });
     return { error: "This account is suspended. Please contact the school." };

@@ -24,7 +24,7 @@ export default async function AccessCodes({ searchParams }: { searchParams: Prom
   const lagosToday = new Date(Date.now() + 3600_000).toISOString().slice(0, 10);
 
   const rows: Row[] = await sql`
-    SELECT a.id, a.kind, a.code_enc, a.batch, a.status, a.used_at, to_char(a.valid_from, 'YYYY-MM-DD') AS valid_from, to_char(a.expires_on, 'YYYY-MM-DD') AS expires_on,
+    SELECT a.id, a.kind, a.code_enc, a.batch, a.status, a.used_at, a.valid_days, u.access_until, to_char(a.valid_from, 'YYYY-MM-DD') AS valid_from, to_char(a.expires_on, 'YYYY-MM-DD') AS expires_on,
            u.first_name || ' ' || u.last_name AS used_by_name, u.status AS user_status
     FROM access_codes a LEFT JOIN users u ON u.id = a.used_by
     WHERE a.school_id = ${me.schoolId} ${kind ? sql`AND a.kind = ${kind}` : sql``} ${batch ? sql`AND a.batch = ${batch}` : sql``}
@@ -54,7 +54,8 @@ export default async function AccessCodes({ searchParams }: { searchParams: Prom
             <div key={r.id} className="break-inside-avoid rounded-2xl border-2 border-dashed border-line p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-muted">{brand.school} · {r.kind === "parent" ? "Parent" : "Student"} access code</p>
               <p className="mt-2 rounded-xl bg-paper-2 px-3 py-2 text-center font-mono text-lg font-bold tracking-wider">{r.code}</p>
-              {(r.valid_from || r.expires_on) && <p className="mt-1 text-xs font-semibold">Valid {r.valid_from ? `from ${r.valid_from} ` : ""}{r.expires_on ? `until ${r.expires_on}` : ""}{r.batch ? ` · Batch ${r.batch}` : ""}</p>}
+              {r.valid_days && <p className="mt-1 text-xs font-semibold">Access lasts {r.valid_days} days, counted from the day you register with this code.</p>}
+              {(r.valid_from || r.expires_on) && <p className="mt-1 text-xs font-semibold">Use {r.valid_from ? `from ${r.valid_from} ` : ""}{r.expires_on ? `until ${r.expires_on}` : ""}{r.batch ? ` · Batch ${r.batch}` : ""}</p>}
               {!(r.valid_from || r.expires_on) && r.batch && <p className="mt-1 text-xs font-semibold">Batch {r.batch}</p>}
               <p className="mt-2 text-xs text-muted">Register at <b>{base}{r.kind === "parent" ? "/register/parent" : "/register"}</b> with this code. It can be used once. After registering, the school will activate your account.</p>
             </div>))}
@@ -73,8 +74,8 @@ export default async function AccessCodes({ searchParams }: { searchParams: Prom
           <ActionForm action={makeCodes} submit="Generate codes" className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="field"><label htmlFor="kind">For</label><select id="kind" name="kind" className="select"><option value="student">Students</option><option value="parent">Parents</option></select></div>
             <Field label="How many" name="count" type="number" defaultValue="10" min={1} max={300} required />
-            <Field label="Valid for (days)" name="days" type="number" min={1} max={3650} placeholder="e.g. 30" hint="Counted from the start day, or today." />
-            <Field label="…or valid until" name="expiresOn" type="date" />
+            <Field label="Access lasts (days)" name="days" type="number" min={1} max={3650} placeholder="e.g. 90" hint="The countdown starts the moment the code is used. Leave empty for no limit." />
+            <Field label="Code must be used by (optional)" name="expiresOn" type="date" />
             <Field label="Batch no. (optional)" name="batch" placeholder="e.g. 2026-A" />
             <Field label="Valid from (optional)" name="validFrom" type="date" />
           </ActionForm></Card>
@@ -106,14 +107,16 @@ export default async function AccessCodes({ searchParams }: { searchParams: Prom
 
       <Card pad={false} className="overflow-x-auto">
         {view.length === 0 ? <div className="p-5"><Empty title="No codes yet">Generate some above.</Empty></div> : (
-          <table className="tbl min-w-[46rem] text-sm"><thead><tr><th>Code</th><th>For</th><th>Batch</th><th>Valid</th><th>Status</th><th>Used by</th>{manage && <th></th>}</tr></thead>
+          <table className="tbl min-w-[56rem] text-sm"><thead><tr><th>Code</th><th>For</th><th>Batch</th><th>Use by</th><th>Access</th><th>Status</th><th>Used by</th>{manage && <th></th>}</tr></thead>
             <tbody>{view.map((r) => { const st = state(r); return (
               <tr key={r.id}><td className="font-mono font-bold tracking-wide">{can(me, "access_codes:view") ? r.code : "••••"}</td><td className="capitalize">{r.kind}</td><td>{r.batch ?? <span className="text-muted">-</span>}</td>
                 <td className="whitespace-nowrap text-xs">{r.valid_from || r.expires_on ? `${r.valid_from ?? "any time"} to ${r.expires_on ?? "no end"}` : <span className="text-muted">No limit</span>}</td>
+                <td className="whitespace-nowrap text-xs">{r.access_until ? (() => { const left = Math.ceil((new Date(r.access_until).getTime() - Date.now()) / 86400000); return left > 0 ? <span><b>{left}</b> day{left === 1 ? "" : "s"} left<br />ends {new Date(r.access_until).toLocaleDateString("en-GB", { timeZone: "Africa/Lagos" })}</span> : <span className="font-bold text-bad">access ended</span>; })() : r.valid_days ? `${r.valid_days} days from first use` : <span className="text-muted">No limit</span>}</td>
                 <td><Badge tone={st === "unused" ? "ok" : st === "used" ? "info" : "bad"}>{st}</Badge></td>
                 <td>{r.used_by_name ?? <span className="text-muted">-</span>}{r.used_by_name && r.user_status === "pending" && <span className="ml-1 text-xs text-muted">(waiting for approval)</span>}</td>
                 {manage && <td className="whitespace-nowrap"><form action={codeOp} className="inline"><input type="hidden" name="id" value={r.id} />
                   {!r.used_at && (r.status === "active" ? <button name="op" value="revoke" className="btn btn-ghost btn-sm">Revoke</button> : <button name="op" value="restore" className="btn btn-ghost btn-sm">Restore</button>)}
+                  {r.used_at && r.access_until && <><input name="more" type="number" defaultValue={30} min={1} className="input !w-16 !min-h-8 !py-0" aria-label="Days to add" /><button name="op" value="extend" className="btn btn-gold btn-sm ml-1">Add days</button></>}
                   {!r.used_at && <button name="op" value="delete" className="btn btn-danger btn-sm ml-1">Delete</button>}</form></td>}
               </tr>); })}</tbody></table>)}
       </Card>

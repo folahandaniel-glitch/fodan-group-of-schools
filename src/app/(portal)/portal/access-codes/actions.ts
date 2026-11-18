@@ -21,15 +21,14 @@ export async function makeCodes(_p: State, fd: FormData): Promise<State> {
   const count = Math.round(Number(fd.get("count")));
   const from = dateOr(fd.get("validFrom")), batch = clean(fd.get("batch"), 40) || null;
   const days = Math.round(Number(fd.get("days")) || 0);
-  if (days < 0 || days > 3650) return { error: "Validity days must be between 1 and 3650." };
-  let to = dateOr(fd.get("expiresOn"));
-  if (!to && days > 0) { const d = new Date(`${from ?? today()}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + days); to = d.toISOString().slice(0, 10); }
+  if (days < 0 || days > 3650) return { error: "Access days must be between 1 and 3650." };
+  const to = dateOr(fd.get("expiresOn"));
   if (!Number.isFinite(count) || count < 1 || count > 300) return { error: "Enter how many codes (1 to 300)." };
   if (fd.get("expiresOn") && !dateOr(fd.get("expiresOn"))) return { error: "The last valid day is not a valid date." };
   if (to && to < today()) return { error: "The last valid day is already in the past." };
   if (from && to && to < from) return { error: "The last day must be on or after the start day." };
-  const made = await makeRegCodes({ schoolId: me.schoolId, kind, count, batch, from, to, by: me.id });
-  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "access_code.generate", entity: "access_code", meta: { kind, made, batch, from, to } });
+  const made = await makeRegCodes({ schoolId: me.schoolId, kind, count, batch, from, to, days: days > 0 ? days : null, by: me.id });
+  await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "access_code.generate", entity: "access_code", meta: { kind, made, batch, from, to, days } });
   revalidatePath("/portal/access-codes");
   return { ok: `${made} ${kind} code${made === 1 ? "" : "s"} generated. Each works once. Print them below.` };
 }
@@ -38,7 +37,10 @@ export async function codeOp(fd: FormData): Promise<void> {
   const me = await requirePerm("access_codes:manage");
   const id = clean(fd.get("id"), 40), op = clean(fd.get("op"), 10);
   if (!UUID.test(id)) return;
-  if (op === "revoke") await sql`UPDATE access_codes SET status = 'revoked' WHERE id = ${id} AND school_id = ${me.schoolId} AND used_at IS NULL`;
+  if (op === "extend") {
+    const more = Math.min(Math.max(Math.round(Number(fd.get("more")) || 30), 1), 3650);
+    await sql`UPDATE users SET access_until = GREATEST(COALESCE(access_until, now()), now()) + make_interval(days => ${more}) WHERE id = (SELECT used_by FROM access_codes WHERE id = ${id} AND school_id = ${me.schoolId}) AND school_id = ${me.schoolId}`;
+  } else if (op === "revoke") await sql`UPDATE access_codes SET status = 'revoked' WHERE id = ${id} AND school_id = ${me.schoolId} AND used_at IS NULL`;
   else if (op === "restore") await sql`UPDATE access_codes SET status = 'active' WHERE id = ${id} AND school_id = ${me.schoolId}`;
   else if (op === "delete") await sql`DELETE FROM access_codes WHERE id = ${id} AND school_id = ${me.schoolId} AND used_at IS NULL`;
   await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: `access_code.${op}`, entity: "access_code", entityId: id });

@@ -1065,6 +1065,8 @@ CREATE TABLE IF NOT EXISTS hr_candidates (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE crm_accounts ADD COLUMN IF NOT EXISTS rating text NOT NULL DEFAULT 'warm';
+ALTER TABLE access_codes ADD COLUMN IF NOT EXISTS valid_days int;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS access_until timestamptz;
 CREATE TABLE IF NOT EXISTS reward_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,

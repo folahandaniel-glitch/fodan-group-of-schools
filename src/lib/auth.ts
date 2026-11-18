@@ -52,7 +52,7 @@ export const getMe = cache(async (): Promise<Me | null> => {
   const sid = sha256(raw);
   const [u] = await sql`
     SELECT u.*, s.mfa_passed FROM sessions s JOIN users u ON u.id = s.user_id
-    WHERE s.id = ${sid} AND s.expires_at > now() AND u.status = 'active'`;
+    WHERE s.id = ${sid} AND s.expires_at > now() AND u.status = 'active' AND (u.access_until IS NULL OR u.access_until > now())`;
   if (!u) return null;
   const extra = await sql`SELECT role FROM user_roles WHERE user_id = ${u.id}`;
   const roles = [u.role, ...extra.map((r) => r.role as string)];
