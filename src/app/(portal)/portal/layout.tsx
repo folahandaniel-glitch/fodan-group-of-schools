@@ -4,6 +4,7 @@ import { requireMe, can } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { Logo } from "@/components/ui";
 import { PortalNav, type NavItem } from "@/components/portal-nav";
+import { completion } from "@/lib/details";
 import { ROLE_LABEL, isRoot } from "@/lib/logic/permissions";
 import { currentTerm, getSetting } from "@/lib/settings";
 import { canView, loadModules } from "@/lib/modules";
@@ -32,6 +33,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const banner = await sql`SELECT id, title FROM content_items WHERE school_id = ${me.schoolId} AND published = true AND kind = 'announcement'
                            AND audience IN ('public','all', ${audience}) ORDER BY created_at DESC LIMIT 5`;
 
+  const dc = await completion(me.id, me.role).catch(() => null);
   const th = await resolveTheme();
   const showClock = !learner && can(me, "clock:create");
   const today = new Date(Date.now() + 3600_000).toISOString().slice(0, 10);
@@ -41,6 +43,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const hm = (d: unknown) => (d ? new Date(String(d)).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" }) : null);
   const items: NavItem[] = [{ href: "/portal", label: "Dashboard", group: "Overview" }];
   const add = (cond: boolean, href: string, label: string, group: string) => cond && items.push({ href, label, group });
+  add(true, "/portal/details", learner ? "My Details" : "HRM Details", "Overview");
   add(me.role === "parent", "/portal/children", "My children", "Overview");
   add(me.role === "student", "/portal/work", "Assignments & tests", "Learn");
   add(me.role === "student" && can(me, "assessments:view"), "/portal/mocks", "Mock centre", "Learn");
@@ -107,7 +110,7 @@ export default async function PortalLayout({ children }: { children: React.React
   if (me.role !== "parent") {
     // One tidy home for every page: the categories follow the modules the Developer switches on and off.
     const CAT: Record<string, string> = {
-      "/portal/study": "Learning", "/portal/work": "Learning", "/portal/mocks": "Learning", "/portal/rewards": "Learning", "/portal/games": "Learning", "/portal/holiday": "Learning", "/portal/library": "Learning",
+      "/portal/details": "Overview", "/portal/study": "Learning", "/portal/work": "Learning", "/portal/mocks": "Learning", "/portal/rewards": "Learning", "/portal/games": "Learning", "/portal/holiday": "Learning", "/portal/library": "Learning",
       "/portal/results": "Academics", "/portal/exams": "Academics", "/portal/exams/integrity": "Academics", "/portal/timetable": "Academics", "/portal/calendar": "Academics", "/portal/classes": "Academics", "/portal/promotion": "Academics", "/portal/attendance": "Academics", "/portal/mark-sheet": "Academics", "/portal/certificates": "Academics", "/portal/analytics": "Academics",
       "/portal/lessons": "Teaching", "/portal/questions": "Teaching", "/portal/assessments": "Teaching", "/portal/resources": "Teaching",
       "/portal/students": "Students & Admissions", "/portal/access-codes": "Students & Admissions", "/portal/hostel": "Students & Admissions", "/portal/crm": "Students & Admissions",
@@ -124,7 +127,7 @@ export default async function PortalLayout({ children }: { children: React.React
   if (me.role === "parent") {
     add(true, "/portal/children", "Add a child", "Overview");
     add(true, "/account", "Account & password", "Account");
-    const G: Record<string, string> = { "/portal": "Overview", "/portal/children": "Overview", "/portal/study": "Learn", "/portal/holiday": "Learn", "/portal/bible": "Learn", "/portal/hymns": "Learn",
+    const G: Record<string, string> = { "/portal": "Overview", "/portal/details": "Overview", "/portal/children": "Overview", "/portal/study": "Learn", "/portal/holiday": "Learn", "/portal/bible": "Learn", "/portal/hymns": "Learn",
       "/portal/results": "Family", "/portal/exams": "Family", "/portal/timetable": "Family", "/portal/attendance": "Family", "/portal/calendar": "Family", "/portal/announcements": "Family", "/portal/certificates": "Family", "/portal/m/forum": "Family", "/portal/m/tickets": "Family" };
     for (const i of items) i.group = /^https?:/.test(i.href) ? "Learn" : (G[i.href] ?? i.group);
     const order = ["Overview", "Learn", "Family", "Account", "Community", "Workspace"];
@@ -162,6 +165,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <form action={logout}><button className="btn btn-primary btn-sm">Sign out</button></form>
           </div>
         </header>
+        {dc && !dc.saved && reqPath !== "/portal/details" && <p className="no-print mx-4 mt-3 rounded-xl border border-gold-2 bg-gold-soft px-4 py-2 text-sm font-semibold sm:mx-6 lg:mx-8">Your details are {dc.pct}% complete. <Link href="/portal/details" className="underline">Complete {learner ? "My Details" : "HRM Details"}</Link>: every field is compulsory.</p>}
         {banner.length > 0 && <AnnouncementBanner items={banner.map((b) => ({ id: b.id as string, title: b.title as string }))} />}
         <main id="main" className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
           {isDev && reqPath !== "" && !pathOn(plat, reqPath) && <p className="mb-4 rounded-xl border border-gold-2 bg-gold-soft px-4 py-2 text-sm font-semibold">This page is switched off for everyone else. Only you can see it. <Link href="/portal/developer" className="underline">Developer console</Link></p>}

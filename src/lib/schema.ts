@@ -1115,6 +1115,13 @@ CREATE TABLE IF NOT EXISTS exam_slots (
   assessment_id uuid REFERENCES assessments(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS exam_slots_ix ON exam_slots (timetable_id, class_id, day);
+CREATE TABLE IF NOT EXISTS member_details (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  data_enc text NOT NULL,
+  complete boolean NOT NULL DEFAULT false,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS reward_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,

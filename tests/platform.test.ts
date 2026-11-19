@@ -184,3 +184,23 @@ describe("curriculum, periods and auto work", () => {
     expect(p[0].diagrams[0].title).toMatch(/food chain/i);
   });
 });
+
+import { SECTIONS, checkValue, progress as detailProgress, validate, allFields } from "@/lib/logic/details";
+describe("HRM details", () => {
+  it("has the compulsory segments for staff, students and parents", () => {
+    const ids = (r: "staff" | "student" | "parent") => SECTIONS[r].map((s) => s.id);
+    for (const id of ["personal", "contact", "identity", "bank", "health", "nok"]) expect(ids("staff")).toContain(id);
+    expect(ids("student")).toContain("health"); expect(ids("parent")).toContain("bank");
+  });
+  it("checks NIN, BVN, account numbers and phones", () => {
+    const f = (k: string) => allFields("staff").find((x) => x.key === k)!;
+    expect(checkValue(f("nin"), "12345678901")).toBe(""); expect(checkValue(f("nin"), "1234")).not.toBe("");
+    expect(checkValue(f("bvn"), "1234567890a")).not.toBe(""); expect(checkValue(f("accountNumber"), "0123456789")).toBe("");
+    expect(checkValue(f("phone"), "0803 123 4567")).toBe(""); expect(checkValue(f("phone"), "")).toBe("Required");
+    expect(checkValue(f("gender"), "Robot")).not.toBe("");
+  });
+  it("is complete only when everything and a picture are present", () => {
+    expect(Object.keys(validate("staff", {})).length).toBe(allFields("staff").length);
+    expect(detailProgress("staff", {}, false).complete).toBe(false);
+  });
+});

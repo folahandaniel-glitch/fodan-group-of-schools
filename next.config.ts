@@ -10,6 +10,7 @@ const securityHeaders = [
 
 const config: NextConfig = {
   poweredByHeader: false,
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   serverExternalPackages: ["@node-rs/argon2", "postgres", "mammoth"],
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

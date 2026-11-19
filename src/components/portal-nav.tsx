@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 export type NavItem = { href: string; label: string; group: string };
 
 const ICONS: [RegExp, string][] = [
-  [/^\/portal$/, "🏠"], [/work|mocks/, "📝"], [/study/, "📚"], [/holiday/, "🏖️"], [/results|mark-sheet|report/, "📊"], [/children/, "👨‍👩‍👧"],
+  [/^\/portal$/, "🏠"], [/details/, "🪪"], [/work|mocks/, "📝"], [/study/, "📚"], [/holiday/, "🏖️"], [/results|mark-sheet|report/, "📊"], [/children/, "👨‍👩‍👧"],
   [/rewards/, "🏆"], [/games/, "🎮"], [/fees/, "💳"], [/library/, "📕"], [/hostel/, "🛏️"], [/sms/, "💬"], [/studio/, "🎨"], [/developer/, "🛠️"], [/access-codes/, "🔑"], [/students/, "🎓"], [/staff/, "👥"], [/classes/, "🏫"], [/promotion/, "⬆️"], [/clock/, "⏱️"], [/branches/, "📍"], [/hrm/, "🧑‍💼"], [/crm/, "🤝"],
   [/performance/, "📈"], [/payslips|payroll/, "💰"], [/ledger/, "📒"], [/expenses/, "🧾"], [/exports/, "⬇️"], [/timetable/, "🗓️"], [/attendance/, "✅"],
   [/calendar/, "📅"], [/lessons/, "📖"], [/questions/, "❓"], [/assessments/, "🧪"], [/resources/, "🗂️"], [/certificates/, "🏅"], [/analytics/, "📉"],

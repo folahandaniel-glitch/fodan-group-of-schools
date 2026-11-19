@@ -7,7 +7,7 @@ export type PlatformModule = { key: string; label: string; blurb: string; status
 /** Every module the Developer can switch. `prefixes` are the portal paths that belong to it. */
 export const PLATFORM_MODULES: PlatformModule[] = [
   { key: "registration", label: "Registration", blurb: "Student, parent and staff sign-up, student import, access codes and parent linking.", status: "built", defaultOn: true,
-    prefixes: ["/portal/students", "/portal/access-codes", "/portal/children"] },
+    prefixes: ["/portal/students", "/portal/access-codes", "/portal/children", "/portal/details"] },
   { key: "attendance", label: "Attendance", blurb: "Student and staff attendance, clock in/out at branches, duty roster.", status: "built", defaultOn: true,
     prefixes: ["/portal/attendance", "/portal/clock", "/portal/roster"] },
   { key: "crm", label: "CRM", blurb: "Admissions enquiries, sponsors and partners: accounts, pipeline and follow-ups.", status: "built", defaultOn: true, prefixes: ["/portal/crm"] },
@@ -76,7 +76,7 @@ export function pathOn(state: PlatformState, path: string): boolean {
 
 /** Every menu entry the Developer can switch, grouped by module. Labels match the portal menu. */
 export const MENU_CATALOGUE: { href: string; label: string }[] = [
-  { href: "/portal/students", label: "Students" }, { href: "/portal/access-codes", label: "Access codes" }, { href: "/portal/children", label: "My children (parents)" },
+  { href: "/portal/details", label: "HRM Details / My Details" }, { href: "/portal/students", label: "Students" }, { href: "/portal/access-codes", label: "Access codes" }, { href: "/portal/children", label: "My children (parents)" },
   { href: "/portal/attendance", label: "Attendance" }, { href: "/portal/clock", label: "Clock in / out" }, { href: "/portal/roster", label: "Duty roster" },
   { href: "/portal/crm", label: "CRM" },
   { href: "/portal/hrm", label: "HRM" }, { href: "/portal/performance", label: "Staff performance" }, { href: "/portal/branches", label: "Branches & fines" }, { href: "/portal/staff", label: "Staff" },
