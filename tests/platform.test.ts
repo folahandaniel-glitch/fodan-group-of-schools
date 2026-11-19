@@ -206,7 +206,8 @@ describe("HRM details", () => {
 });
 
 import { ENTRIES, TOPICS } from "@/data/knowledge";
-import { EBOOKS } from "@/data/ebooks";
+import { BOOKS } from "@/data/books";
+import { conceptFor } from "@/data/concepts";
 import { schemeNames, termNo } from "@/lib/curriculum-auto";
 describe("knowledge hub, library and term helpers", () => {
   it("has every requested topic with entries, and a disclaimer on home remedies", () => {
@@ -214,10 +215,14 @@ describe("knowledge hub, library and term helpers", () => {
     expect(TOPICS.find((t) => t.key === "remedies")!.note).toMatch(/not medical advice/i);
     expect(TOPICS.filter((t) => t.audience === "adults").map((t) => t.key)).toEqual(["psychology", "home", "crisis", "finance", "law"]);
   });
-  it("starts the library with unique free textbook links", () => {
-    expect(EBOOKS.length).toBeGreaterThan(25);
-    expect(new Set(EBOOKS.map((b) => b.url)).size).toBe(EBOOKS.length);
-    for (const b of EBOOKS) expect(b.url).toMatch(/^https:\/\//);
+  it("starts the library with books written for the school and no outside links", () => {
+    expect(BOOKS.length).toBeGreaterThanOrEqual(8);
+    for (const b of BOOKS) { expect(b.chapters.length).toBeGreaterThanOrEqual(3); expect(JSON.stringify(b)).not.toMatch(/https?:\/\//); for (const c of b.chapters) expect(c.body.length).toBeGreaterThan(300); }
+  });
+  it("matches common topics to teaching content", () => {
+    expect(conceptFor("Photosynthesis and plant growth")?.title).toBe("Photosynthesis");
+    expect(conceptFor("Databases: records and fields")?.title).not.toMatch(/Acids/);
+    expect(conceptFor("Percentages")?.example).toMatch(/profit/i);
   });
   it("maps school subject names to the scheme and reads term names", () => {
     expect(schemeNames("English Language")).toContain("english studies");

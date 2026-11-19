@@ -3,7 +3,8 @@ import { sql } from "@/lib/db";
 import { str } from "@/lib/data";
 import { childIds, studentOf } from "@/lib/scope";
 import { redirect } from "next/navigation";
-import { Badge, Card, Empty, Field, PageHeader, Stat } from "@/components/ui";
+import { Badge, Card, Empty, Field, PageHeader, Stat, TextArea } from "@/components/ui";
+import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
 import { addBook, deleteBook, issueBook, returnBook } from "./actions";
 import { ensureLibrary } from "@/lib/library-seed";
@@ -44,7 +45,7 @@ export default async function Library({ searchParams }: { searchParams: Promise<
         <div className="mb-5 grid gap-5 lg:grid-cols-2">
           <Card><h2 className="text-xl">Add a book</h2>
             <ActionForm action={addBook} submit="Add book" className="mt-3 grid gap-2 sm:grid-cols-2"><div className="sm:col-span-2"><Field label="Title" name="title" required /></div>
-              <Field label="Author" name="author" /><Field label="ISBN" name="isbn" /><Field label="Subject / category" name="category" placeholder="General" /><Field label="Shelf" name="shelf" /><Field label="Copies (0 for an online book)" name="copies" type="number" min={0} defaultValue={1} /><Field label="Class level" name="level" placeholder="e.g. JSS / SSS" /><div className="sm:col-span-2"><Field label="Online link (for an e-book)" name="url" type="url" hint="Leave empty for a printed book." /></div><div className="sm:col-span-2"><Field label="Short description" name="summary" /></div></ActionForm></Card>
+              <Field label="Author" name="author" /><Field label="ISBN" name="isbn" /><Field label="Subject / category" name="category" placeholder="General" /><Field label="Shelf" name="shelf" /><Field label="Copies (0 if only readable here)" name="copies" type="number" min={0} defaultValue={1} /><Field label="Class level" name="level" placeholder="e.g. JSS / SSS" /><div className="sm:col-span-2"><TextArea label="Book text (optional: makes it readable in the portal)" name="chapters" rows={5} hint="Start each chapter with a line beginning with # and its title. Leave empty for a printed book." /></div><div className="sm:col-span-2"><Field label="Short description" name="summary" /></div></ActionForm></Card>
           <Card><h2 className="text-xl">Lend a book</h2>
             <ActionForm action={issueBook} submit="Issue book" className="mt-3 grid gap-2">
               <div className="field"><label htmlFor="bk">Book</label><select id="bk" name="book" className="select" required><option value="">Choose…</option>{books.filter((b) => b.out < b.copies).map((b) => <option key={b.id} value={b.id}>{b.title} ({b.copies - b.out} available)</option>)}</select></div>
@@ -69,7 +70,7 @@ export default async function Library({ searchParams }: { searchParams: Promise<
         {books.length === 0 ? <div className="p-5"><Empty title="No books found" /></div> : (
           <table className="tbl min-w-[40rem] text-sm"><thead><tr><th>Title</th><th>Author</th><th>Subject</th><th>Class</th><th>Availability</th>{manage && <th></th>}</tr></thead>
             <tbody>{books.map((b) => (
-              <tr key={b.id}><td className="font-bold">{b.title}{b.summary && <span className="block text-xs font-normal text-muted">{b.summary}</span>}</td><td>{b.author}</td><td>{b.category}</td><td>{b.level ?? "—"}</td><td>{b.url ? <a href={b.url} target="_blank" rel="noopener noreferrer" className="btn btn-gold btn-sm">Read online</a> : b.copies - b.out > 0 ? <Badge tone="ok">{b.copies - b.out} of {b.copies} in</Badge> : <Badge tone="bad">All out</Badge>}</td>
+              <tr key={b.id}><td className="font-bold">{b.title}{b.summary && <span className="block text-xs font-normal text-muted">{b.summary}</span>}</td><td>{b.author}</td><td>{b.category}</td><td>{b.level ?? "—"}</td><td>{b.chapters ? <Link href={`/portal/library/read/${b.id}`} className="btn btn-gold btn-sm">Read in the portal</Link> : b.copies - b.out > 0 ? <Badge tone="ok">{b.copies - b.out} of {b.copies} in</Badge> : <Badge tone="bad">All out</Badge>}</td>
                 {manage && <td>{(b.out === 0) && <form action={deleteBook}><input type="hidden" name="id" value={b.id} /><button className="btn btn-danger btn-sm">Delete</button></form>}</td>}</tr>))}</tbody></table>)}
       </Card>
     </>

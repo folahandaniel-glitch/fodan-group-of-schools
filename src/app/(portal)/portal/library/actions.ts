@@ -10,12 +10,13 @@ const done = () => revalidatePath("/portal/library");
 
 export async function addBook(_p: State, fd: FormData): Promise<State> {
   const me = await requirePerm("library:manage");
-  const title = clean(fd.get("title"), 200), url = clean(fd.get("url"), 400), copies = url ? Math.round(Number(fd.get("copies")) || 0) : Math.round(Number(fd.get("copies")) || 1);
-  if (url && !/^https:\/\//i.test(url)) return { error: "The online link must start with https://." };
+  const title = clean(fd.get("title"), 200), text = String(fd.get("chapters") ?? "").slice(0, 60000), copies = Math.round(Number(fd.get("copies")) || (text.trim() ? 0 : 1));
+  const parts = text.split(/^#\s*/m).map((x) => x.trim()).filter(Boolean);
+  const chapters = parts.length ? parts.map((p, i) => { const nl = p.indexOf("\n"); return nl > 0 && text.trim().startsWith("#") ? { title: p.slice(0, nl).trim(), body: p.slice(nl + 1).trim() } : { title: `Chapter ${i + 1}`, body: p }; }) : null;
   if (!title) return { error: "Enter the book title." };
   if (copies < 0 || copies > 500) return { error: "Copies must be between 0 and 500." };
-  await sql`INSERT INTO lib_books (school_id, title, author, isbn, category, shelf, copies, url, level, summary)
-            VALUES (${me.schoolId}, ${title}, ${clean(fd.get("author"), 120)}, ${clean(fd.get("isbn"), 30) || null}, ${clean(fd.get("category"), 60) || "General"}, ${clean(fd.get("shelf"), 30) || (url ? "E-library" : null)}, ${copies}, ${url || null}, ${clean(fd.get("level"), 40) || null}, ${clean(fd.get("summary"), 300) || null})`;
+  await sql`INSERT INTO lib_books (school_id, title, author, isbn, category, shelf, copies, chapters, level, summary)
+            VALUES (${me.schoolId}, ${title}, ${clean(fd.get("author"), 120)}, ${clean(fd.get("isbn"), 30) || null}, ${clean(fd.get("category"), 60) || "General"}, ${clean(fd.get("shelf"), 30) || (chapters ? "In-app library" : null)}, ${copies}, ${chapters ? sql.json(chapters as never) : null}, ${clean(fd.get("level"), 40) || null}, ${clean(fd.get("summary"), 300) || null})`;
   await audit({ schoolId: me.schoolId, actorId: me.id, action: "library.book.add", entity: "lib_book", meta: { title } });
   done();
   return { ok: "Book added." };

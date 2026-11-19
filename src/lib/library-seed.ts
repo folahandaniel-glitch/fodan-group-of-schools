@@ -1,12 +1,11 @@
 import { sql } from "./db";
-import { EBOOKS } from "@/data/ebooks";
+import { BOOKS, HOUSE } from "@/data/books";
 
-/** Loads the free textbooks into a school's library once (and adds any that are new later). */
+/** The library holds books written for the school and read inside the portal. Links to other websites are removed. */
 export async function ensureLibrary(schoolId: string): Promise<void> {
-  const have = new Set((await sql`SELECT url FROM lib_books WHERE school_id = ${schoolId} AND url IS NOT NULL`).map((r) => r.url as string));
-  const add = EBOOKS.filter((b) => !have.has(b.url));
-  if (add.length === 0) return;
-  const rows = add.map((b) => ({ title: b.title, author: b.author, category: b.category, level: b.level, url: b.url, summary: b.summary }));
-  await sql`INSERT INTO lib_books (school_id, title, author, category, copies, url, level, summary, shelf)
-    SELECT ${schoolId}::uuid, title, author, category, 0, url, level, summary, 'E-library' FROM jsonb_to_recordset(${sql.json(rows as never)}) AS x(title text, author text, category text, level text, url text, summary text)`;
+  await sql`DELETE FROM lib_books WHERE school_id = ${schoolId} AND url IS NOT NULL AND chapters IS NULL`;
+  const have = new Set((await sql`SELECT title FROM lib_books WHERE school_id = ${schoolId} AND chapters IS NOT NULL`).map((r) => r.title as string));
+  const add = BOOKS.filter((b) => !have.has(b.title));
+  for (const b of add) await sql`INSERT INTO lib_books (school_id, title, author, category, copies, level, summary, shelf, chapters)
+    VALUES (${schoolId}, ${b.title}, ${HOUSE}, ${b.category}, 0, ${b.level}, ${b.summary}, 'In-app library', ${sql.json(b.chapters as never)})`;
 }
