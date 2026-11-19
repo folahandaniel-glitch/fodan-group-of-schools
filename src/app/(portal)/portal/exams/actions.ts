@@ -5,6 +5,7 @@ import { requirePerm } from "@/lib/auth";
 import { audit, clean } from "@/lib/security";
 import { currentTerm } from "@/lib/settings";
 import { saveUpload } from "@/lib/files";
+import { loadStandardQuestions } from "@/lib/curriculum-auto";
 import { addMin, examDays, findClash, generateExamTimetable, type Slot } from "@/lib/logic/exam-tt";
 
 type State = { error?: string; ok?: string };
@@ -94,6 +95,8 @@ export async function publishTimetable(fd: FormData): Promise<void> {
     else [a] = await sql`INSERT INTO assessments (school_id, kind, title, subject_id, class_id, term_id, start_at, due_at, duration_min, attempt_limit, randomize, release_mode, created_by)
       VALUES (${me.schoolId}, ${t.kind}, ${`${sl.subject} ${t.kind === "ca" ? "CA test" : "examination"}`}, ${sl.subject_id}, ${sl.class_id}, ${t.term_id}, ${startAt}, ${endAt}, ${sl.duration_min}, 1, true, 'manual', ${me.id}) RETURNING id`;
     await sql`UPDATE exam_slots SET assessment_id = ${a.id} WHERE id = ${sl.id}`;
+    const nq = await loadStandardQuestions(a.id as string);
+    if (nq > 0) await sql`UPDATE assessments SET status = 'published' WHERE id = ${a.id} AND status = 'draft'`;
   }
   await sql`UPDATE exam_timetables SET status = 'published' WHERE id = ${id}`;
   await audit({ schoolId: me.schoolId, actorId: me.id, action: "exam_tt.publish", entity: "exam_timetable", entityId: id, meta: { slots: slots.length } });
@@ -139,3 +142,22 @@ export async function revokeGrant(fd: FormData): Promise<void> {
 
 /** Plain form version of grantExam for the buttons on the integrity page. */
 export async function grantExamForm(fd: FormData): Promise<void> { await grantExam({}, fd); }
+
+/** Creates a CA test and a terminal exam for every class and subject this term and fills each with standard questions. */
+export async function loadTermAssessments(_p: State, fd: FormData): Promise<State> {
+  const me = await requirePerm("exams:manage");
+  void fd;
+  const term = await currentTerm();
+  if (!term) return { error: "Set the current term first (Settings, Academic calendar)." };
+  const pairs = await sql`SELECT cs.class_id, cs.subject_id FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE c.school_id = ${me.schoolId} AND NOT c.archived`;
+  let made = 0, filled = 0;
+  for (const p of pairs) for (const kind of ["ca", "exam"]) {
+    let [a] = await sql`SELECT id FROM assessments WHERE school_id = ${me.schoolId} AND kind = ${kind} AND class_id = ${p.class_id} AND subject_id = ${p.subject_id} AND term_id = ${term.id} AND topic_id IS NULL LIMIT 1`;
+    if (!a) { [a] = await sql`INSERT INTO assessments (school_id, kind, title, subject_id, class_id, term_id, duration_min, attempt_limit, randomize, release_mode, status, created_by)
+      SELECT ${me.schoolId}, ${kind}, s.name || ${kind === "ca" ? " CA test" : " examination"}, ${p.subject_id}, ${p.class_id}, ${term.id}, ${kind === "ca" ? 45 : 70}, 1, true, 'manual', 'draft', ${me.id} FROM subjects s WHERE s.id = ${p.subject_id} RETURNING id`; made++; }
+    const nq = await loadStandardQuestions(a.id as string);
+    if (nq > 0) { filled++; await sql`UPDATE assessments SET status = 'published' WHERE id = ${a.id} AND status = 'draft'`; }
+  }
+  done();
+  return { ok: `${made} new assessments created and ${filled} filled with standard questions for this term. Put them on the timetable to set their dates.` };
+}

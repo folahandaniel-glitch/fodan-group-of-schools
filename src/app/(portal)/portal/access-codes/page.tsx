@@ -38,7 +38,7 @@ export default async function AccessCodes({ searchParams }: { searchParams: Prom
   const pending: Row[] = manage ? await sql`
     SELECT u.id, u.role, u.first_name, u.last_name, u.email, u.phone, u.created_at, s.admission_no, c.name AS class_name, c.arm
     FROM users u LEFT JOIN students s ON s.user_id = u.id LEFT JOIN classes c ON c.id = s.class_id
-    WHERE u.school_id = ${me.schoolId} AND u.status = 'pending' AND u.role IN ('student','parent') ORDER BY u.created_at` : [];
+    WHERE u.school_id = ${me.schoolId} AND u.status = 'pending' AND u.role <> 'developer' ORDER BY u.created_at` : [];
   const brand = (await allSettings()).brand as { school: string };
   const base = (process.env.APP_BASE_URL ?? "https://fodan-group-of-schools.vercel.app").replace(/\/$/, "");
   const qs = (o: Record<string, string>) => `/portal/access-codes?${new URLSearchParams({ ...(kind ? { kind } : {}), ...(status ? { status } : {}), ...(batch ? { batch } : {}), ...o })}`;
@@ -82,16 +82,16 @@ export default async function AccessCodes({ searchParams }: { searchParams: Prom
       )}
 
       {manage && (
-        <Card className="mb-5" id="pending"><h2 className="text-xl">Waiting for approval {pending.length > 0 && <Badge tone="warn">{pending.length}</Badge>}</h2>
-          <p className="mt-1 text-sm text-muted">These people registered successfully. They cannot sign in or see anything until you approve them.</p>
+        <Card className="mb-5" id="pending"><h2 className="text-xl">Waiting for activation {pending.length > 0 && <Badge tone="warn">{pending.length}</Badge>}</h2>
+          <p className="mt-1 text-sm text-muted">Staff (and any student or parent while instant sign-in is switched off) wait here. Activate each one, or everyone at once.</p>
           {pending.length === 0 ? <p className="mt-3 text-sm text-muted">Nobody is waiting.</p> : (
             <>
-              <form action={decideRegistration} className="mt-3"><button name="op" value="approve-all" className="btn btn-gold btn-sm">Approve everyone ({pending.length})</button></form>
+              <form action={decideRegistration} className="mt-3"><button name="op" value="approve-all" className="btn btn-gold btn-sm">Activate and grant access to everyone ({pending.length})</button></form>
               <div className="mt-3 overflow-x-auto"><table className="tbl min-w-[36rem] text-sm"><thead><tr><th>Name</th><th>Type</th><th>Class</th><th>Email / phone</th><th></th></tr></thead>
                 <tbody>{pending.map((p) => (
                   <tr key={p.id}><td className="font-bold">{p.first_name} {p.last_name}</td><td>{p.role}</td><td>{p.class_name ? `${p.class_name}${p.arm ?? ""}` : "-"}</td><td>{p.email}<br /><span className="text-xs text-muted">{p.phone}</span></td>
                     <td className="whitespace-nowrap"><form action={decideRegistration} className="inline"><input type="hidden" name="id" value={p.id} />
-                      <button name="op" value="approve" className="btn btn-gold btn-sm">Approve</button> <button name="op" value="reject" className="btn btn-danger btn-sm">Reject</button></form></td></tr>))}</tbody></table></div>
+                      <button name="op" value="approve" className="btn btn-gold btn-sm">Activate</button> <button name="op" value="reject" className="btn btn-danger btn-sm">Reject</button></form></td></tr>))}</tbody></table></div>
             </>)}
         </Card>
       )}

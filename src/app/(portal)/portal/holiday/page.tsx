@@ -5,6 +5,8 @@ import { LEVEL_OPTIONS, TERM_NAMES, levelName, visibleLevels } from "@/lib/curri
 import { Badge, Card, Empty, Field, PageHeader, TextArea } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { createProgramme, enrol, unenrol } from "./actions";
+import { ensureHolidayPlan } from "@/lib/curriculum-auto";
+import { ensurePrimaryScheme } from "@/lib/curriculum";
 
 export const metadata = { title: "Holiday hub" };
 export const dynamic = "force-dynamic";
@@ -18,6 +20,8 @@ export default async function Holiday() {
   const manage = can(me, "holiday:manage");
   const learner = me.role === "student" || me.role === "parent";
   const S = me.schoolId;
+  await ensurePrimaryScheme(S);
+  await ensureHolidayPlan(S);
 
   if (manage) {
     const progs: Row[] = await sql`SELECT p.*, (SELECT count(*)::int FROM holiday_sessions s WHERE s.programme_id = p.id) AS sessions,

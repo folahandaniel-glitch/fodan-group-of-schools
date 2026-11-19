@@ -51,10 +51,10 @@ export async function codeOp(fd: FormData): Promise<void> {
 export async function decideRegistration(fd: FormData): Promise<void> {
   const me = await requirePerm("access_codes:manage");
   const op = clean(fd.get("op"), 16);
-  const ids = op.endsWith("all") ? (await sql`SELECT id FROM users WHERE school_id = ${me.schoolId} AND status = 'pending' AND role IN ('student','parent')`).map((r) => r.id as string) : [clean(fd.get("id"), 40)];
+  const ids = op.endsWith("all") ? (await sql`SELECT id FROM users WHERE school_id = ${me.schoolId} AND status = 'pending' AND role <> 'developer'`).map((r) => r.id as string) : [clean(fd.get("id"), 40)];
   for (const id of ids) {
     if (!UUID.test(id)) continue;
-    const [u] = await sql`SELECT id, role FROM users WHERE id = ${id} AND school_id = ${me.schoolId} AND status = 'pending' AND role IN ('student','parent')`;
+    const [u] = await sql`SELECT id, role FROM users WHERE id = ${id} AND school_id = ${me.schoolId} AND status = 'pending' AND role <> 'developer'`;
     if (!u) continue;
     if (op.startsWith("approve")) {
       await sql`UPDATE users SET status = 'active' WHERE id = ${id}`;

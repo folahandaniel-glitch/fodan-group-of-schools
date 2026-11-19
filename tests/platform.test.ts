@@ -4,8 +4,8 @@ import { normalisePhone } from "@/lib/sms";
 import { defaultsFor, permits } from "@/lib/logic/permissions";
 
 describe("Developer switchboard", () => {
-  it("lists the fourteen modules, with unbuilt or keyless ones off by default", () => {
-    expect(PLATFORM_MODULES.map((m) => m.key)).toEqual(["registration", "attendance", "crm", "hrm", "academics", "notifications", "lms", "cbt", "exams", "sms", "finance", "library", "rewards", "hostel"]);
+  it("lists the fifteen modules, with unbuilt or keyless ones off by default", () => {
+    expect(PLATFORM_MODULES.map((m) => m.key)).toEqual(["registration", "attendance", "crm", "hrm", "academics", "notifications", "lms", "cbt", "knowledge", "exams", "sms", "finance", "library", "rewards", "hostel"]);
     expect(DEFAULT_PLATFORM.modules.sms).toBe(false);
     expect(DEFAULT_PLATFORM.modules.library).toBe(false);
     expect(DEFAULT_PLATFORM.modules.hostel).toBe(false);
@@ -202,5 +202,26 @@ describe("HRM details", () => {
   it("is complete only when everything and a picture are present", () => {
     expect(Object.keys(validate("staff", {})).length).toBe(allFields("staff").length);
     expect(detailProgress("staff", {}, false).complete).toBe(false);
+  });
+});
+
+import { ENTRIES, TOPICS } from "@/data/knowledge";
+import { EBOOKS } from "@/data/ebooks";
+import { schemeNames, termNo } from "@/lib/curriculum-auto";
+describe("knowledge hub, library and term helpers", () => {
+  it("has every requested topic with entries, and a disclaimer on home remedies", () => {
+    for (const k of ["science", "dictionary", "proverbs", "idioms", "cliches", "phrasal", "errors", "registers", "discoveries", "people", "remedies", "craft", "psychology", "home", "crisis", "finance", "law"]) expect(ENTRIES[k]?.length, k).toBeGreaterThanOrEqual(8);
+    expect(TOPICS.find((t) => t.key === "remedies")!.note).toMatch(/not medical advice/i);
+    expect(TOPICS.filter((t) => t.audience === "adults").map((t) => t.key)).toEqual(["psychology", "home", "crisis", "finance", "law"]);
+  });
+  it("starts the library with unique free textbook links", () => {
+    expect(EBOOKS.length).toBeGreaterThan(25);
+    expect(new Set(EBOOKS.map((b) => b.url)).size).toBe(EBOOKS.length);
+    for (const b of EBOOKS) expect(b.url).toMatch(/^https:\/\//);
+  });
+  it("maps school subject names to the scheme and reads term names", () => {
+    expect(schemeNames("English Language")).toContain("english studies");
+    expect(schemeNames("Basic Science")).toContain("intermediate science");
+    expect(termNo("Second Term")).toBe(2); expect(termNo("First Term")).toBe(1); expect(termNo("3rd Term")).toBe(3);
   });
 });

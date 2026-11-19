@@ -1122,6 +1122,22 @@ CREATE TABLE IF NOT EXISTS member_details (
   complete boolean NOT NULL DEFAULT false,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE lib_books ADD COLUMN IF NOT EXISTS url text;
+ALTER TABLE lib_books ADD COLUMN IF NOT EXISTS level text;
+ALTER TABLE lib_books ADD COLUMN IF NOT EXISTS summary text;
+CREATE TABLE IF NOT EXISTS kh_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  topic text NOT NULL,
+  title text NOT NULL,
+  body text NOT NULL,
+  extra text,
+  audience text NOT NULL DEFAULT 'all',
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (school_id, topic, title)
+);
+CREATE INDEX IF NOT EXISTS kh_topic_ix ON kh_entries (school_id, topic);
 CREATE TABLE IF NOT EXISTS reward_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,

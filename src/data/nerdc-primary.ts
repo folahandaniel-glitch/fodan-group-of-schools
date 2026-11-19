@@ -85,8 +85,8 @@ export function primaryRows(): [number, string, number, string, string, string, 
     levels.forEach((str, i) => {
       const topics = str.split(";").map((t) => t.trim()).filter(Boolean);
       topics.forEach((topic, k) => {
-        const term = Math.min(3, Math.floor(k / 5) + 1), week = (k % 5) * 2 + 1;
-        rows.push([i + 1, subject, term, String(week), topic, `NERDC basic education: ${topic}. Taught over two periods a week with classwork and assignment.`, 1]);
+        const term = Math.min(3, Math.floor(k / 5) + 1), week = ["1-3", "4-6", "7-9", "10-11", "12-13"][k % 5];
+        rows.push([i + 1, subject, term, week, topic, `NERDC basic education: ${topic}. Taught across weeks ${week} of the term, three periods a week (Day 1 to Day 3), each ending with classwork and an assignment.`, 1]);
       });
     });
   }

@@ -10,11 +10,12 @@ const done = () => revalidatePath("/portal/library");
 
 export async function addBook(_p: State, fd: FormData): Promise<State> {
   const me = await requirePerm("library:manage");
-  const title = clean(fd.get("title"), 200), copies = Math.round(Number(fd.get("copies")) || 1);
+  const title = clean(fd.get("title"), 200), url = clean(fd.get("url"), 400), copies = url ? Math.round(Number(fd.get("copies")) || 0) : Math.round(Number(fd.get("copies")) || 1);
+  if (url && !/^https:\/\//i.test(url)) return { error: "The online link must start with https://." };
   if (!title) return { error: "Enter the book title." };
   if (copies < 0 || copies > 500) return { error: "Copies must be between 0 and 500." };
-  await sql`INSERT INTO lib_books (school_id, title, author, isbn, category, shelf, copies)
-            VALUES (${me.schoolId}, ${title}, ${clean(fd.get("author"), 120)}, ${clean(fd.get("isbn"), 30) || null}, ${clean(fd.get("category"), 60) || "General"}, ${clean(fd.get("shelf"), 30) || null}, ${copies})`;
+  await sql`INSERT INTO lib_books (school_id, title, author, isbn, category, shelf, copies, url, level, summary)
+            VALUES (${me.schoolId}, ${title}, ${clean(fd.get("author"), 120)}, ${clean(fd.get("isbn"), 30) || null}, ${clean(fd.get("category"), 60) || "General"}, ${clean(fd.get("shelf"), 30) || (url ? "E-library" : null)}, ${copies}, ${url || null}, ${clean(fd.get("level"), 40) || null}, ${clean(fd.get("summary"), 300) || null})`;
   await audit({ schoolId: me.schoolId, actorId: me.id, action: "library.book.add", entity: "lib_book", meta: { title } });
   done();
   return { ok: "Book added." };
