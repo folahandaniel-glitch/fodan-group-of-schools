@@ -150,9 +150,9 @@ describe("exam timetable and rules", () => {
   });
   it("uses timetable time for CA and exams and standard time for the rest", () => {
     expect(minutesFor("ca", DEFAULT_RULES, 45, 30)).toBe(45);
-    expect(minutesFor("exam", DEFAULT_RULES, null, 75)).toBe(75);
+    expect(minutesFor("exam", DEFAULT_RULES, null, 75)).toBe(70);
     expect(minutesFor("classwork", DEFAULT_RULES, null, 99)).toBe(10);
-    expect(minutesFor("mock", DEFAULT_RULES, null, 20)).toBe(120);
+    expect(minutesFor("mock", DEFAULT_RULES, null, 20)).toBe(70);
     expect(normaliseRules({ maxAttempts: 99 }).maxAttempts).toBe(2);
   });
 });

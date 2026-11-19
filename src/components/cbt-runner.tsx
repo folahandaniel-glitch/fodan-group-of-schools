@@ -59,6 +59,7 @@ export function CbtRunner({ attemptId, backHref, showScore }: { attemptId: strin
   const [calc, setCalc] = useState(false);
   const [font, setFont] = useState(18);
   const [canFs, setCanFs] = useState(true);
+  const [hint, setHint] = useState("");
   const offset = useRef(0), dirty = useRef(false), submitting = useRef(false), lastViolation = useRef(0), cid = useRef("");
   const ans = useRef(answers), fl = useRef(flags);
   const warnRef = useRef<number | null>(null);
@@ -150,7 +151,11 @@ export function CbtRunner({ attemptId, backHref, showScore }: { attemptId: strin
     const useFs = v.features.fullscreen && canFs;
     const onFs = () => { if (useFs && !inFs() && warnRef.current === null) violation("fullscreen"); };
     const onVis = () => { if (document.hidden && v.features.fullscreen) violation("hidden"); };
-    const onBlur = () => { if (!canFs && v.features.fullscreen) violation("blur"); };
+    let blurTimer: ReturnType<typeof setTimeout> | null = null;
+    const onBlur = () => { if (!v.features.fullscreen) return; setHint("Keep this window in front."); blurTimer = setTimeout(() => violation("blur"), 1500); };
+    const onFocus = () => { if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } setTimeout(() => setHint(""), 1500); };
+    const touch = typeof navigator !== "undefined" && navigator.maxTouchPoints > 0 && !canFs;
+    const devtools = () => { if (useFs && inFs() && !touch && (Math.abs(window.outerHeight - window.innerHeight) > 200 || Math.abs(window.outerWidth - window.innerWidth) > 200)) violation("devtools"); };
     const noop = (e: Event) => { if (v.features.antiCopy) e.preventDefault(); };
     const onKey = (e: KeyboardEvent) => {
       if (!v.features.antiCopy) return;
@@ -161,15 +166,15 @@ export function CbtRunner({ attemptId, backHref, showScore }: { attemptId: strin
     const onUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     const onPop = () => history.pushState(null, "", location.href);
     history.pushState(null, "", location.href);
-    const watch = setInterval(() => { if (useFs && !inFs() && warnRef.current === null) violation("fullscreen"); }, 2000);
+    const watch = setInterval(() => { if (useFs && !inFs() && warnRef.current === null) violation("fullscreen"); else if (warnRef.current === null) devtools(); }, 2000);
     document.addEventListener("fullscreenchange", onFs); document.addEventListener("webkitfullscreenchange", onFs);
-    document.addEventListener("visibilitychange", onVis); window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onVis); window.addEventListener("blur", onBlur); window.addEventListener("focus", onFocus);
     for (const t of ["contextmenu", "copy", "cut", "paste", "dragstart", "selectstart"]) document.addEventListener(t, noop);
     document.addEventListener("keydown", onKey); window.addEventListener("beforeunload", onUnload); window.addEventListener("popstate", onPop);
     return () => {
       clearInterval(watch);
       document.removeEventListener("fullscreenchange", onFs); document.removeEventListener("webkitfullscreenchange", onFs);
-      document.removeEventListener("visibilitychange", onVis); window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onVis); window.removeEventListener("blur", onBlur); window.removeEventListener("focus", onFocus); if (blurTimer) clearTimeout(blurTimer);
       for (const t of ["contextmenu", "copy", "cut", "paste", "dragstart", "selectstart"]) document.removeEventListener(t, noop);
       document.removeEventListener("keydown", onKey); window.removeEventListener("beforeunload", onUnload); window.removeEventListener("popstate", onPop);
     };
@@ -228,11 +233,12 @@ export function CbtRunner({ attemptId, backHref, showScore }: { attemptId: strin
       <div className="lg:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3">
         <div className="min-w-0"><p className="eyebrow">{v.kind.toUpperCase()} · {v.subject}</p><h1 className="truncate text-xl">{v.title}</h1><p className="text-xs text-muted">{v.candidate} · {v.regNo}</p></div>
         <div className="flex flex-wrap items-center gap-2">
-          {v.violations + (warn ?? 0) > 0 && <span className="badge badge-bad" aria-live="polite">Warnings: {warn ?? v.violations} of {v.maxAttempts}</span>}
+          <span className={`badge ${(warn ?? v.violations) > 0 ? "badge-bad" : "badge-ok"}`} aria-live="polite" title="Exam security status">{(warn ?? v.violations) > 0 ? `⚠ Warning ${warn ?? v.violations} of ${v.maxAttempts}` : "🔒 Secure"}</span>
           <span className={`badge ${net === "offline" ? "badge-bad" : net === "saving" ? "badge-warn" : "badge-ok"}`} aria-live="polite">{net === "offline" ? "Offline: saved on device" : net === "saving" ? "Saving…" : "Saved"}</span>
           <span role="timer" aria-label="Time remaining" className={`rounded-xl px-3 py-1.5 font-mono text-lg font-bold ${low ? "bg-[#fdecea] text-bad" : "bg-paper-2 text-ink"}`}>{fmt(left)}</span>
         </div>
       </div>
+      {hint && <p role="status" className="lg:col-span-2 rounded-xl bg-gold-soft px-4 py-2 text-center text-sm font-semibold">{hint}</p>}
       {left > 0 && left < 60_000 && <p role="alert" className="lg:col-span-2 rounded-xl bg-[#fdecea] px-4 py-2 text-center text-sm font-bold text-bad">Less than one minute left. Your exam will submit automatically.</p>}
       {left >= 60_000 && left < 5 * 60_000 && <p role="status" className="lg:col-span-2 rounded-xl bg-gold-soft px-4 py-2 text-center text-sm font-bold">Five minutes or less remaining.</p>}
 

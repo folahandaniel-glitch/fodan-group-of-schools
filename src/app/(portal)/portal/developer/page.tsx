@@ -69,6 +69,7 @@ export default async function DeveloperConsole() {
         <p className="mt-1 text-sm text-muted">CA tests and terminal exams take their time from the exam timetable. Everything else uses the standard times below.</p>
         <ActionForm action={saveExamRules} submit="Save exam rules" className="mt-3 grid gap-3 sm:grid-cols-3">
           <Field label="Full-screen exits allowed before auto-submit" name="maxAttempts" type="number" min={1} max={5} defaultValue={String(rules.maxAttempts)} hint="2 means: first exit is a warning, second submits." />
+          <Field label="Default exam minutes (70)" name="defaultMinutes" type="number" defaultValue={String(rules.defaultMinutes)} hint="Used for CA tests and exams that are not on the timetable." />
           <Field label="Classwork minutes" name="m_classwork" type="number" defaultValue={String(rules.standard.classwork)} />
           <Field label="Assignment minutes" name="m_assignment" type="number" defaultValue={String(rules.standard.assignment)} />
           <Field label="Mock exam minutes" name="m_mock" type="number" defaultValue={String(rules.standard.mock)} />

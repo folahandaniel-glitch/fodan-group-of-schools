@@ -32,7 +32,7 @@ export async function savePlatform(_p: State, fd: FormData): Promise<State> {
 export async function saveExamRules(_p: State, fd: FormData): Promise<State> {
   const me = await requireMe();
   if (me.role !== "developer") return { error: "Only the Developer can change this." };
-  const r = normaliseRules({ maxAttempts: Number(fd.get("maxAttempts")), standard: { classwork: Number(fd.get("m_classwork")), assignment: Number(fd.get("m_assignment")), mock: Number(fd.get("m_mock")), other: Number(fd.get("m_other")) }, lateEntryMin: Number(fd.get("lateEntryMin")) });
+  const r = normaliseRules({ maxAttempts: Number(fd.get("maxAttempts")), standard: { classwork: Number(fd.get("m_classwork")), assignment: Number(fd.get("m_assignment")), mock: Number(fd.get("m_mock")), other: Number(fd.get("m_other")) }, lateEntryMin: Number(fd.get("lateEntryMin")), defaultMinutes: Number(fd.get("defaultMinutes")) });
   await setSetting("exam_rules", r);
   await audit({ schoolId: me.schoolId, actorId: me.id, category: "security", action: "exam_rules.save", entity: "settings", entityId: "exam_rules", meta: r });
   return { ok: "Exam rules saved." };
