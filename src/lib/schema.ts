@@ -1126,6 +1126,8 @@ ALTER TABLE lib_books ADD COLUMN IF NOT EXISTS url text;
 ALTER TABLE lib_books ADD COLUMN IF NOT EXISTS level text;
 ALTER TABLE lib_books ADD COLUMN IF NOT EXISTS summary text;
 ALTER TABLE lib_books ADD COLUMN IF NOT EXISTS chapters jsonb;
+ALTER TABLE lib_books ADD COLUMN IF NOT EXISTS file_id uuid;
+ALTER TABLE lib_books ADD COLUMN IF NOT EXISTS file_kind text;
 CREATE TABLE IF NOT EXISTS kh_entries (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES schools(id) ON DELETE CASCADE,

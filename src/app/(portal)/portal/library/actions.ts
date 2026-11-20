@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { requirePerm } from "@/lib/auth";
 import { audit, clean } from "@/lib/security";
+import { saveUpload } from "@/lib/files";
 
 type State = { error?: string; ok?: string };
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -15,8 +16,15 @@ export async function addBook(_p: State, fd: FormData): Promise<State> {
   const chapters = parts.length ? parts.map((p, i) => { const nl = p.indexOf("\n"); return nl > 0 && text.trim().startsWith("#") ? { title: p.slice(0, nl).trim(), body: p.slice(nl + 1).trim() } : { title: `Chapter ${i + 1}`, body: p }; }) : null;
   if (!title) return { error: "Enter the book title." };
   if (copies < 0 || copies > 500) return { error: "Copies must be between 0 and 500." };
-  await sql`INSERT INTO lib_books (school_id, title, author, isbn, category, shelf, copies, chapters, level, summary)
-            VALUES (${me.schoolId}, ${title}, ${clean(fd.get("author"), 120)}, ${clean(fd.get("isbn"), 30) || null}, ${clean(fd.get("category"), 60) || "General"}, ${clean(fd.get("shelf"), 30) || (chapters ? "In-app library" : null)}, ${copies}, ${chapters ? sql.json(chapters as never) : null}, ${clean(fd.get("level"), 40) || null}, ${clean(fd.get("summary"), 300) || null})`;
+  let fileId: string | null = null, fileKind: string | null = null;
+  const f = fd.get("file") as File | null;
+  if (f && typeof f !== "string" && f.size > 0) {
+    const r = await saveUpload(f, { schoolId: me.schoolId, userId: me.id, allow: ["docx", "pptx", "xlsx", "pdf", "mp3"] });
+    if (!r.ok) return { error: r.error };
+    fileId = r.id; fileKind = r.kind;
+  }
+  await sql`INSERT INTO lib_books (school_id, title, author, isbn, category, shelf, copies, chapters, level, summary, file_id, file_kind)
+            VALUES (${me.schoolId}, ${title}, ${clean(fd.get("author"), 120)}, ${clean(fd.get("isbn"), 30) || null}, ${clean(fd.get("category"), 60) || "General"}, ${clean(fd.get("shelf"), 30) || (chapters || fileId ? "In-app library" : null)}, ${copies}, ${chapters ? sql.json(chapters as never) : null}, ${clean(fd.get("level"), 40) || null}, ${clean(fd.get("summary"), 300) || null}, ${fileId}, ${fileKind})`;
   await audit({ schoolId: me.schoolId, actorId: me.id, action: "library.book.add", entity: "lib_book", meta: { title } });
   done();
   return { ok: "Book added." };

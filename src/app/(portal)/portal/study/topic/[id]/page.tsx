@@ -8,6 +8,9 @@ import { ActionForm } from "@/components/action-form";
 import { addResource, reviewLesson, reviewResource, saveLesson, startPeriodWork, toggleStudied } from "../../actions";
 import { DiagramView } from "@/components/diagram";
 import { buildPeriods } from "@/lib/logic/periods";
+import { bestUnit } from "@/lib/textbook-match";
+import { UnitView } from "@/components/unit-view";
+import { TEXTBOOKS } from "@/content/cbt";
 import { studentOf } from "@/lib/scope";
 import { getPlatform } from "@/lib/platform-server";
 import { featureOn } from "@/lib/platform";
@@ -34,7 +37,8 @@ export default async function Topic({ params, searchParams }: { params: Promise<
   const periodsOn = featureOn(await getPlatform(), "periodWork");
   const day = ([1, 2, 3].includes(Number(sp.day)) ? Number(sp.day) : 1) as 1 | 2 | 3;
   const periods = buildPeriods({ subject: t.subject, levelName: levelName(t.level), topic: t.topic, content: t.content });
-  const per = periods[day - 1];
+  const match = bestUnit(t.subject, t.level, t.topic);
+  const unit = match ? TEXTBOOKS.find((b) => b.key === match.key)!.work.units[match.index] : null;
   const st = me.role === "student" ? await studentOf(me.id) : null;
   const scores: Row[] = st ? await sql`SELECT a.day, a.kind, max(CASE WHEN x.max_score > 0 THEN round((x.score / x.max_score * 100)::numeric, 0) END) AS best, count(x.id)::int AS tries
     FROM assessments a LEFT JOIN attempts x ON x.assessment_id = a.id AND x.student_id = ${st.id} AND x.status = 'submitted' WHERE a.topic_id = ${id} AND a.class_id = ${st.class_id} GROUP BY a.day, a.kind` : [];
@@ -50,12 +54,11 @@ export default async function Topic({ params, searchParams }: { params: Promise<
           {t.content && <Card><h2 className="text-xl">What the scheme covers</h2><p className="mt-2 whitespace-pre-wrap">{t.content}</p></Card>}
           {periodsOn && (
             <Card>
-              <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl">This week: three daily periods</h2>
-                <nav className="flex gap-2" aria-label="Daily periods">{periods.map((p) => <Link key={p.day} href={`?day=${p.day}`} className={`badge text-sm ${p.day === day ? "badge-info" : ""}`}>Day {p.day}</Link>)}</nav></div>
+              <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl">This week&rsquo;s lesson</h2></div>
               {sp.error && <p role="alert" className="mt-2 text-sm font-semibold text-bad">{sp.error}</p>}
-              <h3 className="mt-3 text-lg">{per.title}</h3><p className="text-sm text-muted">{per.focus}</p>
-              {per.diagrams.map((d, i) => <DiagramView key={i} d={d} />)}
-              <dl className="mt-2 grid gap-3 text-sm">{per.sections.map((x) => <div key={x.h}><dt className="text-xs font-bold uppercase tracking-wider text-muted">{x.h}</dt><dd className="mt-0.5 whitespace-pre-line text-ink-2">{x.body}</dd></div>)}</dl>
+              <p className="mt-2 text-sm text-muted">One complete lesson for the week: learn the idea, see it worked out and illustrated, then practise it in the classwork and assignment below.</p>
+              {periods.flatMap((p) => p.diagrams).map((d, i) => <DiagramView key={i} d={d} />)}
+              <dl className="mt-2 grid gap-3 text-sm">{periods.flatMap((p) => p.sections).map((x, i) => <div key={i}><dt className="text-xs font-bold uppercase tracking-wider text-muted">{x.h}</dt><dd className="mt-0.5 whitespace-pre-line text-ink-2">{x.body}</dd></div>)}</dl>
               {me.role === "student" && (
                 <div className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2">{([["classwork", "Classwork", "classwork"], ["assignment", "Assignment", "practice"]] as const).map(([w, label, kind]) => { const b = bestOf(day, kind); return (
                   <form key={w} action={startPeriodWork} className="rounded-xl border border-line p-3"><input type="hidden" name="topic" value={id} /><input type="hidden" name="day" value={day} /><input type="hidden" name="work" value={w} />
@@ -64,6 +67,8 @@ export default async function Topic({ params, searchParams }: { params: Promise<
                     <button className="btn btn-primary btn-sm mt-2">{b?.tries ? "Try again" : `Start ${label.toLowerCase()}`}</button></form>); })}</div>)}
             </Card>
           )}
+          {unit && match && <Card><h2 className="text-xl">Illustrated chapter: {unit.title.split(" · ").slice(2).join(" · ")}</h2><p className="text-sm text-muted">From {match.book}. <Link className="font-semibold underline" href={`/portal/library/textbook/${match.key}?u=${match.index}`}>Open the whole textbook</Link></p><div className="mt-3"><UnitView u={unit} /></div></Card>}
+          {!unit && (() => { const tb = TEXTBOOKS.find((b) => b.subjects.some((x) => x.toLowerCase() === t.subject.toLowerCase()) && b.levels.includes(t.level)); return tb ? <Card><h2 className="text-xl">Read more</h2><p className="mt-1 text-sm text-muted">The illustrated textbook <b>{tb.work.title}</b> has full chapters, diagrams, worked examples and quizzes for this class. <Link className="font-semibold underline" href={`/portal/library/textbook/${tb.key}`}>Open the textbook</Link></p></Card> : null; })()}
           <Card>
             <h2 className="text-xl">Lesson {lesson?.status === "pending" && <Badge tone="warn">awaiting approval</Badge>}</h2>
             {showLesson ? <div className="mt-3 whitespace-pre-wrap text-[1.02rem] leading-8">{lesson.body}</div> : <p className="mt-2 text-sm text-muted">The lesson for this topic has not been written yet. Use the resources while you wait.</p>}

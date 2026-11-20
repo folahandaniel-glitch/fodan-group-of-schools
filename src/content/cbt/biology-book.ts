@@ -1,0 +1,172 @@
+/** FODAN Biology textbook, SSS1–SSS3, following the NERDC Biology curriculum (WAEC, NECO, JAMB). Original text. */
+
+import type { PoeticWork } from "./poetic-types";
+import { mc, sc, ex, fig, t, table, makeBook } from "./book-kit";
+
+const CELL = fig(
+  "A plant cell with its main parts (an animal cell has no cell wall, chloroplasts or large vacuole)",
+  `<rect x="40" y="12" width="240" height="115" rx="16" fill="#dcfce7" stroke="#15803d" stroke-width="3"/><rect x="48" y="20" width="224" height="99" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/><ellipse cx="190" cy="70" rx="46" ry="34" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="1.5"/>${t(190, 74, "vacuole", 10)}<circle cx="100" cy="62" r="18" fill="#fde68a" stroke="#b45309" stroke-width="2"/><circle cx="100" cy="62" r="5" fill="#b45309"/>${t(100, 92, "nucleus", 10)}<ellipse cx="86" cy="106" rx="14" ry="7" fill="#4ade80" stroke="#15803d"/>${t(86, 124, "chloroplast", 9)}<ellipse cx="240" cy="40" rx="12" ry="6" fill="#fca5a5" stroke="#b91c1c"/>${t(240, 56, "mitochondrion", 9)}${t(160, 8, "cell wall (outside) · cell membrane (just inside) · cytoplasm (jelly)", 9, "middle", "#64748b", 600)}`,
+  145,
+);
+const CHAIN = fig(
+  "A food chain: energy flows from the Sun through each feeding level",
+  `<circle cx="30" cy="40" r="20" fill="#fbbf24"/>${t(30, 44, "Sun", 10)}<rect x="68" y="22" width="66" height="36" rx="8" fill="#bbf7d0" stroke="#15803d"/>${t(101, 38, "Grass", 10)}${t(101, 51, "producer", 9, "middle", "#64748b", 600)}<rect x="150" y="22" width="66" height="36" rx="8" fill="#fde68a" stroke="#b45309"/>${t(183, 38, "Grasshopper", 9)}${t(183, 51, "1st consumer", 9, "middle", "#64748b", 600)}<rect x="232" y="22" width="76" height="36" rx="8" fill="#fecaca" stroke="#b91c1c"/>${t(270, 38, "Lizard", 10)}${t(270, 51, "2nd consumer", 9, "middle", "#64748b", 600)}<g stroke="#0b1f4b" stroke-width="2" fill="none"><path d="M50,40 L66,40"/><path d="M134,40 L148,40"/><path d="M216,40 L230,40"/></g><rect x="68" y="84" width="240" height="30" rx="8" fill="#e5e7eb" stroke="#6b7280"/>${t(188, 103, "Decomposers (bacteria, fungi) recycle dead matter", 10)}${t(160, 134, "Arrows show the direction in which energy moves", 10, "middle", "#64748b", 600)}`,
+  145,
+);
+const PUNNETT = fig(
+  "Punnett square for Tt × Tt: 1 TT : 2 Tt : 1 tt, so 3 tall : 1 short",
+  `<rect x="90" y="30" width="60" height="30" fill="#f1f5f9" stroke="#94a3b8"/><rect x="150" y="30" width="60" height="30" fill="#f1f5f9" stroke="#94a3b8"/><rect x="30" y="60" width="60" height="32" fill="#f1f5f9" stroke="#94a3b8"/><rect x="30" y="92" width="60" height="32" fill="#f1f5f9" stroke="#94a3b8"/><rect x="90" y="60" width="60" height="32" fill="#bbf7d0" stroke="#15803d"/><rect x="150" y="60" width="60" height="32" fill="#bbf7d0" stroke="#15803d"/><rect x="90" y="92" width="60" height="32" fill="#bbf7d0" stroke="#15803d"/><rect x="150" y="92" width="60" height="32" fill="#fecaca" stroke="#b91c1c"/>${t(120, 50, "T", 14)}${t(180, 50, "t", 14)}${t(60, 82, "T", 14)}${t(60, 114, "t", 14)}${t(120, 80, "TT", 14)}${t(180, 80, "Tt", 14)}${t(120, 112, "Tt", 14)}${t(180, 112, "tt", 14, "middle", "#b91c1c")}${t(255, 70, "Green: tall", 10, "middle", "#15803d")}${t(255, 90, "Red: short", 10, "middle", "#b91c1c")}${t(120, 20, "Gametes of parent 2", 9, "middle", "#64748b", 600)}`,
+  140,
+);
+
+export const BIOLOGY_BOOK: PoeticWork = makeBook({
+  source: "FODAN Biology Textbook SSS1-SSS3",
+  title: "FODAN Biology · SSS1–SSS3",
+  subtitle: "Cells, nutrition, ecology, transport, coordination, reproduction and genetics for WAEC, NECO and JAMB",
+  intro: "This textbook follows the NERDC Senior Secondary Biology curriculum, class by class. SSS1: the cell, nutrition and enzymes, ecology. SSS2: transport and respiration, coordination and excretion. SSS3: reproduction, genetics and evolution.",
+  groups: [
+    ["SSS1", [
+      {
+        title: "Chapter 1 · The Cell", focus: "The unit of life: its parts, specialised cells and movement of substances", label: "Chapter 1",
+        scene: sc(["🔬", "🧫", "🌿"], "#d9f0ff", "#c9e7a5", "All living things are made of cells."),
+        diagram: CELL,
+        lines: [
+          "P|The cell is the basic unit of structure and function of living things. Plants and animals are made of many cells; bacteria and amoeba are single cells. Cells are seen under the microscope.",
+          table(["Part", "Function"], [["Cell membrane", "controls what enters and leaves the cell"], ["Cytoplasm", "the jelly where chemical reactions take place"], ["Nucleus", "controls the cell; holds the genes (DNA)"], ["Mitochondria", "release energy in respiration"], ["Ribosomes", "make proteins"], ["Cell wall (plants)", "made of cellulose, supports and protects"], ["Chloroplasts (plants)", "contain chlorophyll for photosynthesis"], ["Large vacuole (plants)", "holds cell sap and keeps the cell firm"]]),
+          "H|Specialised cells",
+          "P|Cells are adapted to their jobs: red blood cells (no nucleus, contain haemoglobin to carry oxygen), root hair cells (long extension to absorb water), nerve cells (long fibres to carry messages), sperm cells (a tail to swim). Groups of similar cells form a tissue; tissues form an organ; organs form a system.",
+          "H|Movement of substances",
+          "R|<ul><li><b>Diffusion:</b> movement of particles from a region of high concentration to one of low concentration.</li><li><b>Osmosis:</b> movement of water through a semi-permeable membrane from a dilute solution to a more concentrated one.</li><li><b>Active transport:</b> movement against a concentration gradient using energy.</li></ul>",
+          ex("A piece of potato is placed in strong salt solution. What happens and why?", ["The salt solution is more concentrated than the cell sap.", "Water moves out of the potato by osmosis.", "The potato loses mass and becomes soft (flaccid)."]),
+        ],
+        devices: ["Cell → tissue → organ → system → organism.", "Plant cells have a wall, chloroplasts and a large vacuole; animal cells do not.", "Diffusion needs no energy; active transport does.", "Osmosis is diffusion of water through a semi-permeable membrane.", "Mitochondria are the sites of respiration."],
+        classwork: [{ q: "Name the part of the cell that controls its activities.", a: "The nucleus." }, { q: "Give two differences between plant and animal cells.", a: "Plant cells have a cell wall and chloroplasts (and a large vacuole); animal cells do not." }, { q: "What is osmosis?", a: "The movement of water through a semi-permeable membrane from a dilute solution to a more concentrated solution." }],
+        assignment: [{ q: "Explain how a root hair cell is adapted to its function.", a: "It has a long, thin extension that increases the surface area to absorb water and mineral salts." }, { q: "State the function of the mitochondria.", a: "They release energy from food in respiration." }],
+        quiz: [mc("The powerhouse of the cell is the", "mitochondrion", "nucleus", "vacuole", "cell wall"), mc("Chloroplasts are found in", "plant cells", "animal cells only", "red blood cells", "sperm cells"), mc("Diffusion is movement from", "high to low concentration", "low to high concentration", "cold to hot", "dry to wet only"), mc("A group of similar cells forms a", "tissue", "system", "organism", "molecule")],
+      },
+      {
+        title: "Chapter 2 · Nutrition and Enzymes", focus: "Photosynthesis, food tests and the action of enzymes", label: "Chapter 2",
+        scene: sc(["🍃", "☀️", "🍞"], "#ffe7b3", "#c9e7a5", "Plants make food from light, water and carbon dioxide."),
+        lines: [
+          "P|Nutrition is the way living things obtain and use food. Green plants are autotrophs: they make their own food by photosynthesis. Animals are heterotrophs: they depend on ready-made food.",
+          "R|<p><b>Photosynthesis:</b> carbon dioxide + water → glucose + oxygen, in the presence of light and chlorophyll.</p><p><b>6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂</b></p>",
+          "P|Leaves are adapted for photosynthesis: they are broad and thin, have many chloroplasts, stomata for gas exchange and veins to bring water and carry food away. The glucose is changed to starch for storage.",
+          "H|Food tests",
+          table(["Food", "Test", "Positive result"], [["Starch", "add iodine solution", "blue-black"], ["Reducing sugar", "heat with Benedict's solution", "brick-red precipitate"], ["Protein", "add Biuret reagent (sodium hydroxide and copper sulphate)", "violet / purple"], ["Fat or oil", "shake with ethanol, then pour into water", "cloudy white emulsion"], ["Vitamin C", "add to DCPIP", "blue DCPIP is decolourised"]]),
+          "H|Enzymes",
+          "P|Enzymes are protein catalysts: they speed up reactions without being used up. Each enzyme is specific to one kind of substrate. Enzymes work best at an optimum temperature (about 37 °C in humans) and pH, and are destroyed (denatured) by high temperature.",
+          table(["Enzyme", "Acts on", "Gives"], [["Amylase", "starch", "maltose (sugar)"], ["Protease (pepsin)", "proteins", "amino acids"], ["Lipase", "fats and oils", "fatty acids and glycerol"]]),
+          ex("Why does boiling an enzyme stop it working?", ["An enzyme is a protein with a particular shape.", "High temperature changes that shape (denaturation), so the substrate no longer fits.", "The enzyme cannot be made to work again."]),
+        ],
+        devices: ["Photosynthesis: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ (light, chlorophyll).", "Iodine turns blue-black with starch.", "Enzymes: protein, specific, work at the optimum temperature and pH, denatured by heat.", "Autotrophs make food; heterotrophs eat food.", "Stomata let carbon dioxide in and oxygen out."],
+        classwork: [{ q: "Name the raw materials of photosynthesis.", a: "Carbon dioxide and water (with light energy and chlorophyll)." }, { q: "What colour does iodine give with starch?", a: "Blue-black." }, { q: "What does amylase digest?", a: "Starch." }],
+        assignment: [{ q: "State two ways a leaf is adapted for photosynthesis.", a: "It is broad and thin to catch light and allow gas to diffuse; it has chloroplasts with chlorophyll; stomata for gas exchange." }, { q: "Describe a test for protein.", a: "Add Biuret reagent to the food; a violet colour shows protein." }],
+        quiz: [mc("The product of photosynthesis that is stored as starch is", "glucose", "carbon dioxide", "water", "oxygen"), mc("Benedict's solution tests for", "reducing sugar", "starch", "protein", "fat"), mc("Enzymes are", "biological catalysts", "carbohydrates", "vitamins", "minerals"), mc("An enzyme is denatured by", "high temperature", "water", "starch", "light")],
+      },
+      {
+        title: "Chapter 3 · Ecology", focus: "Ecosystems, food chains and the cycling of nutrients", label: "Chapter 3",
+        scene: sc(["🌳", "🦎", "🍄"], "#d9f0ff", "#c9e7a5", "Everything in an ecosystem depends on everything else."),
+        diagram: CHAIN,
+        lines: [
+          "P|Ecology is the study of living things and their environment. An ecosystem is a community of living things (the biotic part) together with the non-living parts (abiotic: light, water, soil, temperature) in which they live. A habitat is where an organism lives; a population is all the organisms of one species in an area; a community is all the populations in a habitat.",
+          "H|Feeding relationships",
+          "P|Producers (green plants) make food. Consumers eat: primary consumers (herbivores) eat plants; secondary consumers (carnivores) eat herbivores. Decomposers (bacteria and fungi) break down dead matter and return nutrients to the soil. A food chain shows what eats what; several linked chains form a food web. Energy passes along the chain, but only about 10% passes to the next level, so food chains are short.",
+          ex("In the chain: grass → grasshopper → lizard → hawk, name the producer and the tertiary consumer", ["The producer is grass.", "Grasshopper is the primary consumer, lizard the secondary and hawk the tertiary consumer.", "So the tertiary consumer is the hawk."]),
+          "H|Cycles of nature",
+          "R|<ul><li><b>Carbon cycle:</b> plants take in carbon dioxide in photosynthesis; respiration, decay and burning return it to the air.</li><li><b>Nitrogen cycle:</b> nitrogen-fixing bacteria in root nodules of legumes (beans) and in the soil change nitrogen to nitrates that plants absorb; decay returns nitrogen.</li><li><b>Water cycle:</b> evaporation, condensation, rain and run-off.</li></ul>",
+          "H|Symbiosis and conservation",
+          "P|In mutualism both organisms benefit (nitrogen-fixing bacteria and beans). In parasitism one benefits at the expense of the other (tapeworm in the gut). Conservation is the careful use of natural resources: planting trees, controlling bush burning, protecting animals, and preventing pollution.",
+        ],
+        devices: ["Producer → primary consumer → secondary consumer → decomposers.", "Energy flows one way; nutrients are recycled.", "About 10% of energy passes to the next feeding level.", "Mutualism: both benefit. Parasitism: one benefits, the other is harmed.", "Legumes enrich the soil with nitrates."],
+        classwork: [{ q: "What is a habitat?", a: "The place where an organism lives." }, { q: "Name the decomposers.", a: "Bacteria and fungi." }, { q: "Why are food chains usually short?", a: "Much energy is lost at each level, so too little is left to support more levels." }],
+        assignment: [{ q: "Draw a food chain with four organisms found in a pond or on a farm.", a: "Example: algae → tadpole → fish → heron. Arrows point to the feeder." }, { q: "Explain how bean plants help to enrich the soil.", a: "Nitrogen-fixing bacteria in their root nodules change nitrogen into nitrates that plants can use." }],
+        quiz: [mc("A producer is a", "green plant", "herbivore", "carnivore", "fungus"), mc("Decomposers include", "bacteria and fungi", "lions", "grasses", "insects only"), mc("A relationship in which both organisms benefit is", "mutualism", "parasitism", "predation", "competition"), mc("Energy in a food chain flows", "in one direction", "in a cycle", "backwards", "randomly")],
+      },
+    ]],
+    ["SSS2", [
+      {
+        title: "Chapter 4 · Transport and Respiration", focus: "Blood, the heart, and how cells release energy", label: "Chapter 4",
+        scene: sc(["❤️", "🩸", "🫁"], "#ffe7e7", "#c9e7a5", "The heart pumps blood to every cell."),
+        lines: [
+          "P|In mammals, blood carries oxygen, digested food, hormones and wastes round the body in blood vessels. Arteries carry blood away from the heart (thick, muscular walls, pulse); veins carry blood to the heart (thin walls, valves); capillaries are tiny vessels where exchange takes place.",
+          table(["Part of blood", "Function"], [["Red blood cells", "carry oxygen with haemoglobin"], ["White blood cells", "fight germs"], ["Platelets", "help blood to clot"], ["Plasma (liquid)", "carries food, CO₂, urea and hormones"]]),
+          "H|The heart",
+          "P|The mammalian heart has four chambers: two atria (receive blood) and two ventricles (pump blood out). The right side receives deoxygenated blood from the body and pumps it to the lungs. The left side receives oxygenated blood from the lungs and pumps it to the body. The left ventricle has the thickest wall because it pumps blood all round the body. Valves stop the blood from flowing backwards.",
+          "H|Respiration",
+          "R|<ul><li><b>Aerobic respiration</b> (with oxygen): C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + energy (about 38 ATP).</li><li><b>Anaerobic respiration</b> (without oxygen) in yeast: glucose → ethanol + carbon dioxide + a little energy (fermentation, used to make bread and beer).</li><li>Anaerobic respiration in muscle: glucose → lactic acid + a little energy; the lactic acid causes cramp and is removed after exercise (oxygen debt).</li></ul>",
+          ex("Why is the wall of the left ventricle thicker than that of the right ventricle?", ["The left ventricle pumps blood to the whole body, a long way, at high pressure.", "The right ventricle pumps blood only to the lungs, close by.", "So the left ventricle needs thicker muscle."]),
+        ],
+        devices: ["Arteries carry blood away from the heart; veins carry blood to the heart.", "Haemoglobin carries oxygen.", "Left side of the heart: oxygenated blood. Right side: deoxygenated blood.", "Aerobic respiration releases much more energy than anaerobic.", "Plants also respire, day and night."],
+        classwork: [{ q: "Name the blood cells that carry oxygen.", a: "Red blood cells." }, { q: "Which chamber pumps blood to the whole body?", a: "The left ventricle." }, { q: "Write the word equation for aerobic respiration.", a: "glucose + oxygen → carbon dioxide + water + energy." }],
+        assignment: [{ q: "State two differences between arteries and veins.", a: "Arteries carry blood away from the heart, have thick walls and no valves; veins carry blood to the heart, have thinner walls and valves." }, { q: "What are the products of anaerobic respiration in yeast?", a: "Ethanol (alcohol) and carbon dioxide, plus a little energy." }],
+        quiz: [mc("Blood vessels carrying blood away from the heart are", "arteries", "veins", "capillaries", "valves"), mc("White blood cells", "fight germs", "carry oxygen", "clot blood", "carry food"), mc("Anaerobic respiration in muscles produces", "lactic acid", "ethanol", "oxygen", "starch"), mc("Valves in the heart", "prevent backflow of blood", "make blood", "store oxygen", "pump blood")],
+      },
+      {
+        title: "Chapter 5 · Excretion and Coordination", focus: "Kidneys, the nervous system, reflex action and hormones", label: "Chapter 5",
+        scene: sc(["🧠", "🫘", "⚡"], "#e9e0ff", "#c9e7a5", "The body responds to changes within a fraction of a second."),
+        lines: [
+          "P|Excretion is the removal of the waste products of metabolism. The kidneys remove urea, excess water and salts as urine; the lungs remove carbon dioxide and water vapour; the skin removes sweat. Urine passes from each kidney down a ureter to the bladder, and leaves the body through the urethra. The kidneys also control the water balance of the body.",
+          "H|The nervous system",
+          "P|The central nervous system (CNS) is the brain and spinal cord. Nerve cells (neurones) carry impulses: sensory neurones carry impulses from receptors (such as the eye and skin) to the CNS; motor neurones carry impulses from the CNS to effectors (muscles and glands).",
+          "H|A reflex action",
+          "P|A reflex action is a fast, automatic response to a stimulus, such as pulling your hand away from a hot object. Path: stimulus → receptor → sensory neurone → spinal cord (relay neurone) → motor neurone → effector (muscle) → response.",
+          "H|Hormones",
+          table(["Hormone", "Gland", "Effect"], [["Insulin", "pancreas", "lowers blood sugar"], ["Adrenaline", "adrenal gland", "prepares the body for fight or flight"], ["Thyroxine", "thyroid", "controls metabolic rate"], ["Growth hormone", "pituitary", "controls growth"], ["Oestrogen and progesterone", "ovary", "female characteristics, pregnancy"], ["Testosterone", "testis", "male characteristics"]]),
+          ex("Why is a reflex action important?", ["It is very quick because it does not wait for the brain to decide.", "It protects the body from harm, for example by pulling the hand away from fire."]),
+        ],
+        devices: ["Kidneys remove urea, excess water and salts.", "Nerve impulses are fast; hormone effects are slower and longer lasting.", "Reflex arc: receptor → sensory → relay → motor → effector.", "Insulin lowers blood sugar; lack of it causes diabetes.", "The brain and spinal cord make up the central nervous system."],
+        classwork: [{ q: "Name the main excretory organ.", a: "The kidney." }, { q: "What does a motor neurone do?", a: "It carries impulses from the CNS to an effector (muscle or gland)." }, { q: "Which gland makes insulin?", a: "The pancreas." }],
+        assignment: [{ q: "List the parts of a reflex arc in order.", a: "Stimulus, receptor, sensory neurone, spinal cord, motor neurone, effector, response." }, { q: "State two differences between nervous and hormonal control.", a: "Nervous: fast, electrical impulses, short-lived effect. Hormonal: slower, chemical messengers in blood, longer-lasting effect." }],
+        quiz: [mc("Urea is removed from the body by the", "kidneys", "lungs only", "liver only", "ears"), mc("A fast automatic response is a", "reflex action", "hormone", "diet", "habit only"), mc("Insulin controls", "blood sugar", "growth", "heartbeat", "sleep"), mc("Neurones that carry impulses to the CNS are", "sensory neurones", "motor neurones", "red cells", "hormones")],
+      },
+    ]],
+    ["SSS3", [
+      {
+        title: "Chapter 6 · Reproduction in Plants and Humans", focus: "The flower, pollination, fertilisation and the human reproductive system", label: "Chapter 6",
+        scene: sc(["🌺", "🐝", "👶"], "#ffe7f2", "#c9e7a5", "Life continues through reproduction."),
+        lines: [
+          "P|Reproduction is the production of new individuals of the same kind. Asexual reproduction needs one parent and gives identical offspring (budding in yeast, cuttings and runners in plants). Sexual reproduction needs two gametes (male and female sex cells) which fuse in fertilisation to form a zygote; it gives variety.",
+          "H|The flower",
+          "R|<ul><li><b>Sepals</b> protect the bud; <b>petals</b> attract insects.</li><li><b>Stamen</b> (male): anther (makes pollen) and filament.</li><li><b>Carpel</b> (female): stigma (receives pollen), style, ovary (contains ovules).</li></ul>",
+          "P|Pollination is the transfer of pollen from an anther to a stigma. After pollen lands on the stigma, a pollen tube grows down the style and a male nucleus fuses with the egg in the ovule (fertilisation). The ovule becomes the seed and the ovary becomes the fruit. Insect-pollinated flowers have bright petals and sticky pollen; wind-pollinated flowers have small petals, long anthers and feathery stigmas.",
+          "H|Human reproduction",
+          "P|The male system produces sperm in the testes. The female system produces eggs in the ovaries. Fertilisation happens in the fallopian tube; the zygote divides to form an embryo that attaches to the uterus. The placenta passes food and oxygen from the mother to the baby and removes wastes; pregnancy lasts about 9 months (40 weeks). The menstrual cycle is about 28 days, with ovulation about day 14.",
+          ex("Explain the difference between pollination and fertilisation", ["Pollination: the transfer of pollen from anther to stigma.", "Fertilisation: the fusion of the male gamete (from the pollen tube) with the egg inside the ovule.", "Pollination must happen before fertilisation."]),
+        ],
+        devices: ["Gametes: pollen and ovule in plants; sperm and egg in animals.", "Ovule becomes the seed; ovary becomes the fruit.", "Insect-pollinated: bright and scented. Wind-pollinated: light pollen in large amounts.", "The placenta exchanges materials between mother and baby.", "Asexual reproduction gives identical offspring; sexual gives variety."],
+        classwork: [{ q: "Name the male part of a flower.", a: "The stamen (anther and filament)." }, { q: "Where does fertilisation take place in humans?", a: "In the fallopian tube (oviduct)." }, { q: "What does the ovary of a flower become after fertilisation?", a: "The fruit." }],
+        assignment: [{ q: "State two features of a wind-pollinated flower.", a: "Small dull petals, long anthers hanging outside, feathery stigmas, large amounts of light pollen." }, { q: "State the functions of the placenta.", a: "It supplies the baby with food and oxygen and removes carbon dioxide and wastes." }],
+        quiz: [mc("The female part of a flower is the", "carpel", "stamen", "sepal", "filament"), mc("Pollination is the transfer of pollen to the", "stigma", "ovule", "sepal", "root"), mc("Sperm are made in the", "testes", "ovary", "uterus", "kidney"), mc("The fruit develops from the", "ovary", "anther", "petal", "sepal")],
+      },
+      {
+        title: "Chapter 7 · Genetics and Evolution", focus: "Inheritance, Mendel's laws, sickle-cell and natural selection", label: "Chapter 7",
+        scene: sc(["🧬", "🌱", "🦒"], "#e9e0ff", "#c9e7a5", "Children resemble their parents because of genes."),
+        diagram: PUNNETT,
+        lines: [
+          "P|Genetics is the study of heredity: how characteristics pass from parents to offspring. Genes are units of inheritance carried on chromosomes in the nucleus. Humans have 46 chromosomes (23 pairs). Different forms of a gene are called alleles.",
+          table(["Term", "Meaning"], [["Dominant allele", "shows its effect even when only one copy is present (T)"], ["Recessive allele", "shows only when two copies are present (t)"], ["Genotype", "the alleles an organism has (Tt)"], ["Phenotype", "the visible characteristic (tall)"], ["Homozygous", "two identical alleles (TT or tt)"], ["Heterozygous", "two different alleles (Tt)"]]),
+          ex("A tall pea plant (Tt) is crossed with another tall plant (Tt). Find the offspring", ["Gametes of each parent: T or t.", "Combine: TT, Tt, Tt, tt.", "Genotype ratio 1 TT : 2 Tt : 1 tt. Since T is dominant, 3 are tall (TT, Tt, Tt) and 1 is short (tt).", "Phenotype ratio 3 tall : 1 short."]),
+          "H|Sickle-cell",
+          "P|The sickle-cell gene is recessive. Genotype AA is normal, AS is a carrier (usually healthy) and SS has sickle-cell disease. Haemoglobin of SS is abnormal and the red cells bend into sickle shape.",
+          ex("Two carriers (AS × AS) have children. Find the chance of a child with sickle-cell disease", ["Gametes: A or S from each parent.", "Children: AA, AS, AS, SS.", "SS is 1 out of 4, so the chance is 1/4 or 25%. Half (50%) are carriers; 25% are normal AA."]),
+          "H|Variation and evolution",
+          "P|Variation (differences between individuals) comes from sexual reproduction and mutation (a sudden change in a gene). Charles Darwin's theory of natural selection: organisms produce more offspring than can survive; those best suited to their environment survive and pass on their useful features. Over many generations this brings about evolution.",
+        ],
+        devices: ["Dominant allele: capital letter. Recessive allele: small letter.", "Phenotype is what you see; genotype is the alleles.", "Monohybrid cross Tt × Tt gives 3 : 1.", "Marry two AS carriers: 25% chance of SS in each child. Genotype test before marriage is wise.", "Natural selection: survival of the fittest; variation is needed."],
+        classwork: [{ q: "What is an allele?", a: "One of the different forms of a gene." }, { q: "A plant is TT. What is its genotype and phenotype?", a: "Genotype TT (homozygous dominant); phenotype tall." }, { q: "What is a mutation?", a: "A sudden change in a gene or chromosome." }],
+        assignment: [{ q: "Cross a heterozygous tall plant (Tt) with a short plant (tt). State the ratio of offspring.", a: "Gametes T, t and t, t give Tt, Tt, tt, tt: 1 tall : 1 short (50% each)." }, { q: "Explain why a marriage between two sickle-cell carriers is risky.", a: "Each child has a 25% chance of having sickle-cell disease (SS)." }],
+        quiz: [mc("Tt × Tt gives phenotypes in the ratio", "3 : 1", "1 : 1", "2 : 1", "4 : 0"), mc("The visible characteristic of an organism is its", "phenotype", "genotype", "allele", "chromosome"), mc("Two AS carriers can have a child with genotype", "SS", "only AA", "only AS", "only AAS"), mc("Natural selection was proposed by", "Charles Darwin", "Gregor Mendel", "Louis Pasteur", "Isaac Newton")],
+      },
+    ]],
+  ],
+  review: [
+    mc("The part of the cell that releases energy is the", "mitochondrion", "nucleus", "vacuole", "ribosome"),
+    mc("The products of photosynthesis are glucose and", "oxygen", "carbon dioxide", "water", "nitrogen"),
+    mc("A relationship in which one organism benefits and the other is harmed is", "parasitism", "mutualism", "commensalism", "predation only"),
+    mc("Blood from the lungs enters the heart at the", "left atrium", "right atrium", "right ventricle", "left ventricle"),
+    mc("Insulin is made by the", "pancreas", "liver", "kidney", "thyroid"),
+    mc("The ovule becomes the", "seed", "fruit", "petal", "stigma"),
+    mc("An AS × AS cross can give a child with the genotype", "SS", "only AA", "only AS", "SSS"),
+    mc("Iodine solution turns blue-black with", "starch", "protein", "fat", "sugar"),
+  ],
+});

@@ -26,7 +26,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   { key: "sms", label: "SMS", blurb: "Text messages to parents, students and staff. Messages queue until an SMS provider key is added.", status: "needs_keys", defaultOn: false, prefixes: ["/portal/sms"] },
   { key: "finance", label: "Finance", blurb: "School fees and receipts, payroll and payslips, ledger, expense register, approvals.", status: "built", defaultOn: true,
     prefixes: ["/portal/fees", "/portal/payroll", "/portal/payslips", "/portal/ledger", "/portal/expenses"] },
-  { key: "library", label: "Library", blurb: "Book catalogue, borrowing, returns, overdue books and a free e-library of textbooks and classics. Staff with access can add books.", status: "new", defaultOn: false, prefixes: ["/portal/library"] },
+  { key: "library", label: "Library", blurb: "Book catalogue, borrowing, returns, overdue books and a free e-library of textbooks and classics. Staff with access can add books.", status: "new", defaultOn: true, prefixes: ["/portal/library"] },
   { key: "rewards", label: "Games & Rewards", blurb: "Educational games (Easy, Medium, Hard), loyalty levels and reward badges for study, classwork and games.", status: "new", defaultOn: true, prefixes: ["/portal/games", "/portal/rewards"] },
   { key: "hostel", label: "Hostel", blurb: "Hostel blocks, rooms and beds, and which student sleeps where.", status: "new", defaultOn: false, prefixes: ["/portal/hostel"] },
 ];

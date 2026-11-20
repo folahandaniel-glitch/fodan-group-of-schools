@@ -7,7 +7,7 @@ describe("Developer switchboard", () => {
   it("lists the fifteen modules, with unbuilt or keyless ones off by default", () => {
     expect(PLATFORM_MODULES.map((m) => m.key)).toEqual(["registration", "attendance", "crm", "hrm", "academics", "notifications", "lms", "cbt", "knowledge", "exams", "sms", "finance", "library", "rewards", "hostel"]);
     expect(DEFAULT_PLATFORM.modules.sms).toBe(false);
-    expect(DEFAULT_PLATFORM.modules.library).toBe(false);
+    expect(DEFAULT_PLATFORM.modules.library).toBe(true);
     expect(DEFAULT_PLATFORM.modules.hostel).toBe(false);
     expect(DEFAULT_PLATFORM.modules.crm && DEFAULT_PLATFORM.modules.finance && DEFAULT_PLATFORM.modules.cbt).toBe(true);
   });
@@ -252,6 +252,38 @@ describe("exam preparation courses", () => {
       const seen = new Set<string>(); let n = 0;
       for (let r = 0; r < 60; r++) for (const q of periodQuestions({ subject: s.as, level: 12, topic: ["algebra equations", "tenses verb concord", "vocabulary"][r % 3], day: (r % 3) + 1, kind: `t${r}`, topicId: "x", wide: true })) { if (!seen.has(q.text)) { seen.add(q.text); n++; } }
       expect(n, `${c.cat} ${s.name}`).toBeGreaterThanOrEqual(10);
+    }
+  });
+});
+
+import { TEXTBOOKS } from "@/content/cbt";
+import { bestUnit } from "@/lib/textbook-match";
+describe("illustrated textbooks", () => {
+  it("brings in the textbooks with full chapters", () => {
+    expect(TEXTBOOKS.length).toBeGreaterThanOrEqual(12);
+    const chapters = TEXTBOOKS.reduce((a, b) => a + b.work.units.length, 0);
+    expect(chapters).toBeGreaterThan(90);
+    for (const b of TEXTBOOKS) for (const u of b.work.units) { expect(u.lines.length).toBeGreaterThanOrEqual(2); expect(u.classwork.length).toBeGreaterThan(0); expect(u.quiz.length).toBeGreaterThan(0); }
+  });
+  it("matches a topic to its chapter for the right class only", () => {
+    const m = bestUnit("Mathematics", 7, "Whole Numbers");
+    expect(m?.key).toBe("maths-jss");
+    expect(bestUnit("Mathematics", 10, "Whole Numbers")?.key).not.toBe("maths-jss");
+  });
+});
+
+import { unzipSync } from "fflate";
+import { TEMPLATE_EXTS, buildTemplate } from "@/lib/templates";
+describe("library templates", () => {
+  it("builds a valid starter file for every allowed type", () => {
+    for (const ext of TEMPLATE_EXTS) {
+      const t = buildTemplate(ext);
+      expect(t.data.length, ext).toBeGreaterThan(100);
+      if (ext === "docx") expect(Object.keys(unzipSync(t.data))).toContain("word/document.xml");
+      if (ext === "xlsx") expect(Object.keys(unzipSync(t.data))).toContain("xl/workbook.xml");
+      if (ext === "pptx") { const f = unzipSync(t.data); expect(Object.keys(f)).toEqual(expect.arrayContaining(["ppt/presentation.xml", "ppt/slides/slide1.xml", "ppt/theme/theme1.xml"])); }
+      if (ext === "pdf") { const s = Buffer.from(t.data).toString("latin1"); expect(s.startsWith("%PDF-")).toBe(true); expect(s.trimEnd().endsWith("%%EOF")).toBe(true); }
+      if (ext === "mp3") { expect(t.data[0]).toBe(0xff); expect(t.data[1] & 0xe0).toBe(0xe0); }
     }
   });
 });

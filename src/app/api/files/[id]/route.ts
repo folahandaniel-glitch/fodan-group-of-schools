@@ -20,7 +20,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       // Learners may only open files attached to published resources or their own photo.
       const [ok] = await sql`
         SELECT 1 FROM resources WHERE file_id = ${id} AND published = true
-        UNION SELECT 1 FROM users WHERE photo_file = ${id} AND id = ${me.id}`;
+        UNION SELECT 1 FROM users WHERE photo_file = ${id} AND id = ${me.id}
+        UNION SELECT 1 FROM lib_books WHERE file_id = ${id}`;
       if (!ok) return new Response("Not found", { status: 404 });
     }
   }
