@@ -74,3 +74,12 @@ export async function saveMaintenance(_p: State, fd: FormData): Promise<State> {
   done();
   return { ok: fd.get("on") === "on" ? "The public website is now in maintenance mode." : "The public website is live." };
 }
+
+export async function saveClock(_p: State, fd: FormData): Promise<State> {
+  let me; try { me = await gate(); } catch { return { error: "You do not have permission." }; }
+  const style = ["DIGITAL", "ANALOG", "BOTH", "OFF"].includes(clean(fd.get("style"), 8)) ? clean(fd.get("style"), 8) : "DIGITAL";
+  await setSetting("studio", { ...(await studio()), clock: { style, seconds: fd.get("seconds") === "on", hour12: fd.get("hour12") === "on", label: clean(fd.get("label"), 30) || "Lagos time" } });
+  await audit({ schoolId: me.schoolId, actorId: me.id, action: "studio.clock", entity: "settings", entityId: "studio", meta: { style } });
+  done();
+  return { ok: "Home page clock saved." };
+}

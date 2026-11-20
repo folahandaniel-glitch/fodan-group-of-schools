@@ -64,6 +64,7 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
     hiddenSections: [] as string[],
     seo: { title: "", description: "", keywords: "", ogFile: "" },
     bar: { on: false, text: "", link: "", tone: "gold" },
+    clock: { style: "DIGITAL", seconds: true, hour12: false, label: "Lagos time" },
     maintenance: { on: false, message: "We are making improvements and will be back shortly." },
   },
   features: { registration: true, parentLinking: true, mocks: true, studyCentre: true, ai: false },

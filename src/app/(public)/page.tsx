@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { allSettings, getSchool } from "@/lib/settings";
+import { LiveClock, type ClockOptions } from "@/components/live-clock";
 import { siteText } from "@/lib/site-text";
 import { publicContent } from "@/lib/content";
 import { sql } from "@/lib/db";
@@ -63,6 +64,7 @@ export default async function Home() {
             </div>
             <div className="absolute -bottom-5 -left-4 rounded-2xl border border-line bg-white p-2 shadow-lg"><Logo size={72} /></div>
             <div className="absolute -right-3 top-10 rounded-2xl border border-gold-2/50 bg-strong px-4 py-3 text-white shadow-xl"><p className="font-display text-2xl leading-none text-gold-2">{t.hero.badgeValue}</p><p className="mt-1 text-[0.65rem] font-bold uppercase tracking-widest text-white/70">{t.hero.badgeLabel}</p></div>
+            {(() => { const clock = ((s.studio as { clock?: ClockOptions } | undefined)?.clock ?? { style: "DIGITAL", seconds: true }) as ClockOptions; return clock.style !== "OFF" ? <LiveClock o={clock} className="absolute -bottom-5 -right-3" /> : null; })()}
           </div>
         </div>
       </section>

@@ -6,14 +6,14 @@ import { str } from "@/lib/data";
 import { allSettings } from "@/lib/settings";
 import { Badge, Card, Field, PageHeader, TextArea } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
-import { saveBar, saveMaintenance, saveSeo, saveSections, uploadMedia } from "./actions";
+import { saveBar, saveClock, saveMaintenance, saveSeo, saveSections, uploadMedia } from "./actions";
 
 export const metadata = { title: "Website Studio" };
 export const dynamic = "force-dynamic";
 
 const SECTION_LABEL: [string, string][] = [["glance", "Key facts strip"], ["about", "About"], ["values", "Founder's message"], ["academics", "Academics & structure"], ["exams", "Exam preparation"],
   ["facilities", "Facilities & activities"], ["news", "News, events & announcements"], ["team", "Our staff"], ["portals", "Portals"], ["faq", "FAQ"]];
-const TABS: [string, string][] = [["overview", "Overview"], ["sections", "Homepage sections"], ["seo", "Search & sharing"], ["bar", "Announcement bar"], ["media", "Media library"], ["maintenance", "Maintenance"]];
+const TABS: [string, string][] = [["overview", "Overview"], ["sections", "Homepage sections"], ["seo", "Search & sharing"], ["bar", "Announcement bar"], ["clock", "Home page clock"], ["media", "Media library"], ["maintenance", "Maintenance"]];
 const TOOLS: [string, string, string][] = [
   ["/portal/settings?tab=brand", "Branding & logo", "Names, taglines, logo"], ["/portal/settings?tab=home", "Homepage content", "Hero, about, vision, values"],
   ["/portal/settings?tab=site", "Website text", "Every label, heading and button"], ["/portal/settings?tab=content", "News, events, FAQ", "Everything visitors read"],
@@ -30,7 +30,7 @@ export default async function Studio({ searchParams }: { searchParams: Promise<R
   const tabs = TABS.filter(([k]) => k !== "maintenance" || dev);
   const tab = tabs.find((t) => t[0] === str(sp.tab))?.[0] ?? "overview";
   const s = await allSettings();
-  const st = (s.studio ?? {}) as { hiddenSections: string[]; seo: Record<string, string>; bar: Record<string, any>; maintenance: Record<string, any> };
+  const st = (s.studio ?? {}) as { hiddenSections: string[]; seo: Record<string, string>; bar: Record<string, any>; maintenance: Record<string, any>; clock?: Record<string, any> };
   const hidden = new Set(st.hiddenSections ?? []);
   const media = tab === "media" ? await sql`SELECT id, name, size, created_at FROM files WHERE school_id = ${me.schoolId} AND public AND mime LIKE 'image/%' ORDER BY created_at DESC LIMIT 60` : [];
 
@@ -84,6 +84,18 @@ export default async function Studio({ searchParams }: { searchParams: Promise<R
             <div className="sm:col-span-2"><Field label="Message" name="text" defaultValue={st.bar?.text} /></div>
             <Field label="Link (optional)" name="link" defaultValue={st.bar?.link} placeholder="https://… or /contact" />
             <div className="field"><label htmlFor="tone">Colour</label><select id="tone" name="tone" defaultValue={st.bar?.tone ?? "gold"} className="select"><option value="gold">Gold</option><option value="navy">Navy</option><option value="green">Green</option><option value="red">Red</option></select></div>
+          </ActionForm>}
+        </Card>
+      )}
+
+      {tab === "clock" && (
+        <Card><h2 className="text-xl">Home page clock</h2>
+          <p className="mt-1 text-sm text-muted">The live Lagos clock on the home page. Choose a digital clock, an analogue clock, both, or hide it.</p>
+          {edit && <ActionForm action={saveClock} submit="Save" className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="field"><label htmlFor="cs">Type of clock</label><select id="cs" name="style" defaultValue={st.clock?.style ?? "DIGITAL"} className="select"><option value="DIGITAL">Digital (numbers)</option><option value="ANALOG">Analogue (clock face)</option><option value="BOTH">Both</option><option value="OFF">Hide the clock</option></select></div>
+            <Field label="Label under the clock" name="label" defaultValue={st.clock?.label ?? "Lagos time"} />
+            <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="seconds" defaultChecked={st.clock?.seconds !== false} /> Show seconds</label>
+            <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="hour12" defaultChecked={!!st.clock?.hour12} /> 12-hour time (AM / PM)</label>
           </ActionForm>}
         </Card>
       )}
