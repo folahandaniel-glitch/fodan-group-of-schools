@@ -26,13 +26,16 @@ export async function importScheme(schoolId: string): Promise<{ added: number; t
   return { added: after - before, total: after };
 }
 
-/** Adds Primary 1 to 6 once, for schools that loaded the JSS and SSS scheme earlier. Cheap when already loaded. */
+/** Makes sure the whole scheme of work (Primary 1 to SSS 3) is loaded: adds whichever stage is missing, once. Cheap when already loaded. */
 export async function ensurePrimaryScheme(schoolId: string): Promise<void> {
-  const [{ n }] = await sql`SELECT count(*)::int AS n FROM curriculum_topics WHERE school_id = ${schoolId} AND level <= 6`;
-  if (n > 0) return;
-  const part = primaryRows().map(([level, subject, term, week, topic, content, teaching]) => ({ level, subject, term, week, topic, content, teaching: teaching === 1 }));
-  await sql`INSERT INTO curriculum_topics (school_id, level, subject, term, week, topic, content, teaching)
-    SELECT ${schoolId}::uuid, level, subject, term, week, topic, content, teaching FROM jsonb_to_recordset(${sql.json(part as never)}) AS x(level int, subject text, term int, week text, topic text, content text, teaching boolean) ON CONFLICT DO NOTHING`;
+  const [c] = await sql`SELECT count(*) FILTER (WHERE level <= 6)::int AS pri, count(*) FILTER (WHERE level BETWEEN 7 AND 9)::int AS jss, count(*) FILTER (WHERE level >= 10)::int AS sss FROM curriculum_topics WHERE school_id = ${schoolId}`;
+  const all = [...primaryRows(), ...(scheme as unknown as [number, string, number, string, string, string, number][])];
+  const need = all.filter(([level]) => (level <= 6 ? c.pri === 0 : level <= 9 ? c.jss === 0 : c.sss === 0));
+  for (let i = 0; i < need.length; i += 400) {
+    const part = need.slice(i, i + 400).map(([level, subject, term, week, topic, content, teaching]) => ({ level, subject, term, week, topic, content, teaching: teaching === 1 }));
+    await sql`INSERT INTO curriculum_topics (school_id, level, subject, term, week, topic, content, teaching)
+      SELECT ${schoolId}::uuid, level, subject, term, week, topic, content, teaching FROM jsonb_to_recordset(${sql.json(part as never)}) AS x(level int, subject text, term int, week text, topic text, content text, teaching boolean) ON CONFLICT DO NOTHING`;
+  }
 }
 
 /** Class levels this person may study: a student's own, their children's, or all levels for staff. */

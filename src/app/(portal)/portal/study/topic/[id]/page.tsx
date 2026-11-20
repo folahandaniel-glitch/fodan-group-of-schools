@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { can, requireMe } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import { TERM_NAMES, levelName, visibleLevels } from "@/lib/curriculum";
+import { TERM_NAMES, ensurePrimaryScheme, levelName, visibleLevels } from "@/lib/curriculum";
 import { Badge, Card, Field, PageHeader, TextArea } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { addResource, reviewLesson, reviewResource, saveLesson, startPeriodWork, toggleStudied } from "../../actions";
@@ -19,6 +19,7 @@ export default async function Topic({ params, searchParams }: { params: Promise<
   const me = await requireMe();
   const { id } = await params;
   const sp = await searchParams;
+  await ensurePrimaryScheme(me.schoolId);
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const [t] = await sql`SELECT * FROM curriculum_topics WHERE id = ${id} AND school_id = ${me.schoolId}`;
   if (!t) notFound();
