@@ -230,3 +230,12 @@ describe("knowledge hub, library and term helpers", () => {
     expect(termNo("Second Term")).toBe(2); expect(termNo("First Term")).toBe(1); expect(termNo("3rd Term")).toBe(3);
   });
 });
+
+import { DICTIONARY } from "@/data/dictionary";
+describe("school dictionary", () => {
+  it("is self-contained with unique words", () => {
+    expect(DICTIONARY.length).toBeGreaterThan(300);
+    expect(new Set(DICTIONARY.map((w) => w.word)).size).toBe(DICTIONARY.length);
+    for (const w of DICTIONARY) { expect(w.pos).toMatch(/^(noun|verb|adjective|adverb)$/); expect(w.meaning.length).toBeGreaterThanOrEqual(5); }
+  });
+});

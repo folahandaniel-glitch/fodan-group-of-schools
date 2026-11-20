@@ -3,7 +3,7 @@ import { can, requireMe } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { str } from "@/lib/data";
 import { TOPICS } from "@/data/knowledge";
-import { ensureKnowledge, lookupWord } from "@/lib/kh";
+import { ensureKnowledge } from "@/lib/kh";
 import { Card, Empty, Field, PageHeader, TextArea } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { addEntry, deleteEntry } from "./actions";
@@ -19,11 +19,10 @@ export default async function Knowledge({ searchParams }: { searchParams: Promis
   const adult = me.role !== "student";
   const topics = TOPICS.filter((t) => t.audience === "all" || adult);
   const t = topics.find((x) => x.key === str(sp.t));
-  const q = str(sp.q).trim().slice(0, 60), w = str(sp.w).trim();
+  const q = str(sp.q).trim().slice(0, 60), letter = str(sp.l).toLowerCase().slice(0, 1);
   const like = "%" + q.replace(/[%_\\]/g, "") + "%";
-  const rows = t ? await sql`SELECT id, title, body FROM kh_entries WHERE school_id = ${me.schoolId} AND topic = ${t.key} ${q ? sql`AND (title ILIKE ${like} OR body ILIKE ${like})` : sql``} ORDER BY title LIMIT 400` : [];
+  const rows = t ? await sql`SELECT id, title, body FROM kh_entries WHERE school_id = ${me.schoolId} AND topic = ${t.key} ${q ? sql`AND (title ILIKE ${like} OR body ILIKE ${like})` : sql``} ${t.key === "dictionary" && /^[a-z]$/.test(letter) ? sql`AND title ILIKE ${letter + "%"}` : sql``} ORDER BY lower(title) LIMIT 600` : [];
   const found = !t && q ? await sql`SELECT id, topic, title, body FROM kh_entries WHERE school_id = ${me.schoolId} AND (audience = 'all' ${adult ? sql`OR audience = 'adults'` : sql``}) AND (title ILIKE ${like} OR body ILIKE ${like}) ORDER BY title LIMIT 60` : [];
-  const dict = t?.key === "dictionary" && w ? await lookupWord(w) : null;
   const label = (k: string) => TOPICS.find((x) => x.key === k)?.label ?? k;
 
   return (
@@ -46,12 +45,9 @@ export default async function Knowledge({ searchParams }: { searchParams: Promis
           {t.note && <p role="note" className="mb-4 rounded-xl border border-gold-2 bg-gold-soft px-4 py-3 text-sm font-semibold">{t.note}</p>}
           {t.key === "law" && <p role="note" className="mb-4 rounded-xl border border-line bg-paper-2 px-4 py-3 text-sm">General information only. Not legal advice.</p>}
           {t.key === "dictionary" && (
-            <Card className="mb-5"><h2 className="text-xl">Look up any word</h2>
-              <form className="mt-2 flex flex-wrap gap-2"><input type="hidden" name="t" value="dictionary" /><input name="w" defaultValue={w} className="input !w-64" placeholder="Type a word" aria-label="Word to look up" /><button className="btn btn-gold btn-sm">Define</button></form>
-              {dict && ("error" in dict ? <p className="mt-3 text-sm font-semibold text-bad">{dict.error}</p> : (
-                <div className="mt-3"><p className="text-2xl font-black">{dict.word} <span className="text-base font-normal text-muted">{dict.phonetic}</span></p>
-                  {dict.entries.map((m, i) => <div key={i} className="mt-2"><p className="text-sm font-bold italic">{m.pos}</p><ol className="list-decimal pl-5 text-sm">{m.defs.map((d, k) => <li key={k}>{d}</li>)}</ol>{m.example && <p className="text-sm text-muted">Example: {m.example}</p>}</div>)}</div>))}
-              <p className="mt-3 text-xs text-muted">Definitions come from the free dictionaryapi.dev service, so any English word can be looked up. The list below is a starter set the school can grow.</p></Card>)}
+            <Card className="mb-5"><h2 className="text-xl">School dictionary</h2>
+              <p className="mt-1 text-sm text-muted">Words, meanings and word classes written for learners. Search above, or pick a letter. Staff with access can add words.</p>
+              <nav className="mt-3 flex flex-wrap gap-1" aria-label="Letters"><Link href="/portal/knowledge?t=dictionary" className={`badge ${!letter ? "badge-info" : ""}`}>All</Link>{"abcdefghijklmnopqrstuvwxyz".split("").map((c) => <Link key={c} href={`/portal/knowledge?t=dictionary&l=${c}`} className={`badge uppercase ${letter === c ? "badge-info" : ""}`}>{c}</Link>)}</nav></Card>)}
           {rows.length === 0 ? <Empty title="No entries">{q ? "Try another search." : "Nothing here yet."}</Empty> : (
             <div className="grid gap-3 md:grid-cols-2">{rows.map((e) => (
               <Card key={e.id as string}><div className="flex items-start justify-between gap-2"><h3 className="text-lg">{e.title as string}</h3>
