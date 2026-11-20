@@ -239,3 +239,19 @@ describe("school dictionary", () => {
     for (const w of DICTIONARY) { expect(w.pos).toMatch(/^(noun|verb|adjective|adverb)$/); expect(w.meaning.length).toBeGreaterThanOrEqual(5); }
   });
 });
+
+import { PREP, VARIANTS } from "@/lib/exam-prep";
+describe("exam preparation courses", () => {
+  it("covers all requested examinations with CA, terminal and practice papers", () => {
+    const cats = PREP.map((c) => c.cat);
+    for (const k of ["waec", "neco", "jamb", "ijmb", "jupeb", "toefl", "ielts", "sat"]) expect(cats).toContain(k);
+    expect(VARIANTS.map((v) => v.key)).toEqual(["ca", "exam", "practice"]);
+  });
+  it("can make a full paper of unique questions for every course subject", () => {
+    for (const c of PREP) for (const s of c.subjects) {
+      const seen = new Set<string>(); let n = 0;
+      for (let r = 0; r < 60; r++) for (const q of periodQuestions({ subject: s.as, level: 12, topic: ["algebra equations", "tenses verb concord", "vocabulary"][r % 3], day: (r % 3) + 1, kind: `t${r}`, topicId: "x", wide: true })) { if (!seen.has(q.text)) { seen.add(q.text); n++; } }
+      expect(n, `${c.cat} ${s.name}`).toBeGreaterThanOrEqual(10);
+    }
+  });
+});

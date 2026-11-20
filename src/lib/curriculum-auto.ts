@@ -38,7 +38,7 @@ export async function loadStandardQuestions(assessmentId: string): Promise<numbe
   const seen = new Set<string>(), qs: ReturnType<typeof periodQuestions> = [];
   for (let round = 0; qs.length < want && round < 40; round++) {
     const t = pool[round % pool.length];
-    for (const q of periodQuestions({ subject: a.subject as string, level: (a.level as number) ?? 7, topic: t.topic as string, day: (round % 3) + 1, kind: `${a.kind}-${a.class_id}-${round}`, topicId: String(t.id) })) {
+    for (const q of periodQuestions({ subject: a.subject as string, level: (a.level as number) ?? 7, topic: t.topic as string, day: (round % 3) + 1, kind: `${a.kind}-${a.class_id}-${round}`, topicId: String(t.id), wide: true })) {
       if (!seen.has(q.text) && qs.length < want) { seen.add(q.text); qs.push(q); }
     }
   }

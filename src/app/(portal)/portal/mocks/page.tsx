@@ -15,7 +15,7 @@ export default async function Mocks({ searchParams }: { searchParams: Promise<{ 
   const sp = await searchParams;
   const st = await studentOf(me.id);
   if (!st) return <Empty title="Student record not found" />;
-  const elig = (await getSetting<Record<string, number[]>>("eligibility")) ?? DEFAULT_EXAM_ELIGIBILITY;
+  const elig = { ...DEFAULT_EXAM_ELIGIBILITY, ...((await getSetting<Record<string, number[]>>("eligibility")) ?? {}) };
   const level = st.class_level as number;
   const cats = MOCK_CATEGORIES.filter((c) => (elig[c.key] ?? []).includes(level));
   const rows = cats.length ? await sql`

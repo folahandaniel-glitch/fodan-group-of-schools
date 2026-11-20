@@ -7,7 +7,7 @@ import { Badge, Card, Empty, Field, PageHeader } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { PrintButton } from "@/components/print-button";
 import { addMin } from "@/lib/logic/exam-tt";
-import { addSlot, deleteSlot, generateTimetable, loadTermAssessments, publishTimetable, uploadTimetable } from "./actions";
+import { addSlot, deleteSlot, generateTimetable, loadExamPrepBanks, loadTermAssessments, publishTimetable, uploadTimetable } from "./actions";
 
 export const metadata = { title: "Exam timetable" };
 export const dynamic = "force-dynamic";
@@ -42,6 +42,7 @@ export default async function Exams({ searchParams }: { searchParams: Promise<Re
       <PageHeader title="Exam timetable" sub="When each CA test and terminal exam holds. Exam times and duration follow this timetable." actions={manage && <Link href="/portal/exams/integrity" className="btn btn-ghost">Integrity & make-ups</Link>} />
 
       {manage && <Card className="mb-5"><h2 className="text-xl">Standard questions</h2><p className="mt-1 text-sm text-muted">Create this term's CA test (20 questions, weeks 1 to 7) and terminal exam (40 questions, weeks 1 to 13) for every class and subject, built from the scheme of work. Run it once; it skips anything already loaded.</p><ActionForm action={loadTermAssessments} submit="Load CA and exam questions" small className="mt-3"><span /></ActionForm></Card>}
+      {manage && <Card className="mb-5"><h2 className="text-xl">Exam-preparation courses</h2><p className="mt-1 text-sm text-muted">Load a CA test, terminal examination and practice paper for every subject of WAEC, NECO, JAMB, IJMB, JUPEB, BECE, Common Entrance, TOEFL, IELTS and SAT. They appear in each student's Mock centre.</p><ActionForm action={loadExamPrepBanks} submit="Load exam-preparation papers" small className="mt-3"><span /></ActionForm></Card>}
       {manage && (
         <div className="mb-5 grid gap-5 lg:grid-cols-2">
           <Card><h2 className="text-xl">Generate automatically</h2>

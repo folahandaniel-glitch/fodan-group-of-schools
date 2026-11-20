@@ -26,6 +26,11 @@ export const DEFAULT_EXAM_ELIGIBILITY: Record<string, number[]> = {
   neco: [11, 12],
   waec: [11, 12],
   jamb: [11, 12],
+  ijmb: [10, 11, 12],
+  jupeb: [10, 11, 12],
+  toefl: [10, 11, 12],
+  ielts: [10, 11, 12],
+  sat: [10, 11, 12],
   international: [5, 6, 8, 9, 11, 12],
 };
 
@@ -35,6 +40,11 @@ export const MOCK_CATEGORIES: { key: string; label: string; blurb: string }[] = 
   { key: "neco", label: "NECO", blurb: "Senior secondary preparation for SSS 2 and SSS 3." },
   { key: "waec", label: "WAEC", blurb: "WASSCE-style preparation for SSS 2 and SSS 3." },
   { key: "jamb", label: "JAMB", blurb: "UTME-style computer-based practice for SSS 2 and SSS 3." },
+  { key: "ijmb", label: "IJMB", blurb: "Interim Joint Matriculation Board A-Level preparation." },
+  { key: "jupeb", label: "JUPEB", blurb: "Joint Universities Preliminary Examinations Board preparation." },
+  { key: "toefl", label: "TOEFL", blurb: "English proficiency for study abroad: reading, structure and writing skills." },
+  { key: "ielts", label: "IELTS", blurb: "English proficiency: reading, vocabulary, grammar and writing skills." },
+  { key: "sat", label: "SAT", blurb: "College-entrance reading, writing and mathematics." },
   { key: "international", label: "International", blurb: "Configurable international-style preparation and entrance assessments." },
 ];
 

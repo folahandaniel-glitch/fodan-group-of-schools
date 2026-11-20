@@ -6,6 +6,7 @@ import { audit, clean } from "@/lib/security";
 import { currentTerm } from "@/lib/settings";
 import { saveUpload } from "@/lib/files";
 import { loadStandardQuestions } from "@/lib/curriculum-auto";
+import { loadExamPrep } from "@/lib/exam-prep";
 import { addMin, examDays, findClash, generateExamTimetable, type Slot } from "@/lib/logic/exam-tt";
 
 type State = { error?: string; ok?: string };
@@ -149,15 +150,33 @@ export async function loadTermAssessments(_p: State, fd: FormData): Promise<Stat
   void fd;
   const term = await currentTerm();
   if (!term) return { error: "Set the current term first (Settings, Academic calendar)." };
-  const pairs = await sql`SELECT cs.class_id, cs.subject_id FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE c.school_id = ${me.schoolId} AND NOT c.archived`;
+  const pairs = [...(await sql`SELECT cs.class_id, cs.subject_id FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE c.school_id = ${me.schoolId} AND NOT c.archived`)] as { class_id: string; subject_id: string }[];
+  // every subject of the scheme of work for that class level, even if not yet assigned to the class
+  const cls = await sql`SELECT id, level FROM classes WHERE school_id = ${me.schoolId} AND NOT archived`;
+  for (const c of cls) {
+    const names = await sql`SELECT DISTINCT subject FROM curriculum_topics WHERE school_id = ${me.schoolId} AND level = ${c.level} AND teaching`;
+    for (const n of names) {
+      const [sub] = await sql`INSERT INTO subjects (school_id, name) VALUES (${me.schoolId}, ${n.subject as string}) ON CONFLICT (school_id, name) DO UPDATE SET name = EXCLUDED.name RETURNING id`;
+      if (!pairs.some((p) => p.class_id === c.id && p.subject_id === sub.id)) pairs.push({ class_id: c.id as string, subject_id: sub.id as string });
+    }
+  }
   let made = 0, filled = 0;
   for (const p of pairs) for (const kind of ["ca", "exam"]) {
     let [a] = await sql`SELECT id FROM assessments WHERE school_id = ${me.schoolId} AND kind = ${kind} AND class_id = ${p.class_id} AND subject_id = ${p.subject_id} AND term_id = ${term.id} AND topic_id IS NULL LIMIT 1`;
     if (!a) { [a] = await sql`INSERT INTO assessments (school_id, kind, title, subject_id, class_id, term_id, duration_min, attempt_limit, randomize, release_mode, status, created_by)
-      SELECT ${me.schoolId}, ${kind}, s.name || ${kind === "ca" ? " CA test" : " examination"}, ${p.subject_id}, ${p.class_id}, ${term.id}, ${kind === "ca" ? 45 : 70}, 1, true, 'manual', 'draft', ${me.id} FROM subjects s WHERE s.id = ${p.subject_id} RETURNING id`; made++; }
-    const nq = await loadStandardQuestions(a.id as string);
-    if (nq > 0) { filled++; await sql`UPDATE assessments SET status = 'published' WHERE id = ${a.id} AND status = 'draft'`; }
+      SELECT ${me.schoolId}, ${kind}, s.name || ${kind === "ca" ? " CA test" : " examination"}, ${p.subject_id}, ${p.class_id}, ${term.id}, ${kind === "ca" ? 45 : 70}, 1, true, 'manual', 'published', ${me.id} FROM subjects s WHERE s.id = ${p.subject_id} RETURNING id`; made++; }
+    else { const [h] = await sql`SELECT 1 AS x FROM assessment_questions WHERE assessment_id = ${a.id} LIMIT 1`; if (h) filled++; }
   }
   done();
-  return { ok: `${made} new assessments created and ${filled} filled with standard questions for this term. Put them on the timetable to set their dates.` };
+  return { ok: `${made} CA tests and terminal exams created for every subject of every class this term (${filled} already had questions). Standard questions are prepared the first time each paper is opened. Put them on the timetable to set their dates.` };
+}
+
+/** Creates a CA test, a terminal examination and a practice paper for every subject of WAEC, NECO, JAMB, IJMB, JUPEB, BECE, Common Entrance, TOEFL, IELTS and SAT. */
+export async function loadExamPrepBanks(_p: State, fd: FormData): Promise<State> {
+  const me = await requirePerm("exams:manage");
+  void fd;
+  const r = await loadExamPrep(me.schoolId, me.id);
+  done();
+  revalidatePath("/portal/mocks");
+  return { ok: `${r.made} new papers created (${r.total - r.made} already existed). Students find them in the Mock centre; questions are prepared the first time a paper is opened.` };
 }

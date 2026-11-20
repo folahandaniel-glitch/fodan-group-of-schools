@@ -6,6 +6,8 @@ import { getSetting } from "./settings";
 import { award, workPoints } from "./loyalty";
 import { DEFAULT_EXAM_ELIGIBILITY } from "./logic/academics";
 import { getRules, minutesFor } from "./exam-rules";
+import { fillPrepQuestions } from "./exam-prep";
+import { loadStandardQuestions } from "./curriculum-auto";
 import { getPlatform } from "./platform-server";
 import { featureOn } from "./platform";
 
@@ -33,7 +35,7 @@ export async function startAttempt(assessmentId: string, student: { id: string; 
   if (a.kind !== "mock" && a.class_id !== student.class_id) return { ok: false, error: "This assessment is not assigned to your class." };
   if (a.kind === "mock" && a.class_id && a.class_id !== student.class_id) return { ok: false, error: "This mock is not assigned to your class." };
   if (a.kind === "mock" && a.mock_category) {
-    const elig = (await getSetting<Record<string, number[]>>("eligibility")) ?? DEFAULT_EXAM_ELIGIBILITY;
+    const elig = { ...DEFAULT_EXAM_ELIGIBILITY, ...((await getSetting<Record<string, number[]>>("eligibility")) ?? {}) };
     const [c] = await sql`SELECT level FROM classes WHERE id = ${student.class_id}`;
     if (!c || !(elig[a.mock_category] ?? []).includes(c.level)) return { ok: false, error: "This mock is not available for your class level." };
   }
@@ -61,6 +63,8 @@ export async function startAttempt(assessmentId: string, student: { id: string; 
   const [{ n }] = await sql`SELECT count(*)::int AS n FROM attempts WHERE assessment_id = ${assessmentId} AND student_id = ${student.id}`;
   if (!grant && n >= a.attempt_limit) return { ok: false, error: "You have used all your attempts for this assessment." };
 
+  if (a.kind === "mock" && String(a.topic ?? "").startsWith("prep|")) await fillPrepQuestions(assessmentId);
+  if (a.kind === "ca" || a.kind === "exam") await loadStandardQuestions(assessmentId); // standard questions are prepared the first time a paper is opened
   const pool = await sql`SELECT q.id, q.options FROM assessment_questions aq JOIN questions q ON q.id = aq.question_id
                          WHERE aq.assessment_id = ${assessmentId} AND q.status = 'APPROVED'`;
   if (pool.length === 0) return { ok: false, error: "This assessment has no approved questions yet." };
